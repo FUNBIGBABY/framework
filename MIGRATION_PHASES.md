@@ -86,10 +86,18 @@
 - 留接口：所有写鉴权依赖的代码只写 `Depends(get_current_user_id)`，不要在 Phase 0 内重写它的实现，让 Phase 1 替换。
 - 留接口：`.env.example` 中预留 `DEEPSEEK_*`、`DATABASE_URL`（Postgres）、`EMBEDDING_*`、`OBJECT_STORE_*`，让 Phase 2/3/4 直接读。
 
+### Step 0.6 Legacy Cloud LLM 默认禁用（Phase 0.1）
+- `docker-compose.yml` 不允许再默认注入 `LLM_TYPE` / `LOCAL_LLM_*`，也不允许保留旧 GCP Llama IP 默认值。
+- `docker-entrypoint.sh` 不再探测 `LOCAL_LLM_URL`，避免部署时误连客户旧 Cloud LLM。
+- `.env.example` 只保留 `ENABLE_LEGACY_LLM=false` 作为显式 guardrail，不再列出 `LOCAL_LLM_*` 占位符。
+- `backend_py/llm_local.py` 默认 fail-fast；只有显式 `ENABLE_LEGACY_LLM=true` 时才能跑旧 Ollama/GCP 路径。个人 DeepSeek API 迁移中不要开启它。
+- Phase 3 仍负责真正接入 DeepSeekProvider，并删除/降级剩余 `llm_local` / `llm_global` / OpenAI 直连业务调用。
+
 ### 验收
 - `git log` 不含 service account JSON。
 - `gitleaks detect --source . -v` 无真实 secret；`grep -rE "(your-secret-key|34\.87\.13\.228)" backend_py/ frontend/` 无命中；`sk-` 只允许出现在 `.env.example` 的占位示例中。
 - 启动 backend，缺 `JWT_SECRET_KEY` 时直接报错。
+- `docker-compose.yml` / `docker-entrypoint.sh` 中没有 `34.87.13.228`、`LOCAL_LLM_*` 或 `LLM_TYPE`；`LLMClient()` 在未设置 `ENABLE_LEGACY_LLM=true` 时会 fail-fast。
 - README 里写明"方案 A、个人自用、白名单制"。
 
 ---

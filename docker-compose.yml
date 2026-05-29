@@ -26,19 +26,16 @@ services:
       - PORT=8000
       - WORKERS=1
       
-      # LLM Configuration
-      - LLM_TYPE=${LLM_TYPE:-cloud}
-      - LOCAL_LLM_URL=${LOCAL_LLM_URL:-http://34.87.13.228:8000/v1}
-      - LOCAL_LLM_MODEL=${LOCAL_LLM_MODEL:-meta-llama/Llama-3.1-8B-Instruct}
-      - LOCAL_LLM_API_KEY=${LOCAL_LLM_API_KEY}
-      
-      # OpenAI Configuration
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-
-      # Vector Store Configuration
-      - OPENAI_VECTOR_STORE_API_KEY=${OPENAI_VECTOR_STORE_API_KEY}
-      - OPENAI_VECTOR_STORE_LIBRARY=${OPENAI_VECTOR_STORE_LIBRARY}
-      - OPENAI_VECTOR_STORE_ACTIVITY=${OPENAI_VECTOR_STORE_ACTIVITY}
+      # LLM API Configuration
+      # Legacy GCP/self-hosted Cloud LLM defaults are intentionally disabled.
+      # Phase 3 will route generation through the DeepSeek provider.
+      - LLM_PROVIDER=${LLM_PROVIDER:-deepseek}
+      - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - DEEPSEEK_MODEL_DEFAULT=${DEEPSEEK_MODEL_DEFAULT:-deepseek-v4-flash}
+      - DEEPSEEK_MODEL_REASONING=${DEEPSEEK_MODEL_REASONING:-deepseek-v4-pro}
+      - DEEPSEEK_THINKING_MODE=${DEEPSEEK_THINKING_MODE:-false}
+      - ENABLE_LEGACY_LLM=${ENABLE_LEGACY_LLM:-false}
     
     restart: unless-stopped
     

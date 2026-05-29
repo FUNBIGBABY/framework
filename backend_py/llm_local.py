@@ -518,6 +518,18 @@ class LLMClient:
         host: Optional[str] = None,
         api_key: Optional[str] = None,
     ):
+        legacy_enabled = os.getenv("ENABLE_LEGACY_LLM", "false").lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
+        if not legacy_enabled:
+            raise RuntimeError(
+                "Legacy llm_local/Ollama/GCP LLM path is disabled. "
+                "Use the DeepSeek provider after Phase 3 migration."
+            )
+
         # Get configuration from environment variables or parameters
         self.llm_type = llm_type or os.getenv("LLM_TYPE", "local")
 

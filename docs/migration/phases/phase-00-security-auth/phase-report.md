@@ -15,6 +15,8 @@ No password hash migration, refresh token flow, JWT cookie migration, frontend `
 - `backend_py/test_cloud_llm.py`
 - `backend_py/test_vec_base.py`
 - `backend_py/test_firebase.py`
+- `docker-compose.yml`
+- `docker-entrypoint.sh`
 - `firebaseDoc.md`
 - `PROJECT_AUDIT_AND_MIGRATION_PLAN.md`
 - `MIGRATION_PHASES.md`
@@ -55,10 +57,7 @@ No private key or API key values are reproduced in this report.
 - `DEEPSEEK_MODEL_DEFAULT`
 - `DEEPSEEK_MODEL_REASONING`
 - `DEEPSEEK_THINKING_MODE`
-- `LLM_TYPE`
-- `LOCAL_LLM_URL`
-- `LOCAL_LLM_MODEL`
-- `LOCAL_LLM_API_KEY`
+- `ENABLE_LEGACY_LLM`
 - `EMBEDDING_PROVIDER`
 - `EMBEDDING_MODEL`
 - `EMBEDDING_DIM`
@@ -74,7 +73,7 @@ No private key or API key values are reproduced in this report.
 The following customer-specific hardcodes still exist and are deferred to later Phases. These are not fully refactored in Phase 0.
 
 - `framework-builder-55896`: `firebaseDoc.md`, `backend_py/test_firebase.py`.
-- `34.87.13.228`: `docker-compose.yml`, `backend_py/diagnose_env.py`, `backend_py/app/api/frameworks.py`.
+- `34.87.13.228`: `backend_py/diagnose_env.py`, `backend_py/app/api/frameworks.py`.
 - `valorie.ai`: `deploy.sh`, `nginx-valorie.conf`, `backend_py/app/api/frameworks.py`, multiple frontend files under `frontend/src`.
 - `webmaster@valorie.ai`: `frontend/src/lib/firebase.js`.
 - `ad.unsw.edu.au`: `frontend/src/components/AdminPanel.jsx`, `frontend/src/lib/firebase.js`.
@@ -84,7 +83,7 @@ The following customer-specific hardcodes still exist and are deferred to later 
 
 Recommended later ownership:
 
-- Phase 3: remove legacy GCP LLM endpoint assumptions while switching to DeepSeek.
+- Phase 3: remove remaining legacy GCP/Ollama LLM endpoint assumptions while switching to DeepSeek.
 - Phase 5-7: remove Firebase, Firestore, customer domain, deploy, and frontend legacy paths.
 - Phase 4/9: replace OpenAI Vector Store with Postgres + pgvector as the core path.
 
@@ -94,6 +93,7 @@ Recommended later ownership:
 - Firebase Auth and Firebase ID Token are not part of the new project route.
 - OpenAI Vector Store is not a core path and should later be replaced by pgvector.
 - DeepSeek V4 is the default LLM direction, but Phase 0 does not implement `DeepSeekProvider`.
+- Legacy `llm_local` / Ollama / GCP Cloud LLM code path is disabled by default through `ENABLE_LEGACY_LLM=false`; it should not be used in the personal DeepSeek API migration.
 - The project boundary is personal use only unless a later compliance review changes that.
 
 ## Manual Actions Required
@@ -114,12 +114,21 @@ Recommended later ownership:
 - All `__pycache__` directories under the main project were removed.
 - The same Firebase/GCP service account JSON private key file was also removed from the deprecated `C:\Users\micha\Desktop\newvalorie\valorie-expert-studio-main` tree to reduce accidental reuse risk.
 
+## Phase 0.1 Legacy Cloud LLM Guardrail
+
+- `docker-compose.yml` no longer injects `LLM_TYPE`, `LOCAL_LLM_URL`, `LOCAL_LLM_MODEL`, `LOCAL_LLM_API_KEY`, or the old GCP URL default.
+- `docker-compose.yml` now exposes only the intended DeepSeek API configuration plus `ENABLE_LEGACY_LLM=false`.
+- `docker-entrypoint.sh` no longer probes `LOCAL_LLM_URL` or performs a Cloud LLM health check.
+- `backend_py/llm_local.py` now fails fast unless `ENABLE_LEGACY_LLM=true`, so the old Ollama/GCP path cannot run accidentally before Phase 3 replaces it with `LLMProvider`.
+- `.env.example` documents `ENABLE_LEGACY_LLM=false` and no longer lists `LOCAL_LLM_*` placeholders.
+
 ## Verification Summary
 
 - Firebase admin SDK JSON file check: `MISSING`.
 - Hardcoded JWT placeholder search: no matches.
 - Missing `JWT_SECRET_KEY` import check: raises `RuntimeError`.
 - `LOCAL_LLM_API_KEY` fallback search in `llm_local.py` and `test_cloud_llm.py`: no matches.
+- Legacy Cloud LLM guardrail check: `docker-compose.yml` has no `34.87.13.228`, no `LOCAL_LLM_*`, and no `LLM_TYPE`; `llm_local.LLMClient()` fails fast unless `ENABLE_LEGACY_LLM=true`.
 - Strict redacted secret scan for long `sk-` values, Firebase Web API keys, private key blocks, `private_key`, and the prior test credential strings: `NO_MATCHES`.
 - Planning document presence check in the main project root: passed.
 - `__pycache__` / `.pyc` scan after cleanup: no matches.

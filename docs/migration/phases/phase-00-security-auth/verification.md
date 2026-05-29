@@ -167,3 +167,27 @@ rg -n --hidden -S 'AIza[0-9A-Za-z_-]{20,}|huangboyuan|hby199|sk-[A-Za-z0-9_-]{20
 ```
 
 Result: `NO_MATCHES`.
+
+## Phase 0.1 Legacy Cloud LLM Guardrail
+
+Commands:
+
+```powershell
+rg -n '34\.87\.13\.228|LOCAL_LLM|LLM_TYPE|OPENAI_API_KEY|OPENAI_VECTOR_STORE' docker-compose.yml docker-entrypoint.sh .env.example
+```
+
+Result: no legacy Cloud LLM / OpenAI Vector Store deployment env remains in `docker-compose.yml` or `docker-entrypoint.sh`; `.env.example` keeps only `ENABLE_LEGACY_LLM=false` as an explicit guardrail.
+
+Command:
+
+```powershell
+python -c "import sys; sys.path.insert(0, 'backend_py'); from llm_local import LLMClient; LLMClient()"
+```
+
+Result:
+
+```text
+RuntimeError: Legacy llm_local/Ollama/GCP LLM path is disabled. Use the DeepSeek provider after Phase 3 migration.
+```
+
+This confirms the old `llm_local` path cannot run accidentally before Phase 3 replaces it with `LLMProvider`.

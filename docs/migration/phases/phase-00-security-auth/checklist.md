@@ -8,5 +8,8 @@
 - [x] Create `docs/PERSONAL_USE_BOUNDARY.md`.
 - [x] Create `docs/migration/decisions/ADR-0001-auth-strategy.md`.
 - [x] Run secret and hardcode grep checks.
+- [x] Disable legacy GCP/Ollama LLM defaults before Phase 3.
+- [x] Remove old Cloud LLM health check from Docker entrypoint.
+- [x] Verify `llm_local.LLMClient()` fails fast unless `ENABLE_LEGACY_LLM=true`.
 - [x] Record manual action: customer must revoke the exposed GCP key.
 - [x] Record whether git history should be rebuilt.
