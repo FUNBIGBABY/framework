@@ -5,6 +5,7 @@ Required env:
 - SUPER_ADMIN_EMAIL
 - SUPER_ADMIN_PASSWORD
 - JWT_SECRET_KEY
+- SEED_ADMIN_RESET_PASSWORD=true to reset an existing admin password
 
 The current User model has no is_admin column. Until the database migration phase,
 the configured SUPER_ADMIN_EMAIL is the admin identity boundary.
@@ -31,6 +32,10 @@ def _required_env(name: str) -> str:
     return value.strip()
 
 
+def _env_enabled(name: str) -> bool:
+    return os.getenv(name, "false").strip().lower() == "true"
+
+
 def _default_username(email: str) -> str:
     local_part = email.split("@", 1)[0]
     safe = "".join(ch if ch.isalnum() or ch in {"_", "-"} else "_" for ch in local_part)
@@ -49,12 +54,24 @@ def main() -> None:
             valid_password, needs_rehash = verify_password_with_rehash(
                 password, user.password_hash
             )
-            if valid_password and needs_rehash:
-                user.password_hash = hash_password(password)
-                db.commit()
-                print(f"Existing admin password hash upgraded for {email}")
-            else:
-                print(f"Admin user already exists: {email}")
+            if valid_password:
+                if needs_rehash:
+                    user.password_hash = hash_password(password)
+                    db.commit()
+                    print(f"Existing admin password hash upgraded for {email}")
+                else:
+                    print(f"Admin user already exists and password verified: {email}")
+                return
+
+            if not _env_enabled("SEED_ADMIN_RESET_PASSWORD"):
+                raise RuntimeError(
+                    "Admin user already exists but SUPER_ADMIN_PASSWORD does not match. "
+                    "Set SEED_ADMIN_RESET_PASSWORD=true to reset it."
+                )
+
+            user.password_hash = hash_password(password)
+            db.commit()
+            print(f"Existing admin password reset for {email}")
             return
 
         existing_username = db.query(User).filter(User.username == username).first()

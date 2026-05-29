@@ -33,7 +33,7 @@ class User(Base):
     id = sa.Column(sa.String, primary_key=True, index=True)  # e.g. "user_xxx"
     email = sa.Column(sa.String, unique=True, nullable=False, index=True)
     username = sa.Column(sa.String, unique=True, nullable=False, index=True)
-    password_hash = sa.Column(sa.String, nullable=False)  # bcrypt hashed password
+    password_hash = sa.Column(sa.String, nullable=False)  # Argon2id password hash
 
     # Timestamps
     created_at = sa.Column(sa.DateTime, default=datetime.utcnow)

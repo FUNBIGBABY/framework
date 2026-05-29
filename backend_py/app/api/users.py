@@ -238,7 +238,11 @@ def get_current_user_info(current_user: User = Depends(get_current_user)):
 
 
 @router.get("/check-email/{email}")
-def check_email_availability(email: str, db: Session = Depends(get_db)):
+def check_email_availability(
+    email: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """
     Check if email is available (used for frontend real-time validation)
 
@@ -253,7 +257,11 @@ def check_email_availability(email: str, db: Session = Depends(get_db)):
 
 
 @router.get("/check-username/{username}")
-def check_username_availability(username: str, db: Session = Depends(get_db)):
+def check_username_availability(
+    username: str,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     """
     Check if username is available (used for frontend real-time validation)
 

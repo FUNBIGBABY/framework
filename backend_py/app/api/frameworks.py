@@ -1960,7 +1960,9 @@ def generate_docx(framework_data: dict) -> bytes:
 
 # Export endpoint
 @router.post("/export-markdown")
-async def export_markdown_from_data(framework_data: dict):
+async def export_markdown_from_data(
+    framework_data: dict, current_user_id: str = Depends(get_current_user_id)
+):
     """
     Receive complete framework data, generate and return Markdown files.
 
@@ -2005,7 +2007,9 @@ async def export_markdown_from_data(framework_data: dict):
 
 
 @router.post("/export-docx")
-async def export_docx_from_data(framework_data: dict):
+async def export_docx_from_data(
+    framework_data: dict, current_user_id: str = Depends(get_current_user_id)
+):
     """
     Receive complete framework data, generate and return a Word document.
 
@@ -2050,7 +2054,9 @@ async def export_docx_from_data(framework_data: dict):
 
 
 @router.post("/regenerate")
-async def regenerate_framework(request: RegenerateRequest):
+async def regenerate_framework(
+    request: RegenerateRequest, current_user_id: str = Depends(get_current_user_id)
+):
     """
     Regenerate the framework (improved by user editing).
 
@@ -2282,7 +2288,9 @@ class AIMergeRequest(BaseModel):
 
 
 @router.post("/ai-merge")
-async def ai_merge_frameworks(request: AIMergeRequest):
+async def ai_merge_frameworks(
+    request: AIMergeRequest, current_user_id: str = Depends(get_current_user_id)
+):
     """
     Use AI to intelligently merge multiple frameworks
 
@@ -2505,7 +2513,9 @@ def parse_ai_json_response(text):
 
 
 @router.post("/ai-fill")
-async def ai_fill_sections(request: AIFillRequest):
+async def ai_fill_sections(
+    request: AIFillRequest, current_user_id: str = Depends(get_current_user_id)
+):
     """
     Use AI to fill empty section content based on context
     """
@@ -2658,7 +2668,11 @@ Requirements:
 
 
 @router.post("/sync-library")
-def sync_library(req: SyncLibraryRequest, db: Session = Depends(get_db)):
+def sync_library(
+    req: SyncLibraryRequest,
+    current_user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
     import requests as _requests
 
     project_id = _read_project_id(req.project_id)
@@ -2806,7 +2820,9 @@ def log_event(
 
 
 @router.post("/push-framework")
-def push_framework(req: PushFrameworkRequest):
+def push_framework(
+    req: PushFrameworkRequest, current_user_id: str = Depends(get_current_user_id)
+):
     print("=" * 60)
     print("🔧 DEBUG: push_framework called")
     print(f"   - Request data: {req}")
