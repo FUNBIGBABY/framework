@@ -127,6 +127,12 @@ async def schedule_library_sync():
     async def job():
         while True:
             try:
+                legacy_vector_enabled = os.getenv(
+                    "OPENAI_VECTOR_STORE_ENABLED", "false"
+                ).lower() in {"1", "true", "yes", "on"}
+                if not legacy_vector_enabled:
+                    await asyncio.sleep(60)
+                    continue
                 req = SyncLibraryRequest(
                     project_id=os.getenv("FIREBASE_PROJECT_ID"),
                     api_key=os.getenv("VITE_FIREBASE_API_KEY")
@@ -137,7 +143,7 @@ async def schedule_library_sync():
                 )
                 db = SessionLocal()
                 try:
-                    sync_library(req, db)
+                    sync_library(req, current_user_id="startup-sync", db=db)
                 finally:
                     db.close()
             except Exception as e:  # pylint: disable=broad-exception-caught

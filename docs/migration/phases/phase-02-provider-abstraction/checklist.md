@@ -1,0 +1,22 @@
+# Phase 02 Checklist - Provider Abstraction
+
+- [x] Add `LLMProvider` interface with `chat`, `stream`, `tool_call`, and `generate_json`
+- [x] Add `DeepSeekProvider` as a Phase 2 stub, selected by default through `LLM_PROVIDER=deepseek`
+- [x] Add `OpenAILegacyProvider` for compatibility only; it is not the default LLM provider
+- [x] Add `VectorStoreProvider` interface with `upsert_vectors`, `search_by_vector`, and `delete`
+- [x] Add `PgVectorProvider` as a Phase 2 stub
+- [x] Add `OpenAIVectorStoreLegacyProvider` behind `OPENAI_VECTOR_STORE_ENABLED=false`
+- [x] Add `EmbeddingProvider` interface with readable `dim` and batch `embed`
+- [x] Add DashScope and local BGE embedding stubs
+- [x] Add `ObjectStoreProvider` interface with MinIO, OSS, and S3 stubs
+- [x] Split `frameworks.py` into generation, CRUD, exports, AI ops, and vector sync routers
+- [x] Keep `/api/frameworks/*` route paths unchanged through an aggregate router
+- [x] Preserve Phase 1.1 JWT dependencies on high-cost and legacy sync endpoints
+- [x] Remove direct OpenAI client construction from `backend_py/app/api`
+- [x] Move core framework generation to `get_llm_provider().generate_json()`
+- [x] Remove `llm_global` / `call_openai_framework` / `resolve_api_settings` API-layer call gates
+- [x] Remove OpenAI-key gates from AI merge/fill provider calls
+- [x] Keep legacy local/Ollama path behind `ENABLE_LEGACY_LLM=true`
+- [x] Add provider factory tests and keep auth hardening tests passing
+- [x] Do not connect real DeepSeek, pgvector, DashScope, OSS, MinIO, S3, Agent, RAG, LLMWiki, or frontend Firebase migration
+- [x] Record verification commands and results
