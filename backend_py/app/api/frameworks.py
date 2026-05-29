@@ -5,8 +5,6 @@ from fastapi import (
     HTTPException,
     BackgroundTasks,
     Depends,
-    Form,
-    Query,
 )
 from fastapi.responses import Response
 from pydantic import BaseModel
@@ -54,7 +52,6 @@ class TextGenerateRequest(BaseModel):
     text: str
     use_global_llm: bool = True
     model: str = "gpt-4o"
-    user_id: Optional[str] = None
 
 
 class GenerateResponse(BaseModel):
@@ -732,9 +729,9 @@ def save_framework_to_db(
 @router.post("/generate-from-text", response_model=GenerateResponse)
 async def generate_from_text(
     request: TextGenerateRequest,
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
-    user_id = getattr(request, "user_id", None)
     """
     From a text generation framework (login required)
 
@@ -1027,9 +1024,7 @@ async def generate_from_files(
     files: List[UploadFile] = File(...),
     use_global_llm: bool = True,
     model: str = "gpt-4o",
-    # No need for this anymore, change to firebase
-    ## user_id: str = Depends(get_current_user_id),
-    user_id: str = Form(None),
+    user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
     """
@@ -1336,7 +1331,9 @@ async def generate_from_files(
 
 # New feature: Retrieve all frameworks for the current user.
 @router.get("/my-frameworks", response_model=List[FrameworkListResponse])
-def get_my_frameworks(user_id: str = Query(None), db: Session = Depends(get_db)):
+def get_my_frameworks(
+    user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)
+):
     """
     Get all frameworks created by the current user
 
@@ -2784,7 +2781,9 @@ def sync_library(req: SyncLibraryRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/log-event")
-def log_event(req: EventLogRequest):
+def log_event(
+    req: EventLogRequest, user_id: str = Depends(get_current_user_id)
+):
     vs_id = os.getenv("OPENAI_VECTOR_STORE_ACTIVITY")
     if not vs_id:
         raise HTTPException(
@@ -2797,7 +2796,7 @@ def log_event(req: EventLogRequest):
         "type": req.type,
         "frameworkId": req.framework_id,
         "tenantId": req.tenant_id,
-        "userId": req.user_id,
+        "userId": user_id,
         "timestamp": now,
         "data": req.payload or {},
     }

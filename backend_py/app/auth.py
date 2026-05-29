@@ -1,6 +1,9 @@
 """
-JWT Authentication utilities (simplified version)
-Using Python's built-in hashlib for password hashing
+JWT authentication utilities.
+
+Password hashes are Argon2id for all new credentials. Legacy SHA-256+salt
+hashes remain verifiable so old accounts can be rehashed after a successful
+login.
 """
 
 from datetime import datetime, timedelta
@@ -9,10 +12,9 @@ import hashlib
 import os
 import secrets
 
-SECRET_KEY = os.getenv("JWT_SECRET_KEY")
-if not SECRET_KEY:
-    raise RuntimeError("JWT_SECRET_KEY environment variable is required")
-
+from argon2 import PasswordHasher
+from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
+from argon2.low_level import Type
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
@@ -25,58 +27,75 @@ from .models import User
 # ============= Configuration =============
 
 # JWT configuration
+SECRET_KEY = os.getenv("JWT_SECRET_KEY")
+if not SECRET_KEY:
+    raise RuntimeError("JWT_SECRET_KEY environment variable is required")
+
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_DAYS = 7
 
 # HTTP Bearer authentication
 security = HTTPBearer()
 
+# Argon2id password hashing
+password_hasher = PasswordHasher(type=Type.ID)
+ARGON2ID_PREFIX = "$argon2id$"
 
-# ============= Password hashing/verification (using hashlib) =============
+
+# ============= Password hashing/verification =============
 
 
 def hash_password(password: str) -> str:
-    """
-    Encrypt password using SHA-256 + salt
-
-    Args:
-        password: plain password
-
-    Returns:
-        Encrypted password hash (format: salt$hash)
-    """
-    # Generate random salt
-    salt = secrets.token_hex(16)
-
-    # Use SHA-256 hashing
-    pwd_hash = hashlib.sha256((salt + password).encode("utf-8")).hexdigest()
-
-    # Return format: salt$hash
-    return f"{salt}${pwd_hash}"
+    """Hash a plaintext password with Argon2id."""
+    return password_hasher.hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """
-    Verify password
+    """Verify a password against Argon2id or the legacy SHA-256+salt format."""
+    valid, _needs_rehash = verify_password_with_rehash(
+        plain_password, hashed_password
+    )
+    return valid
 
-    Args:
-        plain_password: plain password
-        hashed_password: encrypted password hash (format: salt$hash)
 
-    Returns:
-        Whether the password matches
-    """
+def verify_password_with_rehash(
+    plain_password: str, hashed_password: str
+) -> tuple[bool, bool]:
+    """Return (valid, needs_rehash) for Argon2id or legacy SHA-256+salt hashes."""
+    if not hashed_password:
+        return False, False
+
+    if hashed_password.startswith(ARGON2ID_PREFIX):
+        try:
+            valid = password_hasher.verify(hashed_password, plain_password)
+        except (VerifyMismatchError, InvalidHashError, VerificationError, TypeError):
+            return False, False
+
+        if not valid:
+            return False, False
+
+        try:
+            return True, password_hasher.check_needs_rehash(hashed_password)
+        except (InvalidHashError, VerificationError, TypeError):
+            return True, False
+
+    if _verify_legacy_sha256_password(plain_password, hashed_password):
+        return True, True
+
+    return False, False
+
+
+def _verify_legacy_sha256_password(
+    plain_password: str, hashed_password: str
+) -> bool:
+    """Verify the old salt$sha256(salt + password) format."""
     try:
-        # Split salt and hash
-        salt, stored_hash = hashed_password.split("$")
-
-        # Recompute hash using same salt
+        salt, stored_hash = hashed_password.split("$", 1)
+        if not salt or len(stored_hash) != 64:
+            return False
         pwd_hash = hashlib.sha256((salt + plain_password).encode("utf-8")).hexdigest()
-
-        # Compare hashes
-        return pwd_hash == stored_hash
-    except Exception as e:
-        print(f"Password verification error: {e}")
+        return secrets.compare_digest(pwd_hash, stored_hash)
+    except (AttributeError, ValueError, TypeError):
         return False
 
 

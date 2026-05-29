@@ -8,13 +8,15 @@ from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr, validator
 from nanoid import generate
 from datetime import datetime
+import os
 
 from ..db import get_db
 from ..models import User
 from ..auth import (
     hash_password,
-    verify_password,
+    verify_password_with_rehash,
     create_access_token,
+    get_current_user,
     get_current_user_id,
 )
 
@@ -75,6 +77,23 @@ class AuthResponse(BaseModel):
 # ============= API Endpoints =============
 
 
+def _public_registration_enabled() -> bool:
+    return os.getenv("ENABLE_PUBLIC_REGISTER", "false").strip().lower() == "true"
+
+
+def _allowed_emails() -> set[str]:
+    raw = os.getenv("ALLOWED_EMAILS", "")
+    return {
+        email.strip().lower()
+        for email in raw.split(",")
+        if email.strip()
+    }
+
+
+def _email_is_allowed(email: str) -> bool:
+    return email.strip().lower() in _allowed_emails()
+
+
 @router.post(
     "/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED
 )
@@ -94,8 +113,16 @@ def register_user(request: UserRegisterRequest, db: Session = Depends(get_db)):
     - user: basic user info
     """
 
+    normalized_email = str(request.email).strip().lower()
+
+    if not _public_registration_enabled() or not _email_is_allowed(normalized_email):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Public registration is disabled",
+        )
+
     # Check if email already exists
-    existing_user_by_email = db.query(User).filter(User.email == request.email).first()
+    existing_user_by_email = db.query(User).filter(User.email == normalized_email).first()
     if existing_user_by_email:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered"
@@ -116,7 +143,7 @@ def register_user(request: UserRegisterRequest, db: Session = Depends(get_db)):
 
     new_user = User(
         id=user_id,
-        email=request.email,
+        email=normalized_email,
         username=request.username,
         password_hash=hashed_password,
         created_at=datetime.utcnow(),
@@ -160,7 +187,8 @@ def login_user(request: UserLoginRequest, db: Session = Depends(get_db)):
     """
 
     # Find user
-    user = db.query(User).filter(User.email == request.email).first()
+    normalized_email = str(request.email).strip().lower()
+    user = db.query(User).filter(User.email == normalized_email).first()
 
     if not user:
         raise HTTPException(
@@ -168,10 +196,16 @@ def login_user(request: UserLoginRequest, db: Session = Depends(get_db)):
         )
 
     # Verify password
-    if not verify_password(request.password, user.password_hash):
+    valid_password, needs_rehash = verify_password_with_rehash(
+        request.password, user.password_hash
+    )
+    if not valid_password:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password"
         )
+
+    if needs_rehash:
+        user.password_hash = hash_password(request.password)
 
     # Update last login time
     user.last_login = datetime.utcnow()
@@ -191,9 +225,7 @@ def login_user(request: UserLoginRequest, db: Session = Depends(get_db)):
 
 
 @router.get("/me", response_model=UserResponse)
-def get_current_user_info(
-    user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)
-):
+def get_current_user_info(current_user: User = Depends(get_current_user)):
     """
     Get current logged-in user's information
 
@@ -202,14 +234,7 @@ def get_current_user_info(
     **Returns:** Basic information of the current user
     """
 
-    user = db.query(User).filter(User.id == user_id).first()
-
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-        )
-
-    return UserResponse.from_orm(user)
+    return UserResponse.from_orm(current_user)
 
 
 @router.get("/check-email/{email}")
@@ -221,9 +246,10 @@ def check_email_availability(email: str, db: Session = Depends(get_db)):
     - available: true/false
     """
 
-    existing = db.query(User).filter(User.email == email).first()
+    normalized_email = email.strip().lower()
+    existing = db.query(User).filter(User.email == normalized_email).first()
 
-    return {"email": email, "available": existing is None}
+    return {"email": normalized_email, "available": existing is None}
 
 
 @router.get("/check-username/{username}")
