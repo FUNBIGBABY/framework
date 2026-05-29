@@ -10,6 +10,16 @@ python -m py_compile backend_py/app/auth.py backend_py/app/api/users.py backend_
 
 Result: passed with exit code `0`.
 
+## Stale Auth Docstring Scan
+
+Command:
+
+```powershell
+rg -n -i "no auth|no authentication|required authentication|temporary version|test results directly|Add this code" backend_py/app/api/frameworks.py
+```
+
+Result: no matches. `rg` exited `1`, which means no matching text was found.
+
 ## High-Cost / Write Endpoint JWT Check
 
 Command:
@@ -119,43 +129,73 @@ Result: no matches. `rg` exited `1`, which means no matching text was found.
 
 ## Pytest
 
-Initial command:
+Targeted auth hardening test command:
 
 ```powershell
+cd backend_py
+python -m pytest tests/test_auth_hardening.py -q
+```
+
+Result:
+
+```text
+tests\test_auth_hardening.py .........                                   [100%]
+9 passed, 3 warnings in 2.15s
+```
+
+Full backend test command:
+
+```powershell
+cd backend_py
 python -m pytest -q
 ```
 
-Initial result:
+Result:
 
 ```text
-C:\Users\micha\AppData\Local\Programs\Python\Python312\python.exe: No module named pytest
+tests\test_auth_hardening.py .........                                   [ 33%]
+tests\test_file_processing.py ................                           [ 92%]
+tests\test_main.py ..                                                    [100%]
+27 passed, 3 warnings in 2.06s
 ```
 
-Action taken:
+Warnings are existing Pydantic v2 deprecation warnings in `backend_py/app/api/users.py`; they are unrelated to this auth hardening patch.
+
+## Frontend Compatibility Debt Check
+
+Command:
 
 ```powershell
-python -m pip install -r backend_py/requirements.txt
+rg -n "user_id|currentUser|Firebase|firebase" frontend/src/lib/api.js
 ```
 
-Final command:
-
-```powershell
-$env:JWT_SECRET_KEY='phase1-test-secret-at-least-32-chars'; python -m pytest -q
-```
-
-Final result:
+Result:
 
 ```text
-..................                                                       [100%]
-18 passed in 2.76s
+4:import { auth } from './firebase'
+60: * Get Firebase User ID
+62:function getFirebaseUserId() {
+63:  const user = auth.currentUser
+121:  const userId = getFirebaseUserId()
+131:      user_id: userId,
+157:  const userId = getFirebaseUserId()
+159:  if (userId) formData.append('user_id', userId)
+201:  const userId = getFirebaseUserId()
+203:  if (userId) formData.append('user_id', userId)
+238:  const userId = getFirebaseUserId()
+242:  let url = `/api/frameworks/my-frameworks?user_id=${userId}`
+252:  const userId = getFirebaseUserId()
+256:  let url = `/api/frameworks/my-frameworks/by-family?user_id=${userId}`
 ```
+
+Interpretation: frontend Firebase `user_id` compatibility code still exists and is deferred to Phase 6. Backend routes now use JWT and no longer trust those values.
 
 ## Generated Cache Cleanup
 
 Command:
 
 ```powershell
-Get-ChildItem -Force -Directory -Recurse | Where-Object { $_.Name -in @('__pycache__', '.pytest_cache') } | Select-Object -ExpandProperty FullName
+Get-ChildItem -Force -Directory -Recurse | Where-Object { $_.Name -in @('__pycache__', '.pytest_cache', 'htmlcov', '.coverage') } | Select-Object -ExpandProperty FullName
 Get-ChildItem -Recurse -Force -Filter '*.pyc' | Select-Object -ExpandProperty FullName
 ```
 
@@ -172,10 +212,9 @@ git status --short
 Result:
 
 ```text
- M .env.example
  M backend_py/app/api/frameworks.py
- M backend_py/app/api/users.py
- M backend_py/app/models.py
- M backend_py/scripts/seed_admin.py
-?? docs/migration/phases/phase-01-1-auth-hardening/
+ M docs/migration/phases/phase-01-1-auth-hardening/checklist.md
+ M docs/migration/phases/phase-01-1-auth-hardening/phase-report.md
+ M docs/migration/phases/phase-01-1-auth-hardening/verification.md
+?? backend_py/tests/test_auth_hardening.py
 ```

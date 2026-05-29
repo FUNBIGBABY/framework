@@ -2292,9 +2292,9 @@ async def ai_merge_frameworks(
     request: AIMergeRequest, current_user_id: str = Depends(get_current_user_id)
 ):
     """
-    Use AI to intelligently merge multiple frameworks
+    Use AI to intelligently merge multiple frameworks.
 
-    Temporary version: No authentication required, returns test results directly.
+    Requires a valid JWT before any merge or mock-merge logic can run.
     """
     try:
         # Validate input
@@ -2471,7 +2471,6 @@ async def ai_merge_frameworks(
 
 
 # ============= AI Fill Endpoint =============
-# Add this code to your backend/app/api/frameworks.py file
 
 
 class AIFillRequest(BaseModel):
