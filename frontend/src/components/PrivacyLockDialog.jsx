@@ -98,8 +98,8 @@ export default function PrivacyLockDialog({
                       Privacy Notice
                     </p>
                     <p className="text-amber-800 text-sm mt-1">
-                      Your content will be sent directly to OpenAI without local
-                      processing.
+                      Your content will be sent directly to the configured AI
+                      provider without local processing.
                     </p>
                   </div>
                 </div>
@@ -205,7 +205,7 @@ export default function PrivacyLockDialog({
                       clipRule="evenodd"
                     />
                   </svg>
-                  <span>🔒 Only key information sent to OpenAI</span>
+                  <span>🔒 Only key information sent to the AI provider</span>
                 </div>
                 <div className="flex items-start gap-2">
                   <svg

@@ -1,6 +1,9 @@
 from io import BytesIO
+import os
 from pathlib import Path
 from types import SimpleNamespace
+
+os.environ.setdefault("JWT_SECRET_KEY", "test-secret-for-provider-abstractions-32-chars")
 
 import pytest
 from fastapi import HTTPException, UploadFile

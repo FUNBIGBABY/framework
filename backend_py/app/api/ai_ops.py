@@ -76,6 +76,7 @@ async def regenerate_framework(
                         {"role": "system", "content": system_prompt},
                         {"role": "user", "content": user_prompt},
                     ],
+                    reasoning=True,
                     temperature=0.3,
                     timeout=180.0,
                 )
@@ -232,6 +233,7 @@ async def ai_merge_frameworks(
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
+                reasoning=True,
                 temperature=0.4,
                 timeout=300.0,
             )
@@ -373,6 +375,7 @@ Requirements:
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt},
                 ],
+                reasoning=True,
                 temperature=0.4,
                 timeout=120.0,
             )

@@ -1,6 +1,13 @@
 import os, sys, json, argparse, re, time
 from typing import Dict, Any, Optional, List
 
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+if BACKEND_DIR not in sys.path:
+    sys.path.append(BACKEND_DIR)
+
+from app.services.llm import get_llm_provider, sanitize_model_for_provider
+from app.services.llm.model_policy import get_configured_llm_provider_name
+
 
 def log(msg: str, on: bool):
     if on:
@@ -406,29 +413,35 @@ def build_mock_framework(md: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
-# ---------- OpenAI call ----------
+# ---------- Legacy-compatible provider call ----------
 
 
 def resolve_api_settings(
     cli_key: Optional[str], cli_base: Optional[str]
 ) -> (Optional[str], Optional[str]):
-    key = cli_key or INLINE_API_KEY or os.getenv("OPENAI_API_KEY") or None
-    base = cli_base or INLINE_BASE_URL or os.getenv("OPENAI_BASE_URL") or None
+    selected = get_configured_llm_provider_name()
+    if selected in {"openai", "openai_legacy"}:
+        key = cli_key or INLINE_API_KEY or os.getenv("OPENAI_API_KEY") or None
+        base = cli_base or INLINE_BASE_URL or os.getenv("OPENAI_BASE_URL") or None
+    else:
+        key = cli_key or INLINE_API_KEY or os.getenv("DEEPSEEK_API_KEY") or None
+        base = cli_base or INLINE_BASE_URL or os.getenv("DEEPSEEK_BASE_URL") or None
     return key, base
 
 
 def call_openai_framework(
     md: Dict[str, Any],
-    model: str,
+    model: Optional[str],
     timeout: int,
-    api_key: str,
+    api_key: Optional[str],
     base_url: Optional[str],
     verbose: bool,
 ) -> Dict[str, Any]:
-    from openai import OpenAI
+    """Legacy function name kept for compatibility; calls the configured provider."""
 
     # clear proxies for safety
     original_proxies = {}
+    original_provider_env = {}
     proxy_keys = [
         "HTTP_PROXY",
         "HTTPS_PROXY",
@@ -445,15 +458,27 @@ def call_openai_framework(
             del os.environ[key]
 
     try:
-        if base_url:
-            client = OpenAI(
-                api_key=api_key,
-                base_url=base_url,
-                timeout=timeout,
-                max_retries=2,
-            )
+        selected = get_configured_llm_provider_name()
+        provider_env_updates = {}
+        if selected in {"openai", "openai_legacy"}:
+            if api_key:
+                provider_env_updates["OPENAI_API_KEY"] = api_key
+            if base_url:
+                provider_env_updates["OPENAI_BASE_URL"] = base_url
         else:
-            client = OpenAI(api_key=api_key, timeout=timeout, max_retries=2)
+            if api_key:
+                provider_env_updates["DEEPSEEK_API_KEY"] = api_key
+            if base_url:
+                provider_env_updates["DEEPSEEK_BASE_URL"] = base_url
+
+        for key, value in provider_env_updates.items():
+            original_provider_env[key] = os.environ.get(key)
+            os.environ[key] = value
+
+        provider = get_llm_provider()
+        provider_model = sanitize_model_for_provider(
+            model, provider_name=getattr(provider, "name", None)
+        )
 
         sys_prompt = (
             "You are a senior framework designer. Transform metadata into a comprehensive framework.\n\n"
@@ -618,37 +643,23 @@ def call_openai_framework(
             "Return ONLY a single valid JSON object matching the schema above."
         )
 
-        log(">> calling OpenAI...", verbose)
-        resp = client.chat.completions.create(
-            model=model,
-            temperature=0.2,
-            messages=[
+        log(">> calling configured LLM provider...", verbose)
+        return provider.generate_json(
+            [
                 {"role": "system", "content": sys_prompt},
                 {"role": "user", "content": user_prompt},
             ],
+            model=provider_model,
+            timeout=float(timeout),
         )
-        txt = (resp.choices[0].message.content or "").strip()
-
-        try:
-            return robust_json_loads(txt)
-        except Exception:
-            fix_msg = (
-                "Convert your previous answer to a single strict JSON object. "
-                "No markdown, no explanation, only JSON."
-            )
-            resp2 = client.chat.completions.create(
-                model=model,
-                temperature=0.0,
-                messages=[
-                    {"role": "system", "content": "You convert text to strict JSON."},
-                    {"role": "user", "content": txt},
-                    {"role": "system", "content": fix_msg},
-                ],
-            )
-            txt2 = (resp2.choices[0].message.content or "").strip()
-            return robust_json_loads(txt2)
 
     finally:
+        for key, value in original_provider_env.items():
+            if value is None:
+                os.environ.pop(key, None)
+            else:
+                os.environ[key] = value
+
         # restore proxies
         for key, value in original_proxies.items():
             os.environ[key] = value
@@ -660,12 +671,10 @@ def call_openai_framework(
 def main():
     ap = argparse.ArgumentParser(description="Global LLM framework generator")
     ap.add_argument("metadata", help="path to metadata JSON, or - for stdin")
-    ap.add_argument("--model", default="gpt-4o")
+    ap.add_argument("--model", default=None)
     ap.add_argument("--timeout", type=int, default=180)
-    ap.add_argument("--api-key", default=None, help="OpenAI API key (or use env)")
-    ap.add_argument(
-        "--base-url", default=None, help="custom OpenAI-compatible base URL"
-    )
+    ap.add_argument("--api-key", default=None, help="provider API key (or use env)")
+    ap.add_argument("--base-url", default=None, help="custom provider-compatible base URL")
     ap.add_argument("--verbose", action="store_true")
     ap.add_argument("--out", default="-")
     ap.add_argument(

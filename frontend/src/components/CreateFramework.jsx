@@ -345,7 +345,7 @@ function CreateFramework() {
       if (err instanceof APIError) {
         if (err.status === 503) {
           errorMessage =
-            'Ollama is not running. Please start it with: ollama serve'
+            'AI provider is unavailable or legacy local mode is disabled. Check server configuration.'
         } else if (err.status === 500) {
           errorMessage = `Server error: ${err.message}`
         } else {
@@ -793,7 +793,7 @@ function convertToSteps(framework) {
     })
   }
 
-  // Priority 2: Extract from workflow_layers (OpenAI's standard output)
+  // Priority 2: Extract from workflow_layers (provider output)
   if (workflowLayers.length > 0) {
     console.log('✅ Using workflow_layers')
     return workflowLayers.map((layer, index) => {

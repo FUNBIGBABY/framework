@@ -8,6 +8,10 @@ from collections import Counter
 
 sys.stdout.reconfigure(encoding="utf-8")
 
+BACKEND_DIR = pathlib.Path(__file__).resolve().parent
+if str(BACKEND_DIR) not in sys.path:
+    sys.path.append(str(BACKEND_DIR))
+
 
 def now_iso() -> str:
     s = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
@@ -502,13 +506,12 @@ class LLMClient:
     """
     Unified LLM client supporting:
     1. Local Ollama (legacy)
-    2. Cloud LLM (GCP Llama via OpenAI-compatible API)
+    2. Configured LLM provider metadata enhancement (legacy)
 
     Environment variables:
     - LLM_TYPE: "local" or "cloud"
-    - LOCAL_LLM_URL: Cloud LLM URL
-    - LOCAL_LLM_MODEL: Cloud LLM model name
-    - LOCAL_LLM_API_KEY: Cloud LLM API key
+    - OLLAMA_BASE_URL: required when LLM_TYPE="local"
+    - OLLAMA_MODEL: optional local Ollama model
     """
 
     def __init__(
@@ -534,43 +537,27 @@ class LLMClient:
         self.llm_type = llm_type or os.getenv("LLM_TYPE", "local")
 
         if self.llm_type == "cloud":
-            # Cloud LLM configuration
-            self.host = host or os.getenv("LOCAL_LLM_URL")
-            self.model = model or os.getenv("LOCAL_LLM_MODEL")
-            self.api_key = api_key or os.getenv("LOCAL_LLM_API_KEY")
+            from app.services.llm import get_llm_provider, sanitize_model_for_provider
 
-            missing = [
-                name
-                for name, value in {
-                    "LOCAL_LLM_URL": self.host,
-                    "LOCAL_LLM_MODEL": self.model,
-                    "LOCAL_LLM_API_KEY": self.api_key,
-                }.items()
-                if not value
-            ]
-            if missing:
-                raise RuntimeError(
-                    "Cloud LLM configuration missing: " + ", ".join(missing)
-                )
-
-            # Use OpenAI SDK
-            try:
-                from openai import OpenAI
-
-                self.client = OpenAI(
-                    base_url=self.host,
-                    api_key=self.api_key,
-                    timeout=300.0,  # Increase to 5 minutes
-                    max_retries=3,
-                )
-                print(f" Using Cloud LLM: {self.host}")
-            except ImportError:
-                raise ImportError("Please install OpenAI SDK: pip install openai")
+            self.host = host
+            self.api_key = api_key
+            self.provider = get_llm_provider()
+            self.model = sanitize_model_for_provider(
+                model or os.getenv("LOCAL_LLM_MODEL"),
+                provider_name=getattr(self.provider, "name", None),
+            )
+            self.client = None
+            print(" Using configured LLM provider for legacy metadata extraction")
 
         else:
             # Local Ollama configuration (backward compatibility)
-            self.model = model or "llama3.1:8b"
-            self.host = host or "http://127.0.0.1:11434"
+            self.model = model or os.getenv("OLLAMA_MODEL") or "llama3.1:8b"
+            self.host = host or os.getenv("OLLAMA_BASE_URL")
+            if not self.host:
+                raise RuntimeError(
+                    "OLLAMA_BASE_URL must be set when ENABLE_LEGACY_LLM=true "
+                    "and LLM_TYPE=local."
+                )
 
             # Validate localhost only
             assert self.host.startswith("http://127.0.0.1") or self.host.startswith(
@@ -597,7 +584,7 @@ class LLMClient:
             return self._generate_local(prompt, system)
 
     def _generate_cloud(self, prompt: str, system: str = "") -> str:
-        """Generate using Cloud LLM (OpenAI format)"""
+        """Generate using the configured provider."""
         try:
             messages = []
             if system:
@@ -627,19 +614,19 @@ class LLMClient:
                 f"   - Estimated total: ~{int(input_tokens_estimate) + max_tokens} / 4096"
             )
 
-            response = self.client.chat.completions.create(
-                model=self.model,
+            content = self.provider.chat(
                 messages=messages,
+                model=self.model,
                 max_tokens=max_tokens,
                 temperature=0.7,
+                timeout=300.0,
             )
 
-            content = response.choices[0].message.content
             return content.strip()
 
         except Exception as e:
-            print(f" Cloud LLM error: {e}")
-            raise RuntimeError(f"Cloud LLM call failed: {e}")
+            print(f" Configured provider error: {e}")
+            raise RuntimeError(f"Configured provider call failed: {e}")
 
     def _generate_local(self, prompt: str, system: str = "") -> str:
         """Generate using Local Ollama (original logic)"""
@@ -669,7 +656,7 @@ class OllamaClient(LLMClient):
     """Backward compatible alias"""
 
     def __init__(
-        self, model: str = "llama3.1:8b", host: str = "http://127.0.0.1:11434"
+        self, model: Optional[str] = None, host: Optional[str] = None
     ):
         super().__init__(llm_type="local", model=model, host=host)
 
