@@ -195,8 +195,7 @@ function CreateFramework() {
         // Calling the backend API - Text Generation
         const response = await generateFrameworkFromText(
           textContent,
-          !privacyLockEnabled,
-          'gpt-4o'
+          !privacyLockEnabled
         )
 
         console.log('✅ Framework generated:', response)
@@ -276,8 +275,7 @@ function CreateFramework() {
         // Calling the backend API - Generating multiple files
         const response = await generateFrameworkFromFiles(
           selectedFiles,
-          !privacyLockEnabled, // ✅ Modify here: Use the privacyLockEnabled state.
-          'gpt-4o'
+          !privacyLockEnabled // ✅ Modify here: Use the privacyLockEnabled state.
         )
 
         console.log('✅ Framework generated:', response)

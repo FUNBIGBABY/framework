@@ -12,7 +12,11 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from ..models import FRAMEWORK_GROUPS, Framework
-from ..services.llm import LLMProviderError, get_llm_provider
+from ..services.llm import (
+    LLMProviderError,
+    get_llm_provider,
+    sanitize_model_for_provider,
+)
 
 
 backend_root = Path(__file__).resolve().parents[2]
@@ -548,7 +552,12 @@ def process_with_global_llm(
             framework = build_mock_framework(metadata)
         else:
             print(" Calling configured LLM Provider")
-            framework = get_llm_provider().generate_json(
+            provider = get_llm_provider()
+            sanitized_model = sanitize_model_for_provider(
+                model,
+                provider_name=getattr(provider, "name", None),
+            )
+            framework = provider.generate_json(
                 [
                     {
                         "role": "system",
@@ -566,7 +575,7 @@ def process_with_global_llm(
                         ),
                     },
                 ],
-                model=model,
+                model=sanitized_model,
                 temperature=0.3,
                 timeout=180.0,
             )

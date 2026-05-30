@@ -116,21 +116,22 @@ async function apiRequest(url, options = {}) {
 export async function generateFrameworkFromText(
   text,
   useGlobalLLM = true,
-  model = 'gpt-4o'
+  model = undefined
 ) {
   const userId = getFirebaseUserId()
   const tenantId = getCurrentTenantId()
+  const payload = {
+    text,
+    use_global_llm: useGlobalLLM,
+    user_id: userId,
+    tenant_id: tenantId,
+  }
+  if (model) payload.model = model
 
   const response = await apiRequest('/api/frameworks/generate-from-text', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      text,
-      use_global_llm: useGlobalLLM,
-      model,
-      user_id: userId,
-      tenant_id: tenantId,
-    }),
+    body: JSON.stringify(payload),
   })
 
   if (!response.success) {
@@ -149,7 +150,7 @@ export async function generateFrameworkFromText(
 export async function generateFrameworkFromFile(
   file,
   useGlobalLLM = true,
-  model = 'gpt-4o'
+  model = undefined
 ) {
   const formData = new FormData()
   formData.append('file', file)
@@ -160,9 +161,13 @@ export async function generateFrameworkFromFile(
   if (tenantId) formData.append('tenant_id', tenantId)
 
   const token = getAuthToken()
+  const params = new URLSearchParams({
+    use_global_llm: String(useGlobalLLM),
+  })
+  if (model) params.set('model', model)
 
   const response = await fetch(
-    `${API_BASE_URL}/api/frameworks/generate-from-file?use_global_llm=${useGlobalLLM}&model=${model}`,
+    `${API_BASE_URL}/api/frameworks/generate-from-file?${params.toString()}`,
     {
       method: 'POST',
       headers: {
@@ -193,7 +198,7 @@ export async function generateFrameworkFromFile(
 export async function generateFrameworkFromFiles(
   files,
   useGlobalLLM = true,
-  model = 'gpt-4o'
+  model = undefined
 ) {
   const formData = new FormData()
   files.forEach(file => formData.append('files', file))
@@ -204,9 +209,13 @@ export async function generateFrameworkFromFiles(
   if (tenantId) formData.append('tenant_id', tenantId)
 
   const token = getAuthToken()
+  const params = new URLSearchParams({
+    use_global_llm: String(useGlobalLLM),
+  })
+  if (model) params.set('model', model)
 
   const response = await fetch(
-    `${API_BASE_URL}/api/frameworks/generate-from-files?use_global_llm=${useGlobalLLM}&model=${model}`,
+    `${API_BASE_URL}/api/frameworks/generate-from-files?${params.toString()}`,
     {
       method: 'POST',
       headers: {

@@ -22,6 +22,163 @@ from .frameworks_shared import (
 router = APIRouter()
 
 
+def _extract_keywords(title: str) -> list[str]:
+    return [word.strip() for word in title.lower().split() if len(word.strip()) > 3][:5]
+
+
+def _extract_sections_from_content(file_name: str, content: str) -> list[dict]:
+    sections = []
+    current_section_lines = []
+
+    for line in content.strip().split("\n")[:50]:
+        line_stripped = line.strip()
+        if not line_stripped:
+            continue
+
+        is_heading = len(line_stripped) < 100 and (
+            line_stripped[0].isdigit()
+            or line_stripped.isupper()
+            or any(
+                marker in line_stripped.lower()
+                for marker in ["step", "phase", "stage", "chapter"]
+            )
+        )
+
+        if is_heading:
+            if current_section_lines:
+                content_preview = " ".join(current_section_lines)[:200]
+                sections.append(
+                    {
+                        "title": f"{file_name}: {current_section_lines[0][:100]}",
+                        "content": content_preview,
+                        "level": 1,
+                        "source_file": file_name,
+                    }
+                )
+            current_section_lines = [line_stripped]
+        elif len(current_section_lines) < 3:
+            current_section_lines.append(line_stripped)
+
+    if current_section_lines:
+        content_preview = " ".join(current_section_lines)[:200]
+        sections.append(
+            {
+                "title": f"{file_name}: {current_section_lines[0][:100]}",
+                "content": content_preview,
+                "level": 1,
+                "source_file": file_name,
+            }
+        )
+
+    if not sections and content.strip():
+        sections.append(
+            {
+                "title": file_name,
+                "content": content[:200] + ("..." if len(content) > 200 else ""),
+                "level": 1,
+                "source_file": file_name,
+            }
+        )
+
+    return sections
+
+
+def build_deterministic_file_metadata(
+    file_names: list[str],
+    file_contents: list[str],
+) -> dict:
+    first_content = file_contents[0].strip() if file_contents else ""
+    first_lines = first_content.split("\n") if first_content else []
+    first_file_name = file_names[0] if file_names else "Uploaded File"
+
+    if len(file_contents) == 1:
+        potential_title = (
+            first_lines[0][:150].strip()
+            if first_lines and len(first_lines[0].strip()) > 10
+            else first_file_name
+        )
+    elif first_lines and len(first_lines[0].strip()) > 10:
+        potential_title = first_lines[0][:150].strip()
+    else:
+        potential_title = f"Framework from {len(file_names)} files"
+
+    simple_keywords = _extract_keywords(potential_title)
+    all_sections = []
+    for index, content in enumerate(file_contents):
+        file_name = file_names[index] if index < len(file_names) else f"File {index+1}"
+        all_sections.extend(_extract_sections_from_content(file_name, content))
+
+    if not all_sections:
+        all_sections = [
+            {
+                "title": name,
+                "content": "",
+                "level": 1,
+                "source_file": name,
+            }
+            for name in file_names
+        ]
+
+    return {
+        "doc_id": f"doc-{generate(size=12)}",
+        "title": potential_title,
+        "subject": potential_title,
+        "language": "en",
+        "bypass_local_llm": True,
+        "keywords": simple_keywords,
+        "sections": all_sections[:15],
+        "facets": {
+            "main_topic": {
+                "summary": potential_title,
+                "items": [
+                    {
+                        "value": keyword,
+                        "evidence": "",
+                        "location": "",
+                        "confidence": 0.8,
+                    }
+                    for keyword in simple_keywords
+                ],
+            },
+            "source_files": {
+                "summary": f"Content from {len(file_contents)} file(s)",
+                "items": [
+                    {
+                        "value": name,
+                        "evidence": "",
+                        "location": "",
+                        "confidence": 1.0,
+                    }
+                    for name in file_names
+                ],
+            },
+        },
+        "key_values": [
+            {"key": "document_title", "value": potential_title},
+            {"key": "file_count", "value": str(len(file_contents))},
+            {"key": "processing_mode", "value": "direct_file_metadata"},
+            {"key": "source_files", "value": ", ".join(file_names[:3])},
+        ],
+        "tags": simple_keywords,
+        "source_count": len(file_contents),
+        "source_files": file_names,
+        "triples": [],
+        "questions": [],
+        "risks": [],
+        "actions_todo": [],
+        "metrics": [],
+        "tables": [],
+        "figures": [],
+        "extra": {
+            "processing_mode": "direct_file_metadata",
+            "note": "Deterministic metadata extracted without legacy local LLM",
+            "file_names": file_names,
+            "total_length": sum(len(content) for content in file_contents),
+            "truncated": True,
+        },
+    }
+
+
 # ============= API Endpoints =============
 
 
@@ -264,15 +421,30 @@ async def generate_from_file(
 
         print(f" File saved to: {temp_path}")
 
-        # Step 1: Extract metadata from local LLM
-        print(" Step 1: Processing with legacy local LLM...")
-        metadata = process_with_local_llm(temp_path, is_file=True)
-        print(f" Local LLM completed. Extracted {len(metadata)} metadata fields")
+        if use_global_llm:
+            print(" Step 1: Building deterministic file metadata...")
+            file_content = read_file_content(temp_path, file.filename)
+            usable_content = (
+                file_content
+                if file_content and not file_content.startswith("[Unable to read")
+                else ""
+            )
+            metadata = build_deterministic_file_metadata(
+                [file.filename],
+                [usable_content],
+            )
+            print(
+                f" File metadata completed. Extracted {len(metadata)} metadata fields"
+            )
+        else:
+            print(" Step 1: Processing with legacy local LLM...")
+            metadata = process_with_local_llm(temp_path, is_file=True)
+            print(f" Local LLM completed. Extracted {len(metadata)} metadata fields")
 
         # Step 2: Global LLM Generation Framework
         print(" Step 2: Processing with configured LLM Provider...")
         framework_result = process_with_global_llm(  #  MODIFIED
-            metadata=metadata, model=model, use_mock=not use_global_llm
+            metadata=metadata, model=model, use_mock=False
         )
         print(" Global LLM completed. Framework generated")
 

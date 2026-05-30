@@ -17,6 +17,9 @@
 - [x] Remove `llm_global` / `call_openai_framework` / `resolve_api_settings` API-layer call gates
 - [x] Remove OpenAI-key gates from AI merge/fill provider calls
 - [x] Keep legacy local/Ollama path behind `ENABLE_LEGACY_LLM=true`
+- [x] Phase 2.2: remove frontend `gpt-4o` defaults and omit empty model params
+- [x] Phase 2.2: sanitize legacy OpenAI model names for non-OpenAI providers
+- [x] Phase 2.2: make default file upload generation use deterministic metadata instead of legacy local/Ollama
 - [x] Add provider factory tests and keep auth hardening tests passing
 - [x] Do not connect real DeepSeek, pgvector, DashScope, OSS, MinIO, S3, Agent, RAG, LLMWiki, or frontend Firebase migration
 - [x] Record verification commands and results

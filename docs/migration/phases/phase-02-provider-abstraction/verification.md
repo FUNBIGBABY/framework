@@ -5,7 +5,7 @@
 Command:
 
 ```powershell
-python -m py_compile backend_py/app/auth.py backend_py/app/api/users.py backend_py/app/api/frameworks.py backend_py/app/models.py backend_py/scripts/seed_admin.py
+python -m py_compile backend_py/app/auth.py backend_py/app/api/users.py backend_py/app/api/frameworks.py backend_py/app/api/frameworks_shared.py backend_py/app/api/frameworks_crud.py backend_py/app/api/generation.py backend_py/app/api/exports.py backend_py/app/api/ai_ops.py backend_py/app/api/vector_sync.py backend_py/app/models.py backend_py/scripts/seed_admin.py
 ```
 
 Result: passed with exit code `0`.
@@ -31,6 +31,18 @@ Result before Phase 2.1 cleanup: `34 passed`, with 3 existing Pydantic deprecati
 
 Result after Phase 2.1 cleanup: `36 passed`, with 3 existing Pydantic deprecation warnings.
 
+Result after Phase 2.2 cleanup: `40 passed`, with 3 existing Pydantic deprecation warnings.
+
+## Frontend/API Legacy Model Scan
+
+Command:
+
+```powershell
+rg -n "gpt-4o" frontend/src backend_py/app/api
+```
+
+Result: no matches. `rg` exited `1`, which means no matching text was found.
+
 ## Direct OpenAI API Scan
 
 Command:
@@ -40,6 +52,23 @@ rg -n "from openai import OpenAI|openai\.OpenAI\(|client\.chat|call_openai_frame
 ```
 
 Result: no matches. `rg` exited `1`, which means no matching text was found.
+
+## Legacy Local Path Scan
+
+Command:
+
+```powershell
+rg -n "process_with_local_llm\(" backend_py/app/api/generation.py backend_py/app/api/ai_ops.py
+```
+
+Result: matches only in explicit local/legacy branches:
+
+```text
+backend_py/app/api/ai_ops.py:35
+backend_py/app/api/generation.py:209
+backend_py/app/api/generation.py:441
+backend_py/app/api/generation.py:548
+```
 
 ## Provider Symbol Scan
 
