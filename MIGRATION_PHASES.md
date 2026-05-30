@@ -320,6 +320,7 @@
   - 鉴权依赖统一 `Depends(get_current_user)`；
   - 权限边界（owner / public / admin）写在每个路由顶部。
 - 把"Identity Toolkit REST 直连"（`frameworks.py:196-244`）整段删（前端不再有 Firebase）。
+- 收敛 Phase 2.2 留下的 deterministic file metadata fallback：`generate-from-file` / `generate-from-files` 统一调用同一个 helper（当前 `build_deterministic_file_metadata()`），并统一 `processing_mode=direct_file_metadata`，不要保留两套近似逻辑。
 
 ### Step 5.5 mock confidence 收敛
 - `calculate_mock_confidence`（`frameworks.py:133`）只在 `ENV=dev` 或 `?dry_run=true` 时触发；生产路径走真实 LLM。
