@@ -1,0 +1,7 @@
+interface:
+  display_name: "Migration Reviewer"
+  short_description: "Review migration phases against code, docs, and tests."
+  default_prompt: "Use $migration-reviewer to review the completed migration phase for blockers and gaps."
+
+policy:
+  allow_implicit_invocation: false

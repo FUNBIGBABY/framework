@@ -9,6 +9,6 @@
 - [x] Add administrator seed script
 - [x] Block user_id from Body / Query / Form on private endpoints
 - [x] Add or confirm get_current_user shared dependency
-- [x] Reserve or document refresh token / httpOnly cookie strategy
+- [x] Document refresh token / httpOnly cookie as a Phase 6 compatibility debt, not implemented in Phase 1
 - [x] Add Phase 1 verification commands
 - [x] Do not touch Phase 2+ content

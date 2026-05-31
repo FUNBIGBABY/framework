@@ -82,12 +82,12 @@ Summary:
 
 ## Known Deferrals
 
-- httpOnly cookie and refresh token flow are not implemented in this Phase. The backend still returns an access token for `Authorization: Bearer` compatibility. Cookie/refresh-token migration should be done as Phase 1.1 or with the Phase 6 frontend auth rewrite.
+- httpOnly cookie and refresh token flow are not implemented in this Phase and must not be counted as complete. The backend still returns a 7d access token for `Authorization: Bearer` compatibility; the frontend stores it in `localStorage` until the Phase 6 auth rewrite or a dedicated cookie-auth pass.
 - Frontend Firebase Auth removal remains deferred to Phase 6.
 - DeepSeekProvider remains deferred to Phase 3.
 - Postgres, Alembic, and pgvector remain deferred to Phase 4.
 - Full Provider abstraction and legacy Vector Store cleanup remain deferred to Phase 2+.
-- Broader auth hardening for legacy endpoints that do not accept `user_id` directly, such as export/regenerate/AI ops/vector sync paths, is deferred to the later backend route split and Provider cleanup phases.
+- Broader auth hardening for legacy endpoints that do not accept `user_id` directly, such as export/regenerate/AI ops/vector sync paths, was deferred at Phase 1 close and then addressed in Phase 01.1.
 
 ## Handoff To Phase 2
 

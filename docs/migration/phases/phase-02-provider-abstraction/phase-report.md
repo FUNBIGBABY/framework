@@ -2,13 +2,15 @@
 
 ## Scope
 
-Phase 2 introduces backend Provider interfaces so future business code can depend on local abstractions instead of external SDK clients. This phase does not connect real DeepSeek, pgvector, DashScope, OSS, MinIO, S3, Agent, RAG, LLMWiki, or frontend Firebase migration work.
+Phase 2 introduced backend Provider interfaces so future business code can depend on local abstractions instead of external SDK clients. At Phase 2 close, DeepSeek, pgvector, DashScope, OSS, MinIO, S3, Agent, RAG, LLMWiki, and frontend Firebase migration work remained unconnected.
+
+Note: this report has been updated after Phase 3. `DeepSeekProvider` is no longer a stub in the current codebase; the statements below distinguish the historical Phase 2 handoff state from the current implementation.
 
 ## Provider Abstractions Added
 
 - `backend_py/app/services/llm/`
   - `LLMProvider` defines `chat`, `stream`, `tool_call`, and `generate_json`.
-  - `DeepSeekProvider` is the default factory target and is a Phase 2 stub.
+  - `DeepSeekProvider` was added as the default factory target. It was a Phase 2 stub at handoff and was replaced by the real DeepSeek implementation in Phase 3.
   - `OpenAILegacyProvider` is retained only for compatibility and is not default.
 - `backend_py/app/services/vectorstore/`
   - `VectorStoreProvider` defines `upsert_vectors`, `search_by_vector`, and `delete`.
@@ -21,10 +23,11 @@ Phase 2 introduces backend Provider interfaces so future business code can depen
   - `ObjectStoreProvider` defines `put`, `get`, `delete`, and `presigned_url`.
   - MinIO, OSS, and S3 providers are Phase 2 stubs.
 
-## Real Implementations vs Stubs
+## Current Implementations vs Phase 2 Stubs
 
-- Real enough for compatibility: `OpenAILegacyProvider` and `OpenAIVectorStoreLegacyProvider` contain legacy SDK bridges, but neither is the default core path.
-- Stub only: `DeepSeekProvider`, `PgVectorProvider`, `DashScopeEmbeddingProvider`, `BGELocalEmbeddingProvider`, `MinioObjectStoreProvider`, `OSSObjectStoreProvider`, and `S3ObjectStoreProvider`.
+- Current real default LLM: `DeepSeekProvider` now contains the Phase 3 OpenAI-compatible DeepSeek bridge.
+- Real enough for compatibility only: `OpenAILegacyProvider` and `OpenAIVectorStoreLegacyProvider` contain legacy SDK bridges, but neither is the default core path.
+- Still stub only: `PgVectorProvider`, `DashScopeEmbeddingProvider`, `BGELocalEmbeddingProvider`, `MinioObjectStoreProvider`, `OSSObjectStoreProvider`, and `S3ObjectStoreProvider`.
 - Missing API keys do not fail during import or factory construction. Selected providers raise clear runtime errors only when called.
 
 ## frameworks.py Split
@@ -61,7 +64,7 @@ This cleanup removes the remaining provider readiness blockers before Phase 3:
 - `process_with_global_llm()` applies the model policy immediately before provider invocation.
 - `generate-from-file` now uses deterministic metadata extraction by default: filename/first line title, keyword hints, section previews, source files, source count, and `processing_mode=direct_file_metadata`.
 - `generate-from-file`, `generate-from-files`, and regenerate local mode still keep the legacy local/Ollama path only when explicitly selected, and it remains guarded by `ENABLE_LEGACY_LLM=true`.
-- No real DeepSeek, OpenAI, Ollama, GCP, DashScope, pgvector, RAG, Agent, LLMWiki, or frontend Firebase migration work was added.
+- No real OpenAI fallback activation, Ollama, GCP, DashScope, pgvector, RAG, Agent, LLMWiki, or frontend Firebase migration work was added in Phase 2. Real DeepSeek wiring was added later in Phase 3.
 
 ## Configuration
 
@@ -92,9 +95,8 @@ Added `backend_py/tests/test_provider_abstractions.py` covering:
 
 ## Handoff
 
-- Phase 3: implement real DeepSeek V4 in `DeepSeekProvider` and move remaining legacy LLM generation paths behind `LLMProvider`.
-- Phase 3: implement `DeepSeekProvider.generate_json()` and rely on provider defaults when sanitized model is `None`.
-- Phase 3/5: remove or further downgrade the guarded legacy local/Ollama metadata path after DeepSeek generation is live.
+- Phase 3 completed the real DeepSeek V4 bridge in `DeepSeekProvider`, including `generate_json()`, `chat()`, `stream()`, and `tool_call()`.
+- Phase 3/5 still needs continued downgrade or removal of the guarded legacy local/Ollama metadata path; it remains disabled by default through `ENABLE_LEGACY_LLM=false`.
 - Phase 4: implement `PgVectorProvider` with SQLAlchemy and pgvector tables; use `EmbeddingProvider.dim` for vector column sizing.
 - Phase 8: Agent orchestration can target `LLMProvider.tool_call` without importing vendor SDKs in API code.
 - Phase 9: RAG indexing should call `EmbeddingProvider.embed` first, then `VectorStoreProvider.upsert_vectors`; retrieval should call embedding first, then `search_by_vector`.

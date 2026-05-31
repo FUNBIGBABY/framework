@@ -211,7 +211,10 @@ async def generate_from_text(
 
             print(" Step 2: Processing with Global LLM...")
             framework_result = process_with_global_llm(
-                metadata=metadata, model=request.model, use_mock=False
+                metadata=metadata,
+                model=request.model,
+                use_mock=False,
+                reasoning=request.reasoning,
             )
             print(" Global LLM completed")
         else:
@@ -350,7 +353,10 @@ async def generate_from_text(
             # ChatGPT does not require the complete original text, only the structured information.
 
             framework_result = process_with_global_llm(
-                metadata=metadata, model=request.model, use_mock=False
+                metadata=metadata,
+                model=request.model,
+                use_mock=False,
+                reasoning=request.reasoning,
             )
             print(" Global LLM completed")
 
@@ -384,6 +390,7 @@ async def generate_from_file(
     file: UploadFile = File(...),
     use_global_llm: bool = True,
     model: Optional[str] = None,
+    reasoning: bool = False,
     user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
@@ -444,7 +451,7 @@ async def generate_from_file(
         # Step 2: Global LLM Generation Framework
         print(" Step 2: Processing with configured LLM Provider...")
         framework_result = process_with_global_llm(  #  MODIFIED
-            metadata=metadata, model=model, use_mock=False
+            metadata=metadata, model=model, use_mock=False, reasoning=reasoning
         )
         print(" Global LLM completed. Framework generated")
 
@@ -495,6 +502,7 @@ async def generate_from_files(
     files: List[UploadFile] = File(...),
     use_global_llm: bool = True,
     model: Optional[str] = None,
+    reasoning: bool = False,
     user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
@@ -557,7 +565,10 @@ async def generate_from_files(
 
             print(" Step 2: Processing with Global LLM...")
             framework_result = process_with_global_llm(
-                metadata=merged_metadata, model=model, use_mock=False
+                metadata=merged_metadata,
+                model=model,
+                use_mock=False,
+                reasoning=reasoning,
             )
             print(" Global LLM completed")
         else:
@@ -752,7 +763,10 @@ async def generate_from_files(
             #  Key point: Do not add raw_text, full_content, or the complete combined_text!
 
             framework_result = process_with_global_llm(
-                metadata=merged_metadata, model=model, use_mock=False
+                metadata=merged_metadata,
+                model=model,
+                use_mock=False,
+                reasoning=reasoning,
             )
             print(" Global LLM completed")
 

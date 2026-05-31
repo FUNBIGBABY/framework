@@ -1,7 +1,7 @@
 # Phase 02 Checklist - Provider Abstraction
 
 - [x] Add `LLMProvider` interface with `chat`, `stream`, `tool_call`, and `generate_json`
-- [x] Add `DeepSeekProvider` as a Phase 2 stub, selected by default through `LLM_PROVIDER=deepseek`
+- [x] Add `DeepSeekProvider` as the default `LLM_PROVIDER=deepseek` target; it was a Phase 2 stub and is now superseded by the Phase 3 real implementation
 - [x] Add `OpenAILegacyProvider` for compatibility only; it is not the default LLM provider
 - [x] Add `VectorStoreProvider` interface with `upsert_vectors`, `search_by_vector`, and `delete`
 - [x] Add `PgVectorProvider` as a Phase 2 stub

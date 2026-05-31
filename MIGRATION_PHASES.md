@@ -1,6 +1,6 @@
 # Valorie Expert Studio → 个人 AI Agent + LLMWiki：分阶段改造计划
 
-> 作用：本文档把 `PROJECT_AUDIT_AND_MIGRATION_PLAN.md` 拆成可被另一位 AI Agent 顺序执行的 Phase / Step；目标架构是 **个人 AI Agent + LLMWiki 知识编译层 + RAG 证据检索层**。
+> 作用：本文档承接原审计稿结论，并拆成可被另一位 AI Agent 顺序执行的 Phase / Step；目标架构是 **个人 AI Agent + LLMWiki 知识编译层 + RAG 证据检索层**。
 > 阅读顺序：先看"全局原则" → 再按 Phase 顺序读，每个 Phase 内的 Step 按声明顺序执行。
 > **执行约束**：Phase 0-2 必须严格顺序执行；Phase 3 起按依赖表推进，可并行准备，但任何 Phase 未通过自身验收前，禁止依赖它的下游 Phase 合入。
 
@@ -128,6 +128,7 @@
 - 提供 `/api/auth/refresh`、`/api/auth/logout`。
 - localStorage 不再存 token；前端改用 cookie 自动携带。
 - **如果 Phase 6 还没开始**，先在后端实现完整，前端继续用 localStorage 兼容（用 Authorization header），Phase 6 一并切到 cookie。
+- **当前验收状态**：Phase 1-3 代码尚未实现 1h access + refresh token/httpOnly cookie；当前仍是 7d Bearer token + `localStorage` 的 Phase 6 前兼容债，不得标记为 token 策略已完成。
 
 ### Step 1.5 留给后续 Phase 的接口
 - 给 Phase 5 / Phase 8 的写接口提供统一 `current_user: User = Depends(get_current_user)` 依赖（包含 user 对象，而不只是 id）。
@@ -742,7 +743,7 @@
 当前工程主线仍是：**Tool Registry + Skill Registry + LLMWiki + RAG citation + Agent evals + trace**。
 
 ---
-## 与原 PROJECT_AUDIT_AND_MIGRATION_PLAN.md 的差异声明
+## 与原审计稿的差异声明
 
 本文件是原审查文档的**执行版**，差异：
 
@@ -755,8 +756,6 @@
 7. 个人自用边界提到 Phase 0 就锁死（白名单 + 不开放注册），并在 Phase 13 收尾合规。
 8. 新增 LLMWiki：项目定位从普通 RAG Chat 升级为“个人 AI Agent + LLMWiki 知识编译层 + RAG 证据检索层”。
 9. 新增 Tool Registry / Skill Registry / MCP-compatible adapter：MVP 先做内部工具和技能编排，MCP 作为 read-only 可选兼容层。
-
-
 
 
 

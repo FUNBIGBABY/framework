@@ -82,7 +82,7 @@ Result: matches found in the new provider packages, API provider usage, and env 
 
 ## Boundary Confirmation
 
-- No real DeepSeek API calls were added.
+- Historical Phase 2 boundary: no real DeepSeek API calls were added during Phase 2. In the current codebase this has been superseded by Phase 3, where `DeepSeekProvider` is real.
 - No real pgvector implementation was added.
 - No real DashScope or local BGE embedding call was added.
 - No real OSS, MinIO, or S3 object storage call was added.

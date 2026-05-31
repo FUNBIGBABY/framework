@@ -4,6 +4,13 @@ import os
 from pathlib import Path
 
 from dotenv import load_dotenv
+
+# Load environment variables before importing app routers/auth modules that read
+# JWT_SECRET_KEY at import time.
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(BASE_DIR.parent / ".env")
+load_dotenv(BASE_DIR / ".env")
+
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
@@ -15,9 +22,6 @@ from app.api.frameworks import router as frameworks_router
 from app.api.users import router as users_router
 from app.api.frameworks import sync_library, SyncLibraryRequest
 
-
-# Load environment variables
-load_dotenv()
 
 app = FastAPI(title="Valorie Framework Builder API")
 

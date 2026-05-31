@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { doc, updateDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
+import API_ENDPOINTS, { apiFetch } from '../lib/api'
 
 /**
  * PublishModal - A configuration pop-up for publishing frameworks to a library.
@@ -58,28 +59,23 @@ function PublishModal({ framework, onClose, onSuccess }) {
       console.log('✅ Framework published to library:', framework.id)
 
       // ========== NEW Push to Vector Store ==========
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
-
       try {
-        const pushResponse = await fetch(
-          `${API_BASE_URL}/api/frameworks/push-framework`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
+        const pushResponse = await apiFetch(API_ENDPOINTS.PUSH_FRAMEWORK, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            framework: {
+              ...framework,
+              isPublic: true,
+              category: category,
+              tags: tagsArray,
+              version: version,
+              tenantId: framework.tenantId,
             },
-            body: JSON.stringify({
-              framework: {
-                ...framework,
-                isPublic: true,
-                category: category,
-                tags: tagsArray,
-                version: version,
-                tenantId: framework.tenantId,
-              },
-            }),
-          }
-        )
+          }),
+        })
 
         if (pushResponse.ok) {
           console.log('✅ Framework pushed to Vector Store successfully')

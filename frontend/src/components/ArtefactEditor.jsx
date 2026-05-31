@@ -9,7 +9,7 @@ import { Underline } from '@tiptap/extension-underline'
 import { TextStyle } from '@tiptap/extension-text-style'
 import { Color } from '@tiptap/extension-color'
 import { useState, useEffect } from 'react'
-import API_ENDPOINTS from '../lib/api'
+import API_ENDPOINTS, { apiFetch } from '../lib/api'
 
 // Toolbar Button Component
 const ToolbarButton = ({ onClick, isActive, disabled, children, title }) => (
@@ -505,7 +505,7 @@ const ArtefactEditor = ({
 
     try {
       // Call AI Fill API
-      const response = await fetch(API_ENDPOINTS.AI_FILL, {
+      const response = await apiFetch(API_ENDPOINTS.AI_FILL, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

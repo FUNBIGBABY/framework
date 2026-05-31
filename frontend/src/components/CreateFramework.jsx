@@ -27,6 +27,7 @@ function CreateFramework() {
   // Privacy protection Lock status
   const [privacyLockEnabled, setPrivacyLockEnabled] = useState(false) // Off by default
   const [showLockDialog, setShowLockDialog] = useState(false)
+  const [generationMode, setGenerationMode] = useState('fast')
 
   const handleTextChange = e => {
     const value = e.target.value
@@ -175,6 +176,7 @@ function CreateFramework() {
   // 🔥 The generated function is actually executed.
   const executeGeneration = async mode => {
     setIsGenerating(true)
+    const useDeepThinking = generationMode === 'deep'
 
     try {
       if (mode === 'text') {
@@ -187,15 +189,19 @@ function CreateFramework() {
           setProgress(
             'Step 1/2: Processing with Local LLM (Privacy Protection)...'
           )
+        } else if (useDeepThinking) {
+          setProgress('Processing with DeepSeek (Deep Thinking)...')
         } else {
           // 🔓 Lock OFF: Quick Mode
-          setProgress('Processing with Global LLM (Fast Mode)...')
+          setProgress('Processing with DeepSeek (Fast Mode)...')
         }
 
         // Calling the backend API - Text Generation
         const response = await generateFrameworkFromText(
           textContent,
-          !privacyLockEnabled
+          !privacyLockEnabled,
+          undefined,
+          useDeepThinking
         )
 
         console.log('✅ Framework generated:', response)
@@ -267,15 +273,19 @@ function CreateFramework() {
           setProgress(
             'Step 1/2: Processing with Local LLM (Privacy Protection)...'
           )
+        } else if (useDeepThinking) {
+          setProgress('Processing with DeepSeek (Deep Thinking)...')
         } else {
           // 🔓 Lock OFF: Quick Mode
-          setProgress('Processing with Global LLM (Fast Mode)...')
+          setProgress('Processing with DeepSeek (Fast Mode)...')
         }
 
         // Calling the backend API - Generating multiple files
         const response = await generateFrameworkFromFiles(
           selectedFiles,
-          !privacyLockEnabled // ✅ Modify here: Use the privacyLockEnabled state.
+          !privacyLockEnabled,
+          undefined,
+          useDeepThinking
         )
 
         console.log('✅ Framework generated:', response)
@@ -481,8 +491,32 @@ function CreateFramework() {
                   Upload File
                 </button>
               </div>
-              {/* Right side: Privacy Lock button */}
-              <div className="pr-6">
+              {/* Right side: model mode and privacy lock controls */}
+              <div className="pr-6 flex items-center gap-2">
+                <div className="inline-flex overflow-hidden rounded border border-gray-300 bg-gray-50">
+                  <button
+                    type="button"
+                    onClick={() => setGenerationMode('fast')}
+                    className={`px-3 py-1.5 text-sm font-medium transition-colors ${
+                      generationMode === 'fast'
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    Fast
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setGenerationMode('deep')}
+                    className={`border-l border-gray-300 px-3 py-1.5 text-sm font-medium transition-colors ${
+                      generationMode === 'deep'
+                        ? 'bg-blue-600 text-white'
+                        : 'text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    Deep
+                  </button>
+                </div>
                 <button
                   onClick={handleLockToggle}
                   className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all duration-200 ${

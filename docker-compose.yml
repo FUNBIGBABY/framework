@@ -28,7 +28,7 @@ services:
       
       # LLM API Configuration
       # Legacy GCP/self-hosted Cloud LLM defaults are intentionally disabled.
-      # Phase 3 will route generation through the DeepSeek provider.
+      # Generation routes through the DeepSeek provider by default.
       - LLM_PROVIDER=${LLM_PROVIDER:-deepseek}
       - DEEPSEEK_BASE_URL=${DEEPSEEK_BASE_URL:-https://api.deepseek.com}
       - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}

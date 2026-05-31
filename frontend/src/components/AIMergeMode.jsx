@@ -1,5 +1,5 @@
 import React, { useState } from 'react'
-import API_ENDPOINTS from '../lib/api'
+import API_ENDPOINTS, { apiFetch } from '../lib/api'
 
 export default function AIMergeMode({ frameworks, onExit, onSave }) {
   const [selectedFrameworks, setSelectedFrameworks] = useState([])
@@ -42,12 +42,10 @@ export default function AIMergeMode({ frameworks, onExit, onSave }) {
       )
 
       // ✅ Call the backend API
-      const response = await fetch(API_ENDPOINTS.AI_MERGE, {
+      const response = await apiFetch(API_ENDPOINTS.AI_MERGE, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // ✅ Add an authentication token (if needed)
-          Authorization: `Bearer ${localStorage.getItem('token') || ''}`,
         },
         body: JSON.stringify({
           frameworks: selectedData,

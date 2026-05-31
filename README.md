@@ -2,6 +2,15 @@
 
 A full-stack application for creating, editing, and managing expert evaluation frameworks using AI assistance.
 
+## Migration Status
+
+This repository is being migrated from the legacy customer project into a personal AI Agent + LLMWiki project. The canonical execution entry points are:
+
+- `MIGRATION_PHASES.md`
+- `docs/migration/README.md`
+
+Legacy startup, OpenAI-first, Firebase-first, and customer deployment notes may still exist in old documents while Phase 6/7 cleanup is pending; do not treat them as the migration plan.
+
 ## 📋 Table of Contents
 - [Prerequisites](#prerequisites)
 - [Quick Start](#quick-start)
@@ -14,12 +23,13 @@ A full-stack application for creating, editing, and managing expert evaluation f
 ---
 
 ## 🔧 Prerequisites
-# For more specific info, please read Project-Startup-and-Operation-Flow.md
+
+For migration-specific setup and phase order, start with `MIGRATION_PHASES.md` and `docs/migration/README.md`.
 ### Required Software
 - **Node.js**: 22.12.0 or higher (use nvm: `nvm use`)
 - **Python**: 3.11 or higher (`python --version`)
 - **Docker**: Latest version (for containerized deployment)
-- **Ollama**: For local LLM support (optional)
+- **DeepSeek API key**: Default LLM provider for the current migration route
 
 ### Installation
 ```bash
@@ -86,7 +96,7 @@ npm run dev
 
 **Environment Variables** (`.env`):
 - `VITE_API_BASE_URL`: Backend API URL
-- Firebase configuration (API key, auth domain, etc.)
+- Firebase configuration is legacy compatibility until Phase 6 removes frontend Firebase dependencies.
 
 ### Backend Setup
 ```bash
@@ -104,12 +114,16 @@ python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
 **API Documentation:** `http://localhost:8000/docs`
 
 **Environment Variables** (`.env`):
-- `OPENAI_API_KEY`: OpenAI API key for framework generation
-- `ANTHROPIC_API_KEY`: Anthropic API key (optional)
-- `GOOGLE_APPLICATION_CREDENTIALS`: Path to Firebase credentials
+- `JWT_SECRET_KEY`: Required backend JWT signing secret
+- `SUPER_ADMIN_EMAIL` / `SUPER_ADMIN_PASSWORD`: Seeded administrator account
+- `ALLOWED_EMAILS`: Registration allowlist for disabled-by-default backend registration
+- `LLM_PROVIDER=deepseek`
+- `DEEPSEEK_API_KEY`: DeepSeek provider credential
+- `DEEPSEEK_BASE_URL=https://api.deepseek.com` without a `/v1` suffix
+- OpenAI and Firebase service-account settings are legacy/downstream cleanup items for Phase 6/7 unless explicitly selected as compatibility providers.
 
-### Local LLM Setup (Optional)
-For privacy-protected framework generation:
+### Legacy Local LLM Setup
+Local/Ollama generation is a guarded legacy path. It is disabled by default and should only be used when `ENABLE_LEGACY_LLM=true` is intentionally set for compatibility work.
 ```bash
 # Install Ollama
 # Visit: https://ollama.ai/download
@@ -140,7 +154,7 @@ We maintain comprehensive test coverage for both frontend and backend components
 - Data structure integrity
 - Business logic validation
 - Error handling
-- Mock external dependencies (Firebase, OpenAI)
+- Mock external dependencies (Firebase/OpenAI compatibility paths and provider abstractions)
 
 **Run tests**:
 ```bash
@@ -312,8 +326,8 @@ capstone-project/
 │   ├── tests/              # Backend tests
 │   │   ├── test_file_processing.py
 │   │   └── test_main.py
-│   ├── llm_global.py       # OpenAI integration
-│   ├── llm_local.py        # Local LLM integration
+│   ├── llm_global.py       # Legacy compatibility helper pending cleanup
+│   ├── llm_local.py        # Guarded legacy local LLM helper
 │   ├── main.py             # FastAPI app entry
 │   └── requirements.txt
 │
@@ -329,16 +343,16 @@ capstone-project/
 ### Quick Links
 - **Installation Guide**: See above sections
 - **API Documentation**: `http://localhost:8000/docs` (when backend is running)
-- **Project Flow**: See `Project-Startup-and-Operation-Flow.md` for detailed workflow
+- **Migration Plan**: Start with `MIGRATION_PHASES.md` and `docs/migration/README.md`
 
 ### Key Features
--  **AI-Powered Generation**: Create frameworks from text or files using OpenAI
--  **Privacy Protection**: Optional local LLM for sensitive data
+-  **AI-Powered Generation**: Create frameworks from text or files using the provider abstraction; DeepSeek is the default current provider
+-  **Privacy Protection**: Backend JWT auth boundary with no public registration; local LLM is legacy guarded compatibility
 -  **Framework Editor**: Rich editing experience with auto-save
 -  **Framework Merging**: AI-powered or manual framework combination
 -  **Export**: Download as Word (.docx) or Markdown (.md)
--  **Multi-Tenant**: Organization support with invitations
--  **Library & Marketplace**: Share and discover frameworks
+-  **Legacy Multi-Tenant Compatibility**: Organization and invitation flows remain until Phase 6/7 cleanup
+-  **Legacy Library & Marketplace Compatibility**: Sharing flows remain until downstream cleanup aligns them with the personal-use boundary
 
 ### Technology Stack
 
@@ -346,14 +360,14 @@ capstone-project/
 - React 18
 - Vite
 - Tailwind CSS
-- Firebase (Authentication, Firestore)
+- Firebase Auth/Firestore legacy compatibility pending Phase 6/7 cleanup
 - React Router
 
 **Backend**:
 - FastAPI
 - Python 3.11+
-- OpenAI API
-- Firebase Admin SDK
+- Provider abstraction with DeepSeek as the default LLM route
+- Firebase Admin SDK legacy compatibility pending Phase 6/7 cleanup
 - SQLAlchemy
 
 **Testing**:
@@ -423,8 +437,7 @@ npm install
 ```
 
 **Firebase connection issues:**
-- Verify `.env` file has correct Firebase credentials
-- Check network connectivity
-- Ensure Firebase project is properly configured
+- Firebase is retained only as a legacy compatibility layer until Phase 6/7.
+- Backend-JWT-only sessions should continue to work for backend API calls without Firebase user state.
 
 ---

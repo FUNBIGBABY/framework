@@ -7,7 +7,7 @@ import { useAuth } from '../contexts/AuthContext'
 import MergeModeDialog from './MergeModeDialog'
 import ManualMergeMode from './ManualMergeMode'
 import AIMergeMode from './AIMergeMode'
-import API_ENDPOINTS from '../lib/api'
+import API_ENDPOINTS, { apiFetch } from '../lib/api'
 import ArtefactEditor from './ArtefactEditor'
 import './ArtefactEditor.css'
 
@@ -499,7 +499,7 @@ function FrameworkEditor() {
       console.log('📄 Exporting framework as Word document...')
 
       // Call the backend API
-      const response = await fetch(API_ENDPOINTS.EXPORT_DOCX, {
+      const response = await apiFetch(API_ENDPOINTS.EXPORT_DOCX, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -545,7 +545,7 @@ function FrameworkEditor() {
     try {
       console.log('🔄 Starting regeneration...')
 
-      const response = await fetch(API_ENDPOINTS.REGENERATE, {
+      const response = await apiFetch(API_ENDPOINTS.REGENERATE, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

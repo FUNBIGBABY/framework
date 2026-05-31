@@ -28,6 +28,7 @@ class TextGenerateRequest(BaseModel):
     text: str
     use_global_llm: bool = True
     model: Optional[str] = None
+    reasoning: bool = False
 
 
 class GenerateResponse(BaseModel):
@@ -539,7 +540,10 @@ def process_with_local_llm(input_data: str, is_file: bool = False) -> dict:
 
 
 def process_with_global_llm(
-    metadata: dict, model: Optional[str] = None, use_mock: bool = False
+    metadata: dict,
+    model: Optional[str] = None,
+    use_mock: bool = False,
+    reasoning: bool = False,
 ) -> dict:
     """
     Step 2: Generate the framework using the configured LLM Provider.
@@ -557,6 +561,14 @@ def process_with_global_llm(
                 model,
                 provider_name=getattr(provider, "name", None),
             )
+            generation_kwargs = {
+                "model": sanitized_model,
+                "temperature": 0.3,
+                "timeout": 180.0,
+            }
+            if getattr(provider, "name", None) == "deepseek":
+                generation_kwargs["reasoning"] = reasoning
+
             framework = provider.generate_json(
                 [
                     {
@@ -575,9 +587,7 @@ def process_with_global_llm(
                         ),
                     },
                 ],
-                model=sanitized_model,
-                temperature=0.3,
-                timeout=180.0,
+                **generation_kwargs,
             )
             print(" LLM Provider call successful")
 

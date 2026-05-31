@@ -1,0 +1,7 @@
+interface:
+  display_name: "Migration Phase Executor"
+  short_description: "Execute migration phases with code, docs, and verification."
+  default_prompt: "Use $migration-phase-executor to complete the current migration phase and update verification."
+
+policy:
+  allow_implicit_invocation: false

@@ -7,6 +7,7 @@ from ..services.storage import save_bytes
 from ..db import get_db
 from ..models import Material
 from ..services.parser import build_metadata, summary
+from ..auth import get_current_user_id
 from typing import Optional, Tuple  # ← added
 
 
@@ -55,7 +56,11 @@ def detect_kind_mime(
 
 
 @router.post("/upload-file")
-async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db)):
+async def upload_file(
+    file: UploadFile = File(...),
+    _current_user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
     # Basic checks
     if not file.filename:
         raise HTTPException(status_code=400, detail="filename empty ")
@@ -100,7 +105,11 @@ async def upload_file(file: UploadFile = File(...), db: Session = Depends(get_db
 
 
 @router.get("/{material_id}")
-def get_material(material_id: str, db: Session = Depends(get_db)):
+def get_material(
+    material_id: str,
+    _current_user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
     mat = db.query(Material).filter_by(id=material_id).first()
     if not mat:
         raise HTTPException(status_code=404, detail="not found")
@@ -116,7 +125,11 @@ class TextIn(BaseModel):
 
 
 @router.post("/ingest-text")
-def ingest_text(body: TextIn, db: Session = Depends(get_db)):
+def ingest_text(
+    body: TextIn,
+    _current_user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
     text = (body.text or "").strip()
     if not text:
         raise HTTPException(status_code=400, detail="empty text")

@@ -108,6 +108,28 @@ def test_framework_generation_uses_llm_provider(monkeypatch):
     assert result["metadata"]["title"] == "Provider Result"
     assert "Provider Input" in captured["messages"][1]["content"]
     assert captured["kwargs"]["model"] is None
+    assert captured["kwargs"]["reasoning"] is False
+
+
+def test_framework_generation_can_request_deepseek_reasoning(monkeypatch):
+    captured = {}
+
+    class FakeProvider:
+        name = "deepseek"
+
+        def generate_json(self, messages, **kwargs):
+            captured["kwargs"] = kwargs
+            return {"metadata": {"title": "Deep Result"}, "steps": []}
+
+    monkeypatch.setattr(frameworks_shared, "get_llm_provider", lambda: FakeProvider())
+
+    result = frameworks_shared.process_with_global_llm(
+        {"title": "Provider Input"},
+        reasoning=True,
+    )
+
+    assert result["metadata"]["title"] == "Deep Result"
+    assert captured["kwargs"]["reasoning"] is True
 
 
 def test_legacy_openai_models_are_preserved_for_openai_legacy_provider():
@@ -134,10 +156,11 @@ async def test_generate_from_file_default_path_avoids_legacy_local(monkeypatch):
 
     captured = {}
 
-    def fake_global(metadata, model=None, use_mock=False):
+    def fake_global(metadata, model=None, use_mock=False, reasoning=False):
         captured["metadata"] = metadata
         captured["model"] = model
         captured["use_mock"] = use_mock
+        captured["reasoning"] = reasoning
         return {"metadata": {"title": metadata["title"]}, "steps": []}
 
     def fake_save_framework_to_db(framework_data, metadata_dict, creator_id, db):
@@ -164,6 +187,7 @@ async def test_generate_from_file_default_path_avoids_legacy_local(monkeypatch):
     assert captured["metadata"]["title"] == "Roadmap Plan"
     assert captured["metadata"]["extra"]["processing_mode"] == "direct_file_metadata"
     assert captured["use_mock"] is False
+    assert captured["reasoning"] is False
 
 
 def test_api_layer_has_no_legacy_llm_call_gates():

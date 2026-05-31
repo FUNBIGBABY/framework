@@ -1,11 +1,9 @@
 import { initializeApp } from 'firebase/app'
 import {
   getAuth,
-  createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signOut as firebaseSignOut,
   onAuthStateChanged,
-  updateProfile,
 } from 'firebase/auth'
 import {
   getFirestore,
@@ -61,60 +59,15 @@ enableIndexedDbPersistence(db)
   })
 
 /**
- * Register a new user (Expert Side)
+ * Public registration is disabled for the backend-JWT migration route.
  *
- * Users who register on Expert Side automatically receive an expert role.
- *
- * @param {string} email - User Email
- * @param {string} password - password
- * @param {string} username - username
- * @returns {Promise<Object>} User Information
+ * Accounts are created through seed_admin or future admin-only backend user
+ * management.
  */
-export const registerUser = async (email, password, username) => {
-  try {
-    // 1. Create Firebase Auth user
-    const userCredential = await createUserWithEmailAndPassword(
-      auth,
-      email,
-      password
-    )
-    const user = userCredential.user
-
-    // 2. Update user displayName
-    await updateProfile(user, {
-      displayName: username,
-    })
-
-    // 3. Create user documents in Firestore
-    // 👇 Edits: Added roles and expertProfile
-    await setDoc(doc(db, 'users', user.uid), {
-      uid: user.uid,
-      email: email,
-      username: username,
-      roles: ['client', 'expert'], // 👈 Having two roles
-      expertProfile: {
-        // 👈 Expert Information
-        tenantId: null, // Populate when creating tenants later
-        displayName: username,
-        isApproved: true,
-        createdAt: serverTimestamp(),
-      },
-      createdAt: serverTimestamp(),
-      lastLogin: serverTimestamp(),
-    })
-
-    console.log('✅ Expert user registered:', user.uid)
-
-    return {
-      uid: user.uid,
-      email: user.email,
-      username: username,
-      roles: ['client', 'expert'],
-    }
-  } catch (error) {
-    console.error('Registration error:', error)
-    throw error
-  }
+export const registerUser = async () => {
+  throw new Error(
+    'Public registration is disabled. Accounts are created by an administrator.'
+  )
 }
 
 /**
@@ -241,7 +194,7 @@ const createArtefactsForFramework = async (frameworkId, frameworkData) => {
         if (Array.isArray(raw.artefact_variants)) {
           variants = raw.artefact_variants
         }
-        // 2.2 Artefact_variants under the framework (as returned by llm_global)
+        // 2.2 Artefact_variants under the framework (legacy provider response)
         else if (
           raw.framework &&
           Array.isArray(raw.framework.artefact_variants)

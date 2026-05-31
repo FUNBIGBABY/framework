@@ -1,8 +1,6 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { doc, getDoc } from 'firebase/firestore'
-import { auth, db } from '../lib/firebase'
 import { checkUserBlocked } from '../lib/firebase'
 
 function Login() {
@@ -31,55 +29,30 @@ function Login() {
     setIsLoading(true)
 
     try {
-      // ✅ Invoke Firebase login
       const result = await login(formData.email, formData.password)
 
       if (result.success) {
-        console.log('✅ Login successful, fetching user data...')
+        console.log('✅ Login successful')
 
-        // 🔑 Get the current user from Firebase Auth
-        const currentUser = auth.currentUser
-        if (!currentUser) {
-          setError('Login failed. Please try again.')
-          setIsLoading(false)
-          return
-        }
-
-        // check is user got ban or not
-        const isBlocked = await checkUserBlocked(currentUser.uid)
-        if (isBlocked) {
-          await logout()
-          setError(
-            'Your account has been blocked. Please contact the administrator.'
-          )
-          setIsLoading(false)
-          return
-        }
-
-        // directly get user tenantId from Firestore
-        const userDocRef = doc(db, 'users', currentUser.uid)
-        const userDoc = await getDoc(userDocRef)
-
-        if (userDoc.exists()) {
-          const userData = userDoc.data()
-          const tenantId = userData.tenantId
-
-          console.log('📦 User tenantId:', tenantId)
-
-          if (tenantId) {
-            // 🎯 With tenantId - Use path pattern for redirection
-            console.log(`🚀 Redirecting to /${tenantId}/frameworks`)
-            navigate(`/${tenantId}/frameworks`)
-          } else {
-            // 🆕 No tenantId - Redirect to the homepage for users to create one.
-            console.log(
-              '⚠️ No tenantId, redirecting to home for tenant creation...'
+        if (result.firebaseUser) {
+          const isBlocked = await checkUserBlocked(result.firebaseUser.uid)
+          if (isBlocked) {
+            await logout()
+            setError(
+              'Your account has been blocked. Please contact the administrator.'
             )
-            navigate('/')
+            setIsLoading(false)
+            return
           }
+        }
+
+        const tenantId = result.user?.tenantId
+
+        if (tenantId) {
+          console.log(`Redirecting to /${tenantId}/frameworks`)
+          navigate(`/${tenantId}/frameworks`)
         } else {
-          setError('User data not found. Please contact support.')
-          setIsLoading(false)
+          navigate('/')
         }
       } else {
         setError(result.error || 'Login failed. Please try again.')
@@ -236,16 +209,10 @@ function Login() {
             </button>
           </form>
 
-          {/* Sign Up Link */}
+          {/* Registration policy */}
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              Don't have an account?{' '}
-              <Link
-                to="/signup"
-                className="font-medium text-blue-600 hover:text-blue-700"
-              >
-                Sign up
-              </Link>
+              Accounts are created by the administrator.
             </p>
           </div>
         </div>

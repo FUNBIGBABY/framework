@@ -56,6 +56,30 @@ function getAuthToken() {
   return localStorage.getItem('access_token')
 }
 
+function getAuthHeaders(headers = {}) {
+  const token = getAuthToken()
+  const tenantId = getCurrentTenantId()
+  const nextHeaders = { ...headers }
+
+  if (token) nextHeaders.Authorization = `Bearer ${token}`
+  if (tenantId) nextHeaders['X-Tenant-ID'] = tenantId
+
+  return nextHeaders
+}
+
+function getApiUrl(url) {
+  return /^https?:\/\//i.test(url) ? url : `${API_BASE_URL}${url}`
+}
+
+async function apiFetch(url, options = {}) {
+  const { headers, ...rest } = options
+
+  return fetch(getApiUrl(url), {
+    ...rest,
+    headers: getAuthHeaders(headers),
+  })
+}
+
 /**
  * Get Firebase User ID
  */
@@ -69,18 +93,14 @@ function getFirebaseUserId() {
  */
 async function apiRequest(url, options = {}) {
   try {
-    const token = getAuthToken()
-    const tenantId = getCurrentTenantId()
+    const response = await apiFetch(url, options)
+    let data = {}
 
-    const headers = { ...options.headers }
-    if (token) headers['Authorization'] = `Bearer ${token}`
-    if (tenantId) headers['X-Tenant-ID'] = tenantId
-
-    const response = await fetch(`${API_BASE_URL}${url}`, {
-      ...options,
-      headers,
-    })
-    const data = await response.json()
+    try {
+      data = await response.json()
+    } catch {
+      data = {}
+    }
 
     if (!response.ok) {
       if (response.status === 401) {
@@ -110,23 +130,51 @@ async function apiRequest(url, options = {}) {
   }
 }
 
+export async function loginWithBackend(email, password) {
+  let data = null
+
+  const response = await fetch(`${API_BASE_URL}/api/users/login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password }),
+  })
+
+  try {
+    data = await response.json()
+  } catch {
+    data = {}
+  }
+
+  if (!response.ok) {
+    throw new APIError(
+      data.detail || data.error || 'Login failed',
+      response.status,
+      data
+    )
+  }
+
+  return data
+}
+
 /**
  * From text generation framework
  */
 export async function generateFrameworkFromText(
   text,
   useGlobalLLM = true,
-  model = undefined
+  model = undefined,
+  reasoning = false
 ) {
   const userId = getFirebaseUserId()
   const tenantId = getCurrentTenantId()
   const payload = {
     text,
     use_global_llm: useGlobalLLM,
-    user_id: userId,
-    tenant_id: tenantId,
   }
+  if (userId) payload.user_id = userId
+  if (tenantId) payload.tenant_id = tenantId
   if (model) payload.model = model
+  if (reasoning) payload.reasoning = true
 
   const response = await apiRequest('/api/frameworks/generate-from-text', {
     method: 'POST',
@@ -150,7 +198,8 @@ export async function generateFrameworkFromText(
 export async function generateFrameworkFromFile(
   file,
   useGlobalLLM = true,
-  model = undefined
+  model = undefined,
+  reasoning = false
 ) {
   const formData = new FormData()
   formData.append('file', file)
@@ -160,20 +209,16 @@ export async function generateFrameworkFromFile(
   if (userId) formData.append('user_id', userId)
   if (tenantId) formData.append('tenant_id', tenantId)
 
-  const token = getAuthToken()
   const params = new URLSearchParams({
     use_global_llm: String(useGlobalLLM),
   })
   if (model) params.set('model', model)
+  if (reasoning) params.set('reasoning', 'true')
 
-  const response = await fetch(
-    `${API_BASE_URL}/api/frameworks/generate-from-file?${params.toString()}`,
+  const response = await apiFetch(
+    `/api/frameworks/generate-from-file?${params.toString()}`,
     {
       method: 'POST',
-      headers: {
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...(tenantId && { 'X-Tenant-ID': tenantId }),
-      },
       body: formData,
     }
   )
@@ -198,7 +243,8 @@ export async function generateFrameworkFromFile(
 export async function generateFrameworkFromFiles(
   files,
   useGlobalLLM = true,
-  model = undefined
+  model = undefined,
+  reasoning = false
 ) {
   const formData = new FormData()
   files.forEach(file => formData.append('files', file))
@@ -208,20 +254,16 @@ export async function generateFrameworkFromFiles(
   if (userId) formData.append('user_id', userId)
   if (tenantId) formData.append('tenant_id', tenantId)
 
-  const token = getAuthToken()
   const params = new URLSearchParams({
     use_global_llm: String(useGlobalLLM),
   })
   if (model) params.set('model', model)
+  if (reasoning) params.set('reasoning', 'true')
 
-  const response = await fetch(
-    `${API_BASE_URL}/api/frameworks/generate-from-files?${params.toString()}`,
+  const response = await apiFetch(
+    `/api/frameworks/generate-from-files?${params.toString()}`,
     {
       method: 'POST',
-      headers: {
-        ...(token && { Authorization: `Bearer ${token}` }),
-        ...(tenantId && { 'X-Tenant-ID': tenantId }),
-      },
       body: formData,
     }
   )
@@ -246,10 +288,13 @@ export async function generateFrameworkFromFiles(
 export async function getMyFrameworks() {
   const userId = getFirebaseUserId()
   const tenantId = getCurrentTenantId()
-  if (!userId) return []
 
-  let url = `/api/frameworks/my-frameworks?user_id=${userId}`
-  if (tenantId) url += `&tenant_id=${tenantId}`
+  const params = new URLSearchParams()
+  if (userId) params.set('user_id', userId)
+  if (tenantId) params.set('tenant_id', tenantId)
+
+  const query = params.toString()
+  const url = `/api/frameworks/my-frameworks${query ? `?${query}` : ''}`
 
   return await apiRequest(url)
 }
@@ -260,10 +305,13 @@ export async function getMyFrameworks() {
 export async function getMyFrameworksByFamily() {
   const userId = getFirebaseUserId()
   const tenantId = getCurrentTenantId()
-  if (!userId) return {}
 
-  let url = `/api/frameworks/my-frameworks/by-family?user_id=${userId}`
-  if (tenantId) url += `&tenant_id=${tenantId}`
+  const params = new URLSearchParams()
+  if (userId) params.set('user_id', userId)
+  if (tenantId) params.set('tenant_id', tenantId)
+
+  const query = params.toString()
+  const url = `/api/frameworks/my-frameworks/by-family${query ? `?${query}` : ''}`
 
   return await apiRequest(url)
 }
@@ -340,7 +388,16 @@ export const API_ENDPOINTS = {
   REGENERATE: `${API_BASE_URL}/api/frameworks/regenerate`,
   AI_MERGE: `${API_BASE_URL}/api/frameworks/ai-merge`,
   AI_FILL: `${API_BASE_URL}/api/frameworks/ai-fill`,
+  PUSH_FRAMEWORK: `${API_BASE_URL}/api/frameworks/push-framework`,
 }
 
 export default API_ENDPOINTS
-export { APIError, getApiBaseUrl, getCurrentTenantId }
+export {
+  APIError,
+  API_BASE_URL,
+  apiFetch,
+  getApiBaseUrl,
+  getAuthHeaders,
+  getAuthToken,
+  getCurrentTenantId,
+}

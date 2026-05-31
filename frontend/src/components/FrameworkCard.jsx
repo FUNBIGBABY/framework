@@ -5,6 +5,7 @@ import { doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
 import { db } from '../lib/firebase'
 import { useAuth } from '../contexts/AuthContext'
 import PublishModal from './PublishModal'
+import API_ENDPOINTS, { apiFetch } from '../lib/api'
 
 function FrameworkCard({ framework, showCreator = false }) {
   const navigate = useNavigate()
@@ -23,18 +24,13 @@ function FrameworkCard({ framework, showCreator = false }) {
 
   const handleDownload = async () => {
     try {
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
-
-      const response = await fetch(
-        `${API_BASE_URL}/api/frameworks/export-docx`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(framework),
-        }
-      )
+      const response = await apiFetch(API_ENDPOINTS.EXPORT_DOCX, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(framework),
+      })
 
       if (!response.ok) {
         throw new Error('Download failed')
@@ -123,26 +119,21 @@ function FrameworkCard({ framework, showCreator = false }) {
       console.log(`   - Organization: ${targetOrganization}`)
 
       // ========== NEW Push to Vector Store ==========
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
-
       try {
-        const pushResponse = await fetch(
-          `${API_BASE_URL}/api/frameworks/push-framework`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
+        const pushResponse = await apiFetch(API_ENDPOINTS.PUSH_FRAMEWORK, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            framework: {
+              ...framework,
+              organization: targetOrganization,
+              publishedToOrganization: true,
+              tenantId: framework.tenantId,
             },
-            body: JSON.stringify({
-              framework: {
-                ...framework,
-                organization: targetOrganization,
-                publishedToOrganization: true,
-                tenantId: framework.tenantId,
-              },
-            }),
-          }
-        )
+          }),
+        })
 
         if (pushResponse.ok) {
           console.log('✅ Framework pushed to Vector Store successfully')

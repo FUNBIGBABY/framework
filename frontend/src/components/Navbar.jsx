@@ -87,7 +87,7 @@ function Navbar() {
     return location.pathname === path || location.pathname.includes(path)
   }
 
-  if (location.pathname === '/login' || location.pathname === '/signup') {
+  if (location.pathname === '/login') {
     return null
   }
 

@@ -11,7 +11,6 @@ import PrivateRoute from './components/PrivateRoute'
 import TenantRoute from './components/TenantRoute'
 import Navbar from './components/Navbar'
 import Login from './components/Login'
-import Signup from './components/Signup'
 import YourFrameworks from './components/YourFrameworks'
 import CreateFramework from './components/CreateFramework'
 import FrameworkEditor from './components/FrameworkEditor'
@@ -97,7 +96,6 @@ function AppContent() {
       <Routes>
         {/* ========== Public Routing ========== */}
         <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
         <Route path="/admin" element={<AdminPanel />} />
         <Route
           path="/library"

@@ -3,9 +3,7 @@ import { createContext, useContext, useState, useEffect } from 'react'
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
   signOut,
-  updateProfile,
 } from 'firebase/auth'
 import {
   doc,
@@ -15,8 +13,75 @@ import {
   serverTimestamp,
 } from 'firebase/firestore'
 import { auth, db } from '../lib/firebase'
+import { loginWithBackend } from '../lib/api'
 
 const AuthContext = createContext()
+
+function buildBackendUser(backendUser, fallbackEmail) {
+  const email = backendUser?.email || fallbackEmail
+
+  return {
+    uid: backendUser?.id,
+    id: backendUser?.id,
+    backendUserId: backendUser?.id,
+    email,
+    username: backendUser?.username || email?.split('@')[0] || 'user',
+    tenantId: null,
+    joinedOrganization: null,
+    roles: [],
+    expertProfile: null,
+    authProvider: 'backend-jwt',
+  }
+}
+
+function getStoredBackendUser() {
+  const token = localStorage.getItem('access_token')
+  const rawUser = localStorage.getItem('user')
+
+  if (!token || !rawUser) return null
+
+  try {
+    return JSON.parse(rawUser)
+  } catch {
+    localStorage.removeItem('user')
+    return null
+  }
+}
+
+function saveBackendSession(authData, fallbackEmail) {
+  const backendUser = buildBackendUser(authData.user, fallbackEmail)
+
+  localStorage.setItem('access_token', authData.access_token)
+  localStorage.setItem('user', JSON.stringify(backendUser))
+
+  return backendUser
+}
+
+function clearBackendSession() {
+  localStorage.removeItem('access_token')
+  localStorage.removeItem('user')
+}
+
+function buildFirebaseCompatibleUser(backendUser, firebaseUser, userData = {}) {
+  return {
+    ...backendUser,
+    uid: firebaseUser.uid,
+    firebaseUid: firebaseUser.uid,
+    email: firebaseUser.email || backendUser.email,
+    username:
+      userData.username ||
+      firebaseUser.displayName ||
+      backendUser.username ||
+      firebaseUser.email?.split('@')[0],
+    tenantId: userData.tenantId || null,
+    joinedOrganization: userData.joinedOrganization || null,
+    roles: userData.roles || [],
+    expertProfile: userData.expertProfile || null,
+    createdAt: userData.createdAt || backendUser.createdAt,
+    lastLogin: userData.lastLogin || backendUser.lastLogin,
+    authProvider: 'backend-jwt+firebase-compat',
+  }
+}
 
 export const useAuth = () => {
   const context = useContext(AuthContext)
@@ -32,6 +97,14 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async firebaseUser => {
+      const backendUser = getStoredBackendUser()
+
+      if (!backendUser) {
+        setUser(null)
+        setLoading(false)
+        return
+      }
+
       if (firebaseUser) {
         try {
           const userDocRef = doc(db, 'users', firebaseUser.uid)
@@ -40,20 +113,9 @@ export const AuthProvider = ({ children }) => {
           if (userDoc.exists()) {
             const userData = userDoc.data()
 
-            setUser({
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              username:
-                userData.username ||
-                firebaseUser.displayName ||
-                firebaseUser.email.split('@')[0],
-              tenantId: userData.tenantId || null,
-              joinedOrganization: userData.joinedOrganization || null, // ✅ added
-              roles: userData.roles || [],
-              expertProfile: userData.expertProfile || null,
-              createdAt: userData.createdAt,
-              lastLogin: userData.lastLogin,
-            })
+            setUser(
+              buildFirebaseCompatibleUser(backendUser, firebaseUser, userData)
+            )
 
             await updateDoc(userDocRef, {
               lastLogin: serverTimestamp(),
@@ -78,32 +140,21 @@ export const AuthProvider = ({ children }) => {
 
             await setDoc(userDocRef, newUserData)
 
-            setUser({
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              username: newUserData.username,
-              tenantId: null,
-              joinedOrganization: null, // ✅ added
-              roles: [],
-              expertProfile: null,
-            })
+            setUser(
+              buildFirebaseCompatibleUser(
+                backendUser,
+                firebaseUser,
+                newUserData
+              )
+            )
           }
         } catch (error) {
           console.error('Error fetching user data from Firestore:', error)
 
-          setUser({
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            username:
-              firebaseUser.displayName || firebaseUser.email.split('@')[0],
-            tenantId: null,
-            joinedOrganization: null, // ✅ added
-            roles: [],
-            expertProfile: null,
-          })
+          setUser(buildFirebaseCompatibleUser(backendUser, firebaseUser))
         }
       } else {
-        setUser(null)
+        setUser(backendUser)
       }
 
       setLoading(false)
@@ -112,133 +163,85 @@ export const AuthProvider = ({ children }) => {
     return () => unsubscribe()
   }, [])
 
-  const signup = async (email, password, username) => {
-    try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        email,
-        password
-      )
-      const firebaseUser = userCredential.user
-
-      await updateProfile(firebaseUser, {
-        displayName: username,
-      })
-
-      const userDocRef = doc(db, 'users', firebaseUser.uid)
-      const newUserData = {
-        uid: firebaseUser.uid,
-        email: firebaseUser.email,
-        username: username,
-        tenantId: null,
-        joinedOrganization: null, // ✅ added
-        roles: [],
-        expertProfile: null,
-        createdAt: serverTimestamp(),
-        lastLogin: serverTimestamp(),
-      }
-
-      await setDoc(userDocRef, newUserData)
-
-      console.log('✅ User registered successfully:', firebaseUser.uid)
-
-      setUser({
-        uid: firebaseUser.uid,
-        email: firebaseUser.email,
-        username: username,
-        tenantId: null,
-        joinedOrganization: null, // ✅ added
-        roles: [],
-        expertProfile: null,
-      })
-
-      return { success: true }
-    } catch (error) {
-      console.error('Registration failed:', error)
-
-      let errorMessage = 'Registration failed, please try again.'
-
-      if (error.code === 'auth/email-already-in-use') {
-        errorMessage = 'This email address has already been registered.'
-      } else if (error.code === 'auth/weak-password') {
-        errorMessage = 'The password is not strong enough (at least 6 bits).'
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Incorrect email format'
-      }
-
-      return { success: false, error: errorMessage }
-    }
+  const signup = async () => {
+    const error =
+      'Public registration is disabled. Accounts are created by an administrator.'
+    console.warn(error)
+    return { success: false, error }
   }
 
   const login = async (email, password) => {
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      )
-      const firebaseUser = userCredential.user
+      const backendAuth = await loginWithBackend(email, password)
+      const backendUser = saveBackendSession(backendAuth, email)
+      let nextUser = backendUser
+      let firebaseUser = null
 
-      const userDocRef = doc(db, 'users', firebaseUser.uid)
-      const userDoc = await getDoc(userDocRef)
+      try {
+        const userCredential = await signInWithEmailAndPassword(
+          auth,
+          email,
+          password
+        )
+        firebaseUser = userCredential.user
 
-      if (userDoc.exists()) {
-        const userData = userDoc.data()
+        const userDocRef = doc(db, 'users', firebaseUser.uid)
+        const userDoc = await getDoc(userDocRef)
 
-        setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          username:
-            userData.username ||
-            firebaseUser.displayName ||
-            firebaseUser.email.split('@')[0],
-          tenantId: userData.tenantId || null,
-          joinedOrganization: userData.joinedOrganization || null, // ✅ added
-          roles: userData.roles || [],
-          expertProfile: userData.expertProfile || null,
-        })
+        if (userDoc.exists()) {
+          const userData = userDoc.data()
+          nextUser = buildFirebaseCompatibleUser(
+            backendUser,
+            firebaseUser,
+            userData
+          )
 
-        await updateDoc(userDocRef, {
-          lastLogin: serverTimestamp(),
-        })
+          await updateDoc(userDocRef, {
+            lastLogin: serverTimestamp(),
+          })
+        } else {
+          console.warn('User document not found, creating one...')
 
-        console.log('✅ User logged in successfully:', firebaseUser.uid)
-      } else {
-        console.warn('User document not found, creating one...')
+          const newUserData = {
+            uid: firebaseUser.uid,
+            email: firebaseUser.email,
+            username:
+              firebaseUser.displayName || firebaseUser.email.split('@')[0],
+            tenantId: null,
+            joinedOrganization: null, // ✅ added
+            roles: [],
+            expertProfile: null,
+            createdAt: serverTimestamp(),
+            lastLogin: serverTimestamp(),
+          }
 
-        const newUserData = {
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          username:
-            firebaseUser.displayName || firebaseUser.email.split('@')[0],
-          tenantId: null,
-          joinedOrganization: null, // ✅ added
-          roles: [],
-          expertProfile: null,
-          createdAt: serverTimestamp(),
-          lastLogin: serverTimestamp(),
+          await setDoc(userDocRef, newUserData)
+          nextUser = buildFirebaseCompatibleUser(
+            backendUser,
+            firebaseUser,
+            newUserData
+          )
         }
-
-        await setDoc(userDocRef, newUserData)
-
-        setUser({
-          uid: firebaseUser.uid,
-          email: firebaseUser.email,
-          username: newUserData.username,
-          tenantId: null,
-          joinedOrganization: null, // ✅ added
-          roles: [],
-          expertProfile: null,
-        })
+      } catch (firebaseError) {
+        console.warn(
+          'Firebase login compatibility skipped; backend JWT login succeeded.',
+          firebaseError
+        )
       }
 
-      return { success: true }
+      setUser(nextUser)
+      localStorage.setItem('user', JSON.stringify(nextUser))
+      console.log('✅ Backend JWT login successful:', nextUser.backendUserId)
+
+      return { success: true, user: nextUser, firebaseUser }
     } catch (error) {
       console.error('Login failed:', error)
+      clearBackendSession()
 
       let errorMessage = 'Login failed, please check your account and password'
 
       if (
+        error.status === 401 ||
         error.code === 'auth/user-not-found' ||
         error.code === 'auth/wrong-password' ||
         error.code === 'auth/invalid-credential'
@@ -258,12 +261,14 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
+      clearBackendSession()
       await signOut(auth)
       setUser(null)
       console.log('✅ User logged out successfully')
       return { success: true }
     } catch (error) {
       console.error('Logout failed:', error)
+      setUser(null)
       return { success: false, error: 'Logout failed, please try again.' }
     }
   }

@@ -36,10 +36,10 @@ function LandingPage() {
                 Sign In
               </button>
               <button
-                onClick={() => navigate('/signup')}
+                onClick={() => navigate('/login')}
                 className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700 transition-colors shadow-sm hover:shadow-md"
               >
-                Get Started
+                Sign In
               </button>
             </div>
           </div>
@@ -65,10 +65,10 @@ function LandingPage() {
           {/* CTA Buttons */}
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <button
-              onClick={() => navigate('/signup')}
+              onClick={() => navigate('/login')}
               className="px-8 py-4 bg-blue-600 text-white text-lg font-semibold rounded-lg hover:bg-blue-700 transition-colors shadow-lg hover:shadow-xl"
             >
-              Start Building Free
+              Access Workspace
             </button>
             <button
               onClick={() => navigate('/login')}
@@ -216,13 +216,13 @@ function LandingPage() {
             Ready to Get Started?
           </h2>
           <p className="text-xl mb-8 opacity-90">
-            Join teams building better frameworks with Valorie
+            Administrator-managed access for private framework workspaces
           </p>
           <button
-            onClick={() => navigate('/signup')}
+            onClick={() => navigate('/login')}
             className="px-8 py-4 bg-white text-blue-600 text-lg font-semibold rounded-lg hover:bg-gray-100 transition-colors shadow-lg"
           >
-            Create Your Free Account
+            Sign In
           </button>
         </div>
       </div>
