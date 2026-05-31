@@ -16,7 +16,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.db import Base, engine, SessionLocal
+from app.db import SessionLocal
 from app.api.materials import router as materials_router
 from app.api.frameworks import router as frameworks_router
 from app.api.users import router as users_router
@@ -95,9 +95,6 @@ app.add_middleware(CustomCORSMiddleware)
 def health():
     return {"status": "healthy", "message": "Backend is running!", "version": "1.0.0"}
 
-
-# ================= Database Initialization =================
-Base.metadata.create_all(bind=engine)
 
 # ================= Register Routers =================
 app.include_router(materials_router)

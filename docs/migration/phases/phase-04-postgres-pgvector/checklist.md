@@ -1,0 +1,56 @@
+# Phase 04 Checklist - Postgres + pgvector Baseline
+
+- [x] Read `MIGRATION_PHASES.md`.
+- [x] Read `docs/migration/README.md`.
+- [x] Read `docs/migration/decisions/*.md`.
+- [x] Read Phase 0-3 `checklist.md`, `phase-report.md`, and `verification.md`.
+- [x] Add Phase 4 documentation folder and files.
+- [x] Add `alembic`, `psycopg`, and `pgvector` dependencies.
+- [x] Change `backend_py/app/db.py` to require `DATABASE_URL`.
+- [x] Remove the SQLite URL default.
+- [x] Remove the SQLite thread-check connect argument.
+- [x] Add Alembic configuration under `backend_py/alembic`.
+- [x] Configure Alembic to use project SQLAlchemy metadata.
+- [x] Configure Alembic to read the same `DATABASE_URL`.
+- [x] Add initial Alembic revision.
+- [x] Include `CREATE EXTENSION IF NOT EXISTS vector` in the initial revision.
+- [x] Create existing tables: `users`, `frameworks`, `materials`, `synced_vector_items`.
+- [x] Convert framework JSON fields to JSONB: `metadata_json`, `steps_json`, `artefacts_json`, `risks_json`, `escalation_json`, `raw_framework_json`, `raw_metadata_json`.
+- [x] Add Phase 5 placeholder table `artefacts`.
+- [x] Add Agent placeholder tables: `agent_runs`, `agent_messages`, `agent_tool_invocations`.
+- [x] Add RAG placeholder tables: `documents`, `document_chunks`, `citations`.
+- [x] Add LLMWiki placeholder tables: `wiki_pages`, `wiki_claims`, `wiki_links`, `wiki_entities`, `wiki_builds`, `wiki_eval_questions`.
+- [x] Define `document_chunks.embedding` as fixed `vector(1024)`.
+- [x] Add HNSW cosine index for `document_chunks.embedding`.
+- [x] Remove startup SQLAlchemy metadata auto-create.
+- [x] Update docker-compose with `db` service using `pgvector/pgvector:pg16`.
+- [x] Add `pgdata` volume.
+- [x] Inject `DATABASE_URL` into the app service.
+- [x] Keep db service without host `5432` exposure.
+- [x] Update root `.env.example`.
+- [x] Update `backend_py/.env.example`.
+- [x] Fix framework JSONB roundtrip to avoid double-encoded JSON.
+- [x] Keep user identity sourced from backend JWT.
+- [x] Do not add quota/admin fields.
+- [x] Do not add `tenants`, `tenant_members`, `workspaces`, or `workspace_members`.
+- [x] Do not implement artefact CRUD API.
+- [x] Do not implement RAG upload/chunk/embed/search pipeline.
+- [x] Do not implement Agent loop, SSE, or Tool Registry.
+- [x] Do not implement LLMWiki compiler or retriever.
+- [x] Do not implement Chat UI or Skill Registry.
+- [x] Run Python syntax check.
+- [x] Run Alembic history check.
+- [x] Run Alembic offline SQL generation.
+- [x] Confirm generated SQL contains `VECTOR(1024)` and HNSW cosine index.
+- [x] Confirm docker-compose db config parses and does not expose db ports.
+- [x] Run backend `pytest -q`.
+- [x] Add and run unit coverage for JSONB native-value assignment.
+- [x] Run grep checks for removed SQLite/create_all paths.
+- [x] Run scoped tenant schema grep for models and Alembic.
+- [x] Run real `alembic upgrade head` against an empty Postgres + pgvector DB.
+- [x] Run real Postgres framework CRUD smoke.
+- [x] Inspect live DB schema for `document_chunks.embedding` and HNSW cosine index.
+- [x] Identify and invalidate the old Direct SQL/ORM smoke records that referenced non-existent Phase 4 fields.
+- [x] Rerun corrected Direct SQL JSONB smoke against live Postgres using `users.password_hash` and `frameworks.family`.
+- [x] Rerun corrected ORM JSONB smoke against live Postgres using current `User` and `Framework` model keywords.
+- [x] Update `PgVectorProvider` stub text to defer retrieval wiring to Phase 9 instead of Phase 4.

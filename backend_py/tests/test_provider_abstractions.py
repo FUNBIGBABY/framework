@@ -50,7 +50,7 @@ def test_pgvector_stub_methods_raise_clear_not_implemented():
     provider = get_vectorstore_provider("pgvector")
 
     assert isinstance(provider, PgVectorProvider)
-    with pytest.raises(NotImplementedError, match="Phase 2 stub"):
+    with pytest.raises(NotImplementedError, match="Phase 9"):
         provider.search_by_vector("frameworks", [0.1, 0.2, 0.3])
 
 

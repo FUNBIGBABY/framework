@@ -79,6 +79,18 @@ class FrameworkDetailResponse(BaseModel):
     updated_at: datetime
 
 
+def coerce_json_value(value, default):
+    """Return a JSON-compatible Python value from JSONB or legacy JSON text."""
+    if value is None:
+        return default
+    if isinstance(value, str):
+        try:
+            return json.loads(value)
+        except json.JSONDecodeError:
+            return default
+    return value
+
+
 def calculate_mock_confidence() -> float:
     """
     Generate mock confidence scores (60-95)
@@ -655,13 +667,13 @@ def save_framework_to_db(
         title=title,
         version=version,
         creator_id=creator_id,
-        metadata_json=json.dumps(metadata, ensure_ascii=False),
-        steps_json=json.dumps(steps, ensure_ascii=False),
-        artefacts_json=json.dumps(artefacts, ensure_ascii=False),
-        risks_json=json.dumps(risks, ensure_ascii=False),
-        escalation_json=json.dumps(escalation, ensure_ascii=False),
-        raw_framework_json=json.dumps(framework_data, ensure_ascii=False),
-        raw_metadata_json=json.dumps(metadata_dict, ensure_ascii=False),
+        metadata_json=metadata,
+        steps_json=steps,
+        artefacts_json=artefacts,
+        risks_json=risks,
+        escalation_json=escalation,
+        raw_framework_json=framework_data,
+        raw_metadata_json=metadata_dict,
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow(),
         pov=pov,

@@ -1,4 +1,3 @@
-import json
 from datetime import datetime
 from typing import List
 
@@ -8,7 +7,11 @@ from sqlalchemy.orm import Session
 from ..auth import get_current_user_id
 from ..db import get_db
 from ..models import Framework
-from .frameworks_shared import FrameworkDetailResponse, FrameworkListResponse
+from .frameworks_shared import (
+    FrameworkDetailResponse,
+    FrameworkListResponse,
+    coerce_json_value,
+)
 
 
 router = APIRouter()
@@ -36,7 +39,7 @@ def get_my_frameworks(
     result = []
     for fw in frameworks:
         # Analyze artefacts for preview
-        artefacts = json.loads(fw.artefacts_json)
+        artefacts = coerce_json_value(fw.artefacts_json, {})
         additional = artefacts.get("additional", [])
 
         # Only the first 3 artifacts are used for card display.
@@ -100,7 +103,7 @@ def get_my_frameworks_by_family(
             grouped[family] = []
 
         # Analysis of Artefacts
-        artefacts = json.loads(fw.artefacts_json)
+        artefacts = coerce_json_value(fw.artefacts_json, {})
         additional = artefacts.get("additional", [])
 
         preview_artefacts = []
@@ -165,11 +168,11 @@ def get_framework_detail(
         family=framework.family,
         confidence=framework.confidence,
         creator_id=framework.creator_id,
-        metadata=json.loads(framework.metadata_json),
-        steps=json.loads(framework.steps_json),
-        artefacts=json.loads(framework.artefacts_json),
-        risks=json.loads(framework.risks_json),
-        escalation=json.loads(framework.escalation_json),
+        metadata=coerce_json_value(framework.metadata_json, {}),
+        steps=coerce_json_value(framework.steps_json, []),
+        artefacts=coerce_json_value(framework.artefacts_json, {}),
+        risks=coerce_json_value(framework.risks_json, []),
+        escalation=coerce_json_value(framework.escalation_json, []),
         created_at=framework.created_at,
         updated_at=framework.updated_at,
     )
@@ -202,7 +205,7 @@ def get_framework_binding(
     pov_value = None
     try:
         if fw.raw_framework_json:
-            raw_data = json.loads(fw.raw_framework_json)
+            raw_data = coerce_json_value(fw.raw_framework_json, {})
             pov_value = raw_data.get("pov")
     except Exception:
         pov_value = None
@@ -250,19 +253,11 @@ def update_framework(
     framework.version = metadata.get("version", framework.version)
 
     # Update JSON fields
-    framework.metadata_json = json.dumps(metadata, ensure_ascii=False)
-    framework.steps_json = json.dumps(
-        framework_data.get("steps", []), ensure_ascii=False
-    )
-    framework.artefacts_json = json.dumps(
-        framework_data.get("artefacts", {}), ensure_ascii=False
-    )
-    framework.risks_json = json.dumps(
-        framework_data.get("risks", []), ensure_ascii=False
-    )
-    framework.escalation_json = json.dumps(
-        framework_data.get("escalation", []), ensure_ascii=False
-    )
+    framework.metadata_json = metadata
+    framework.steps_json = framework_data.get("steps", [])
+    framework.artefacts_json = framework_data.get("artefacts", {})
+    framework.risks_json = framework_data.get("risks", [])
+    framework.escalation_json = framework_data.get("escalation", [])
 
     framework.updated_at = datetime.utcnow()
 

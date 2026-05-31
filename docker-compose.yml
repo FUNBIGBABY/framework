@@ -1,6 +1,22 @@
 version: '3.8'
 
 services:
+  db:
+    image: pgvector/pgvector:pg16
+    container_name: valorie-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-valorie}
+      POSTGRES_USER: ${POSTGRES_USER:-valorie}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-valorie} -d $${POSTGRES_DB:-valorie}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   app:
     build:
       context: .
@@ -20,11 +36,16 @@ services:
     
     ports:
       - "8000:8000"
+
+    depends_on:
+      - db
     
     environment:
       # Server Configuration
       - PORT=8000
       - WORKERS=1
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - DATABASE_URL=${DATABASE_URL:-postgresql+psycopg://valorie:change-me@db:5432/valorie}
       
       # LLM API Configuration
       # Legacy GCP/self-hosted Cloud LLM defaults are intentionally disabled.
@@ -45,3 +66,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+volumes:
+  pgdata:

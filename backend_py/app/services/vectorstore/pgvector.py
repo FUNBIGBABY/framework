@@ -7,7 +7,7 @@ from .base import VectorStoreProvider
 
 
 class PgVectorProvider(VectorStoreProvider):
-    """Phase 2 stub for the future PostgreSQL + pgvector implementation."""
+    """Vector store placeholder; pgvector retrieval wiring remains Phase 9 scope."""
 
     name = "pgvector"
 
@@ -17,7 +17,8 @@ class PgVectorProvider(VectorStoreProvider):
         chunks_with_vectors: Iterable[Mapping[str, Any]],
     ) -> None:
         raise NotImplementedError(
-            "PgVectorProvider is a Phase 2 stub. SQLAlchemy/pgvector wiring is deferred to Phase 4."
+            "PgVectorProvider is intentionally deferred to Phase 9. "
+            "Phase 4 only creates the Postgres/pgvector schema baseline."
         )
 
     def search_by_vector(
@@ -28,7 +29,8 @@ class PgVectorProvider(VectorStoreProvider):
         filters: Optional[Mapping[str, Any]] = None,
     ) -> list[dict[str, Any]]:
         raise NotImplementedError(
-            "PgVectorProvider is a Phase 2 stub. SQLAlchemy/pgvector wiring is deferred to Phase 4."
+            "PgVectorProvider is intentionally deferred to Phase 9. "
+            "Phase 4 only creates the Postgres/pgvector schema baseline."
         )
 
     def delete(
@@ -38,5 +40,6 @@ class PgVectorProvider(VectorStoreProvider):
         filters: Optional[Mapping[str, Any]] = None,
     ) -> None:
         raise NotImplementedError(
-            "PgVectorProvider is a Phase 2 stub. SQLAlchemy/pgvector wiring is deferred to Phase 4."
+            "PgVectorProvider is intentionally deferred to Phase 9. "
+            "Phase 4 only creates the Postgres/pgvector schema baseline."
         )

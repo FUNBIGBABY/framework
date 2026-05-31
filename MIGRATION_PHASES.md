@@ -244,7 +244,7 @@
 - `alembic init backend_py/alembic`。
 - `env.py` 改为读 `DATABASE_URL=postgresql+psycopg://user:pass@db:5432/valorie`。
 - 在 `app/db.py` 切到 Postgres 引擎。
-- 移除 SQLite 相关的 `connect_args={"check_same_thread": False}`。
+- 移除 SQLite 相关的线程检查 connect args。
 
 ### Step 4.2 一次到位的 schema（包含 Phase 8/9/10 占位表）
 - 现有表：`users`、`frameworks`（5 个 `*_json TEXT` 字段 → 改 `JSONB`）、`artefacts`。个人自用 MVP 不新建 `tenants` / `tenant_members`；如果未来需要多人空间，另起 `workspaces` / `workspace_members` 设计。
@@ -756,7 +756,6 @@
 7. 个人自用边界提到 Phase 0 就锁死（白名单 + 不开放注册），并在 Phase 13 收尾合规。
 8. 新增 LLMWiki：项目定位从普通 RAG Chat 升级为“个人 AI Agent + LLMWiki 知识编译层 + RAG 证据检索层”。
 9. 新增 Tool Registry / Skill Registry / MCP-compatible adapter：MVP 先做内部工具和技能编排，MCP 作为 read-only 可选兼容层。
-
 
 
 
