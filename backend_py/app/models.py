@@ -41,6 +41,10 @@ class User(Base):
     email = sa.Column(sa.String, unique=True, nullable=False, index=True)
     username = sa.Column(sa.String, unique=True, nullable=False, index=True)
     password_hash = sa.Column(sa.String, nullable=False)  # Argon2id password hash
+    is_disabled = sa.Column(
+        sa.Boolean, nullable=False, default=False, server_default=sa.false(), index=True
+    )
+    disabled_at = sa.Column(sa.DateTime, nullable=True)
 
     created_at = sa.Column(sa.DateTime, default=datetime.utcnow)
     last_login = sa.Column(sa.DateTime, nullable=True)
@@ -59,6 +63,12 @@ class Framework(Base):
     family = sa.Column(sa.String, nullable=False, index=True)
     confidence = sa.Column(sa.Float, default=0.0)
     pov = sa.Column(sa.String, nullable=True)
+    is_public = sa.Column(
+        sa.Boolean, nullable=False, default=False, server_default=sa.false(), index=True
+    )
+    category = sa.Column(sa.String, nullable=True, index=True)
+    tags_json = sa.Column(JSONB, nullable=False, server_default=JSONB_ARRAY_DEFAULT)
+    published_at = sa.Column(sa.DateTime, nullable=True, index=True)
 
     creator_id = sa.Column(
         sa.String, sa.ForeignKey("users.id"), nullable=False, index=True

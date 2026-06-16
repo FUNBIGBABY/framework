@@ -7,8 +7,9 @@ Required env:
 - JWT_SECRET_KEY
 - SEED_ADMIN_RESET_PASSWORD=true to reset an existing admin password
 
-The current User model has no is_admin column. Until the database migration phase,
-the configured SUPER_ADMIN_EMAIL is the admin identity boundary.
+The User model intentionally has no is_admin column. The configured
+SUPER_ADMIN_EMAIL is the admin identity boundary. The seeded super-admin is
+always kept enabled.
 """
 
 from pathlib import Path
@@ -55,10 +56,17 @@ def main() -> None:
                 password, user.password_hash
             )
             if valid_password:
+                changes = []
                 if needs_rehash:
                     user.password_hash = hash_password(password)
+                    changes.append("password hash upgraded")
+                if getattr(user, "is_disabled", False):
+                    user.is_disabled = False
+                    user.disabled_at = None
+                    changes.append("account re-enabled")
+                if changes:
                     db.commit()
-                    print(f"Existing admin password hash upgraded for {email}")
+                    print(f"Existing admin {', '.join(changes)} for {email}")
                 else:
                     print(f"Admin user already exists and password verified: {email}")
                 return
@@ -70,6 +78,8 @@ def main() -> None:
                 )
 
             user.password_hash = hash_password(password)
+            user.is_disabled = False
+            user.disabled_at = None
             db.commit()
             print(f"Existing admin password reset for {email}")
             return
@@ -83,6 +93,8 @@ def main() -> None:
             email=email,
             username=username,
             password_hash=hash_password(password),
+            is_disabled=False,
+            disabled_at=None,
             created_at=datetime.utcnow(),
         )
         db.add(user)

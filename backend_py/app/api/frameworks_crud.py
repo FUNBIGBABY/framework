@@ -1,15 +1,19 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
+from nanoid import generate
 from sqlalchemy.orm import Session
 
 from ..auth import get_current_user_id
 from ..db import get_db
 from ..models import Framework
 from .frameworks_shared import (
+    FrameworkCreateRequest,
     FrameworkDetailResponse,
     FrameworkListResponse,
+    FrameworkMutationResponse,
+    FrameworkUpdateRequest,
     coerce_json_value,
 )
 
@@ -17,150 +21,33 @@ from .frameworks_shared import (
 router = APIRouter()
 
 
-# New feature: Retrieve all frameworks for the current user.
-@router.get("/my-frameworks", response_model=List[FrameworkListResponse])
-def get_my_frameworks(
-    user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)
-):
-    """
-    Get all frameworks created by the current user
-
-    Sort in descending order of creation time List
-    For the "Your Frameworks" list page
-    """
-
-    frameworks = (
-        db.query(Framework)
-        .filter(Framework.creator_id == user_id)
-        .order_by(Framework.created_at.desc())
-        .all()
-    )
-
-    result = []
-    for fw in frameworks:
-        # Analyze artefacts for preview
-        artefacts = coerce_json_value(fw.artefacts_json, {})
-        additional = artefacts.get("additional", [])
-
-        # Only the first 3 artifacts are used for card display.
-        preview_artefacts = []
-        if additional:
-            for art in additional[:3]:
-                preview_artefacts.append(
-                    {
-                        "name": art.get("name", ""),
-                        "description": art.get("description", "")[
-                            :100
-                        ],  # Truncation description
-                    }
-                )
-
-        result.append(
-            FrameworkListResponse(
-                id=fw.id,
-                title=fw.title,
-                version=fw.version,
-                family=fw.family,
-                confidence=fw.confidence,
-                created_at=fw.created_at,
-                updated_at=fw.updated_at,
-                preview_artefacts=preview_artefacts,
-            )
-        )
-
-    return result
+def _utc_now() -> datetime:
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
-# New feature: Retrieve frameworks by family group
-@router.get("/my-frameworks/by-family")
-def get_my_frameworks_by_family(
-    user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)
-):
-    """
-    Retrieve the current user's frameworks and group them by family.
+def _preview_artefacts(framework: Framework) -> list[dict]:
+    artefacts = coerce_json_value(framework.artefacts_json, {})
+    if not isinstance(artefacts, dict):
+        return []
 
-    Return format:
-    {
-        "Financial": [framework1, framework2, ...],
-        "Healthcare": [...],
-        ...
-    }
-    """
+    additional = artefacts.get("additional", [])
+    if not isinstance(additional, list):
+        return []
 
-    frameworks = (
-        db.query(Framework)
-        .filter(Framework.creator_id == user_id)
-        .order_by(Framework.created_at.desc())
-        .all()
-    )
-
-    # Grouped by family
-    grouped = {}
-    for fw in frameworks:
-        family = fw.family or "Other"
-
-        if family not in grouped:
-            grouped[family] = []
-
-        # Analysis of Artefacts
-        artefacts = coerce_json_value(fw.artefacts_json, {})
-        additional = artefacts.get("additional", [])
-
-        preview_artefacts = []
-        if additional:
-            for art in additional[:3]:
-                preview_artefacts.append(
-                    {
-                        "name": art.get("name", ""),
-                        "description": art.get("description", "")[:100],
-                    }
-                )
-
-        grouped[family].append(
+    preview = []
+    for artefact in additional[:3]:
+        if not isinstance(artefact, dict):
+            continue
+        preview.append(
             {
-                "id": fw.id,
-                "title": fw.title,
-                "version": fw.version,
-                "family": fw.family,
-                "confidence": fw.confidence,
-                "created_at": fw.created_at.isoformat(),
-                "updated_at": fw.updated_at.isoformat(),
-                "preview_artefacts": preview_artefacts,
+                "name": artefact.get("name", ""),
+                "description": str(artefact.get("description", ""))[:100],
             }
         )
+    return preview
 
-    return grouped
 
-
-# New feature: Retrieve detailed information for a single framework.
-@router.get("/{framework_id}", response_model=FrameworkDetailResponse)
-def get_framework_detail(
-    framework_id: str,
-    user_id: str = Depends(get_current_user_id),
-    db: Session = Depends(get_db),
-):
-    """
-    Get complete information about the framework
-
-    Only able to access the frameworks they created
-    """
-
-    framework = (
-        db.query(Framework)
-        .filter(
-            Framework.id == framework_id,
-            Framework.creator_id
-            == user_id,  # Ensure that only your own account can be accessed.
-        )
-        .first()
-    )
-
-    if not framework:
-        raise HTTPException(
-            status_code=404,
-            detail="Framework not found or you don't have permission to access it",
-        )
-
+def _framework_detail_response(framework: Framework) -> FrameworkDetailResponse:
     return FrameworkDetailResponse(
         id=framework.id,
         title=framework.title,
@@ -178,122 +65,236 @@ def get_framework_detail(
     )
 
 
-# Added: Binding information interface (/api/frameworks/{id}/binding)
+def _get_owned_framework(db: Session, framework_id: str, user_id: str) -> Framework:
+    framework = (
+        db.query(Framework)
+        .filter(Framework.id == framework_id, Framework.creator_id == user_id)
+        .first()
+    )
+
+    if not framework:
+        raise HTTPException(
+            status_code=404,
+            detail="Framework not found or you don't have permission",
+        )
+
+    return framework
+
+
+def _coerce_raw_framework(raw_framework):
+    if raw_framework is None:
+        return None
+    return coerce_json_value(raw_framework, None)
+
+
+def create_framework(
+    framework_data: FrameworkCreateRequest,
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    metadata = framework_data.metadata or {}
+    title = framework_data.title or metadata.get("title") or "Untitled Framework"
+    version = framework_data.version or metadata.get("version") or "1.0.0"
+    family = framework_data.family or "Other"
+    confidence = (
+        float(framework_data.confidence)
+        if framework_data.confidence is not None
+        else 0.0
+    )
+    raw_framework_json = _coerce_raw_framework(framework_data.raw_framework)
+    if raw_framework_json is None:
+        raw_framework_json = framework_data.model_dump(
+            by_alias=True,
+            exclude={"raw_framework"},
+            exclude_none=True,
+        )
+
+    framework = Framework(
+        id=f"fw_{generate(size=12)}",
+        title=title,
+        version=version,
+        family=family,
+        confidence=confidence,
+        pov=framework_data.pov,
+        creator_id=user_id,
+        metadata_json=metadata,
+        steps_json=framework_data.steps,
+        artefacts_json=framework_data.artefacts,
+        risks_json=framework_data.risks,
+        escalation_json=framework_data.escalation,
+        raw_framework_json=raw_framework_json,
+        raw_metadata_json=metadata,
+        created_at=_utc_now(),
+        updated_at=_utc_now(),
+    )
+
+    db.add(framework)
+    db.commit()
+    db.refresh(framework)
+
+    return FrameworkMutationResponse(
+        success=True,
+        message="Framework created successfully",
+        framework_id=framework.id,
+    )
+
+
+@router.get("/my-frameworks", response_model=List[FrameworkListResponse])
+def get_my_frameworks(
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    frameworks = (
+        db.query(Framework)
+        .filter(Framework.creator_id == user_id)
+        .order_by(Framework.created_at.desc())
+        .all()
+    )
+
+    return [
+        FrameworkListResponse(
+            id=framework.id,
+            title=framework.title,
+            version=framework.version,
+            family=framework.family,
+            confidence=framework.confidence,
+            created_at=framework.created_at,
+            updated_at=framework.updated_at,
+            preview_artefacts=_preview_artefacts(framework),
+        )
+        for framework in frameworks
+    ]
+
+
+@router.get("/my-frameworks/by-family")
+def get_my_frameworks_by_family(
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    frameworks = (
+        db.query(Framework)
+        .filter(Framework.creator_id == user_id)
+        .order_by(Framework.created_at.desc())
+        .all()
+    )
+
+    grouped = {}
+    for framework in frameworks:
+        family = framework.family or "Other"
+        grouped.setdefault(family, []).append(
+            {
+                "id": framework.id,
+                "title": framework.title,
+                "version": framework.version,
+                "family": framework.family,
+                "confidence": framework.confidence,
+                "created_at": framework.created_at.isoformat(),
+                "updated_at": framework.updated_at.isoformat(),
+                "preview_artefacts": _preview_artefacts(framework),
+            }
+        )
+
+    return grouped
+
+
+@router.get("/{framework_id}", response_model=FrameworkDetailResponse)
+def get_framework_detail(
+    framework_id: str,
+    user_id: str = Depends(get_current_user_id),
+    db: Session = Depends(get_db),
+):
+    framework = _get_owned_framework(db, framework_id, user_id)
+    return _framework_detail_response(framework)
+
+
 @router.get("/{framework_id}/binding")
 def get_framework_binding(
     framework_id: str,
     user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
-    """
-    Retrieve the framework's POV, family, and confidence binding information.
-    (Used for displaying POV and confidence level simultaneously in a frame card or detail page on the front end)
-    """
-    # 🔍 Query the framework of the current user
-    fw = (
-        db.query(Framework)
-        .filter(Framework.id == framework_id, Framework.creator_id == user_id)
-        .first()
-    )
+    framework = _get_owned_framework(db, framework_id, user_id)
+    pov_value = framework.pov
 
-    if not fw:
-        raise HTTPException(
-            status_code=404, detail="Framework not found or access denied"
-        )
-
-    # Trying to extract the POV (the complete content returned by AI) from raw_framework_json.
-    pov_value = None
-    try:
-        if fw.raw_framework_json:
-            raw_data = coerce_json_value(fw.raw_framework_json, {})
+    if pov_value is None and framework.raw_framework_json:
+        raw_data = coerce_json_value(framework.raw_framework_json, {})
+        if isinstance(raw_data, dict):
             pov_value = raw_data.get("pov")
-    except Exception:
-        pov_value = None
+            nested_framework = raw_data.get("framework")
+            if pov_value is None and isinstance(nested_framework, dict):
+                pov_value = nested_framework.get("pov")
 
-    #  Return unified binding information
     return {
-        "id": fw.id,
-        "title": fw.title,
+        "id": framework.id,
+        "title": framework.title,
         "pov": pov_value,
-        "family": fw.family,
-        "confidence": fw.confidence,
-        "created_at": fw.created_at,
-        "updated_at": fw.updated_at,
+        "family": framework.family,
+        "confidence": framework.confidence,
+        "created_at": framework.created_at,
+        "updated_at": framework.updated_at,
     }
 
 
-# Added: Updated framework
-@router.put("/{framework_id}")
+@router.put("/{framework_id}", response_model=FrameworkMutationResponse)
 def update_framework(
     framework_id: str,
-    framework_data: dict,
+    framework_data: FrameworkUpdateRequest,
     user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
-    """
-    Update the framework (save from the Editor)
+    framework = _get_owned_framework(db, framework_id, user_id)
+    fields_set = framework_data.model_fields_set
 
-    You can only update the framework you created.
-    """
+    if "metadata" in fields_set and framework_data.metadata is not None:
+        metadata = framework_data.metadata
+        framework.metadata_json = metadata
+        if "title" not in fields_set and metadata.get("title"):
+            framework.title = metadata["title"]
+        if "version" not in fields_set and metadata.get("version"):
+            framework.version = metadata["version"]
 
-    framework = (
-        db.query(Framework)
-        .filter(Framework.id == framework_id, Framework.creator_id == user_id)
-        .first()
-    )
-
-    if not framework:
-        raise HTTPException(
-            status_code=404, detail="Framework not found or you don't have permission"
+    if "title" in fields_set and framework_data.title:
+        framework.title = framework_data.title
+    if "version" in fields_set and framework_data.version:
+        framework.version = framework_data.version
+    if "family" in fields_set:
+        framework.family = framework_data.family or "Other"
+    if "confidence" in fields_set and framework_data.confidence is not None:
+        framework.confidence = float(framework_data.confidence)
+    if "pov" in fields_set:
+        framework.pov = framework_data.pov
+    if "steps" in fields_set and framework_data.steps is not None:
+        framework.steps_json = framework_data.steps
+    if "artefacts" in fields_set and framework_data.artefacts is not None:
+        framework.artefacts_json = framework_data.artefacts
+    if "risks" in fields_set and framework_data.risks is not None:
+        framework.risks_json = framework_data.risks
+    if "escalation" in fields_set and framework_data.escalation is not None:
+        framework.escalation_json = framework_data.escalation
+    if "raw_framework" in fields_set:
+        framework.raw_framework_json = _coerce_raw_framework(
+            framework_data.raw_framework
         )
 
-    # Update field
-    metadata = framework_data.get("metadata", {})
-    framework.title = metadata.get("title", framework.title)
-    framework.version = metadata.get("version", framework.version)
-
-    # Update JSON fields
-    framework.metadata_json = metadata
-    framework.steps_json = framework_data.get("steps", [])
-    framework.artefacts_json = framework_data.get("artefacts", {})
-    framework.risks_json = framework_data.get("risks", [])
-    framework.escalation_json = framework_data.get("escalation", [])
-
-    framework.updated_at = datetime.utcnow()
+    framework.updated_at = _utc_now()
 
     db.commit()
     db.refresh(framework)
 
-    return {
-        "success": True,
-        "message": "Framework updated successfully",
-        "framework_id": framework.id,
-    }
+    return FrameworkMutationResponse(
+        success=True,
+        message="Framework updated successfully",
+        framework_id=framework.id,
+    )
 
 
-# Added: Remove framework
 @router.delete("/{framework_id}")
 def delete_framework(
     framework_id: str,
     user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
-    """
-    remove framework
-
-    You can only delete the framework you created.
-    """
-
-    framework = (
-        db.query(Framework)
-        .filter(Framework.id == framework_id, Framework.creator_id == user_id)
-        .first()
-    )
-
-    if not framework:
-        raise HTTPException(
-            status_code=404, detail="Framework not found or you don't have permission"
-        )
+    framework = _get_owned_framework(db, framework_id, user_id)
 
     db.delete(framework)
     db.commit()

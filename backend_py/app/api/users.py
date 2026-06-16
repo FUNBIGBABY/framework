@@ -204,6 +204,12 @@ def login_user(request: UserLoginRequest, db: Session = Depends(get_db)):
             status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password"
         )
 
+    if getattr(user, "is_disabled", False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is disabled",
+        )
+
     if needs_rehash:
         user.password_hash = hash_password(request.password)
 

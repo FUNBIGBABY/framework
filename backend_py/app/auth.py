@@ -153,45 +153,55 @@ def decode_access_token(token: str) -> dict:
 # ============= Dependency Injection - Get Current User =============
 
 
-def get_current_user_id(
+def _decode_user_id_from_credentials(
     credentials: HTTPAuthorizationCredentials = Depends(security),
 ) -> str:
-    """
-    Extract current user ID from JWT token
-
-    Used as dependency injection for routes, automatically validating the token in Authorization header
-
-    Args:
-        credentials: HTTP Bearer token
-
-    Returns:
-        User ID
-
-    Raises:
-        HTTPException: token invalid or missing
-    """
     token = credentials.credentials
 
-    try:
-        payload = decode_access_token(token)
-        user_id: str = payload.get("sub")
+    payload = decode_access_token(token)
+    user_id: str = payload.get("sub")
 
-        if user_id is None:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload"
-            )
-
-        return user_id
-
-    except JWTError:
+    if user_id is None:
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
+            status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token payload"
         )
+
+    return user_id
+
+
+def _get_active_user(db: Session, user_id: str) -> User:
+    user = db.query(User).filter(User.id == user_id).first()
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
+        )
+
+    if getattr(user, "is_disabled", False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User account is disabled",
+        )
+
+    return user
+
+
+def get_current_user_id(
+    user_id: str = Depends(_decode_user_id_from_credentials),
+    db: Session = Depends(get_db),
+) -> str:
+    """
+    Extract the current user ID from a JWT and verify the user is active.
+
+    Routes that only need the ID still perform a database status check, so an
+    already-issued token stops working as soon as the account is disabled.
+    """
+    return _get_active_user(db, user_id).id
 
 
 def get_current_user(
-    user_id: str = Depends(get_current_user_id), db: Session = Depends(get_db)
+    user_id: str = Depends(_decode_user_id_from_credentials),
+    db: Session = Depends(get_db),
 ) -> User:
     """
     Get full information of the current logged-in user
@@ -208,14 +218,7 @@ def get_current_user(
     Raises:
         HTTPException: user does not exist
     """
-    user = db.query(User).filter(User.id == user_id).first()
-
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="User not found"
-        )
-
-    return user
+    return _get_active_user(db, user_id)
 
 
 # ============= Optional Authentication (for mixed public/private endpoints) =============

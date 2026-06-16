@@ -312,8 +312,9 @@
 
 ### Step 5.3 vector_sync 重写
 - `frameworks.py:2664-2870` 的 `sync_library` / `push-framework` / `log-event`：
-  - 不再走 OpenAI Vector Store + Firestore REST；
-  - 改写为 `RAGIndexingService.index_framework(...)`：先由 `EmbeddingProvider.embed()` 生成向量，再调用 `VectorStoreProvider.upsert_vectors(namespace="frameworks", ...)`。MVP 只保留 `frameworks` / `documents` 两类索引，不把 `events` 放进向量库。
+  - Phase 5 负责 quarantine Firestore REST / Identity Toolkit / OpenAI Vector Store active paths；
+  - 保留 `RAGIndexingService.index_framework(...)` 作为认证后的 stub/501，响应中说明 indexing/retrieval deferred to Phase 9。
+- 真正的 embedding、pgvector upsert/search、`frameworks` / `documents` 索引和 citation retrieval 属于 Phase 9，不在 Phase 5 实现。
 - legacy OpenAI Vector Store 实现保留为只读，仅作为可选迁出工具。
 
 ### Step 5.4 frameworks.py 第二次拆分（业务级）
@@ -756,7 +757,6 @@
 7. 个人自用边界提到 Phase 0 就锁死（白名单 + 不开放注册），并在 Phase 13 收尾合规。
 8. 新增 LLMWiki：项目定位从普通 RAG Chat 升级为“个人 AI Agent + LLMWiki 知识编译层 + RAG 证据检索层”。
 9. 新增 Tool Registry / Skill Registry / MCP-compatible adapter：MVP 先做内部工具和技能编排，MCP 作为 read-only 可选兼容层。
-
 
 
 

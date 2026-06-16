@@ -16,6 +16,7 @@ from .frameworks_shared import (
     process_with_local_llm,
     read_file_content,
     save_framework_to_db,
+    should_use_mock_generation,
 )
 
 
@@ -179,6 +180,69 @@ def build_deterministic_file_metadata(
     }
 
 
+def build_deterministic_file_metadata_from_paths(
+    file_paths: list[str],
+    file_names: list[str],
+) -> dict:
+    normalized_names = []
+    file_contents = []
+
+    for index, file_path in enumerate(file_paths):
+        file_name = file_names[index] if index < len(file_names) else Path(file_path).name
+        normalized_names.append(file_name)
+
+        content = read_file_content(file_path, file_name)
+        usable_content = (
+            content
+            if content and not content.startswith("[Unable to read")
+            else ""
+        )
+        file_contents.append(usable_content)
+
+    return build_deterministic_file_metadata(normalized_names, file_contents)
+
+
+def _extract_generated_frameworks(framework_result: dict | list) -> list[dict]:
+    if isinstance(framework_result, dict):
+        frameworks = framework_result.get("frameworks")
+        if isinstance(frameworks, list):
+            generated = frameworks
+        else:
+            generated = [framework_result]
+    elif isinstance(framework_result, list):
+        generated = framework_result
+    else:
+        generated = []
+
+    if not all(isinstance(framework, dict) for framework in generated):
+        raise HTTPException(
+            status_code=502,
+            detail="LLM provider returned an invalid framework payload",
+        )
+
+    return generated
+
+
+def _save_generated_frameworks(
+    frameworks: list[dict],
+    metadata: dict,
+    creator_id: str,
+    db: Session,
+) -> list[str]:
+    saved_ids = []
+    for framework_data in frameworks:
+        db_framework = save_framework_to_db(
+            framework_data=framework_data,
+            metadata_dict=metadata,
+            creator_id=creator_id,
+            db=db,
+        )
+        framework_data["id"] = db_framework.id
+        saved_ids.append(db_framework.id)
+
+    return saved_ids
+
+
 # ============= API Endpoints =============
 
 
@@ -202,6 +266,8 @@ async def generate_from_text(
                 status_code=400, detail="Text too long (max 50,000 characters)"
             )
 
+        use_mock = should_use_mock_generation(request.dry_run)
+
         #  Whether to use Local LLM depends on use_global_llm.
         if not request.use_global_llm:
             #  Lock ON: Privacy Protection Mode
@@ -213,8 +279,9 @@ async def generate_from_text(
             framework_result = process_with_global_llm(
                 metadata=metadata,
                 model=request.model,
-                use_mock=False,
+                use_mock=use_mock,
                 reasoning=request.reasoning,
+                dry_run=request.dry_run,
             )
             print(" Global LLM completed")
         else:
@@ -355,21 +422,31 @@ async def generate_from_text(
             framework_result = process_with_global_llm(
                 metadata=metadata,
                 model=request.model,
-                use_mock=False,
+                use_mock=use_mock,
                 reasoning=request.reasoning,
+                dry_run=request.dry_run,
             )
             print(" Global LLM completed")
 
         # 🔧 Modification: Supports multiple POVs / multiple frameworks in the results.
         #  Modification: Supports multiple POVs / multiple frameworks in the results.
-        frameworks = framework_result.get("frameworks", [framework_result])
+        frameworks = _extract_generated_frameworks(framework_result)
 
         print(f" Framework generation completed: {len(frameworks)} framework(s)")
 
-        #  The generated data is returned directly without being saved to the database (it is saved to Firebase by the front end).
+        print(" Step 3: Saving framework(s) to database...")
+        saved_ids = _save_generated_frameworks(
+            frameworks=frameworks,
+            metadata=metadata,
+            creator_id=user_id,
+            db=db,
+        )
+        print(f" All frameworks saved: {len(saved_ids)} total")
+
         return GenerateResponse(
             success=True,
-            framework_id=None,  # The front-end will have an ID after creation.
+            framework_id=saved_ids[0] if saved_ids else None,
+            framework_ids=saved_ids,
             framework=frameworks[0] if frameworks else None,
             frameworks=frameworks,
             metadata=metadata,
@@ -391,6 +468,7 @@ async def generate_from_file(
     use_global_llm: bool = True,
     model: Optional[str] = None,
     reasoning: bool = False,
+    dry_run: bool = False,
     user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
@@ -430,15 +508,9 @@ async def generate_from_file(
 
         if use_global_llm:
             print(" Step 1: Building deterministic file metadata...")
-            file_content = read_file_content(temp_path, file.filename)
-            usable_content = (
-                file_content
-                if file_content and not file_content.startswith("[Unable to read")
-                else ""
-            )
-            metadata = build_deterministic_file_metadata(
+            metadata = build_deterministic_file_metadata_from_paths(
+                [temp_path],
                 [file.filename],
-                [usable_content],
             )
             print(
                 f" File metadata completed. Extracted {len(metadata)} metadata fields"
@@ -450,33 +522,35 @@ async def generate_from_file(
 
         # Step 2: Global LLM Generation Framework
         print(" Step 2: Processing with configured LLM Provider...")
-        framework_result = process_with_global_llm(  #  MODIFIED
-            metadata=metadata, model=model, use_mock=False, reasoning=reasoning
+        framework_result = process_with_global_llm(
+            metadata=metadata,
+            model=model,
+            use_mock=should_use_mock_generation(dry_run),
+            reasoning=reasoning,
+            dry_run=dry_run,
         )
         print(" Global LLM completed. Framework generated")
 
         #  MODIFIED: Supports multiple POV outputs
-        frameworks = framework_result.get("frameworks", [framework_result])
+        frameworks = _extract_generated_frameworks(framework_result)
 
         #  Step 3: Save to database
         print("💾 Step 3: Saving framework(s) to database...")
-        saved_ids = []  #  MODIFIED
-        for fw_data in frameworks:  #  MODIFIED
-            db_framework = save_framework_to_db(  #  MODIFIED
-                framework_data=fw_data,  #  MODIFIED
-                metadata_dict=metadata,
-                creator_id=user_id,
-                db=db,
-            )
-            saved_ids.append(db_framework.id)  #  MODIFIED
-        print(f" All frameworks saved: {len(saved_ids)} total")  #  MODIFIED
+        saved_ids = _save_generated_frameworks(
+            frameworks=frameworks,
+            metadata=metadata,
+            creator_id=user_id,
+            db=db,
+        )
+        print(f" All frameworks saved: {len(saved_ids)} total")
 
         #  MODIFIED: Returns both single and multiple values ​​(backwards compatible).
         return GenerateResponse(
             success=True,
-            framework_id=saved_ids[0] if saved_ids else None,  #  MODIFIED
-            framework=frameworks[0] if frameworks else None,  #  MODIFIED
-            frameworks=frameworks,  #  MODIFIED
+            framework_id=saved_ids[0] if saved_ids else None,
+            framework_ids=saved_ids,
+            framework=frameworks[0] if frameworks else None,
+            frameworks=frameworks,
             metadata=metadata,
         )
 
@@ -503,6 +577,7 @@ async def generate_from_files(
     use_global_llm: bool = True,
     model: Optional[str] = None,
     reasoning: bool = False,
+    dry_run: bool = False,
     user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
@@ -512,6 +587,7 @@ async def generate_from_files(
     Multiple files will be merged.
     """
     temp_paths = []
+    temp_file_names = []
 
     try:
         if not files or len(files) == 0:
@@ -540,6 +616,7 @@ async def generate_from_files(
             with tempfile.NamedTemporaryFile(delete=False, suffix=file_ext) as tmp:
                 tmp.write(content)
                 temp_paths.append(tmp.name)
+                temp_file_names.append(file.filename)
 
         if not temp_paths:
             raise HTTPException(status_code=400, detail="No valid files")
@@ -567,230 +644,46 @@ async def generate_from_files(
             framework_result = process_with_global_llm(
                 metadata=merged_metadata,
                 model=model,
-                use_mock=False,
+                use_mock=should_use_mock_generation(dry_run),
                 reasoning=reasoning,
+                dry_run=dry_run,
             )
             print(" Global LLM completed")
         else:
             #  Lock OFF: Quick Mode
             print(" Processing with Global LLM (Fast Mode - No Local Processing)...")
 
-            # Read all file contents
-            file_contents = []
-            file_names = []
-            for i, temp_path in enumerate(temp_paths):
-                try:
-                    # Get filename
-                    original_filename = (
-                        files[i].filename if i < len(files) else f"file_{i+1}"
-                    )
-                    file_names.append(original_filename)
-
-                    # Use smart read function Fix .docx garbled issue
-                    content = read_file_content(temp_path, original_filename)
-                    if content and not content.startswith("[Unable to read"):
-                        file_contents.append(content)
-                    else:
-                        print(f"Warning: {content}")
-
-                except Exception as e:
-                    print(f"Warning: Could not read file {temp_path}: {e}")
-
-            # 1. Intelligent title extraction
-            if len(file_contents) == 1:
-                # Single file: Use the first line or the filename
-                lines = file_contents[0].strip().split("\n")
-                potential_title = (
-                    lines[0][:150].strip()
-                    if lines and len(lines[0].strip()) > 10
-                    else file_names[0]
-                )
-            else:
-                # Multiple files: Use combined descriptions
-                lines = file_contents[0].strip().split("\n") if file_contents else []
-                if lines and len(lines[0].strip()) > 10:
-                    potential_title = lines[0][:150].strip()
-                else:
-                    potential_title = f"Framework from {len(file_names)} files"
-
-            #  2. Simple Keyword Extraction
-            simple_keywords = [
-                word.strip()
-                for word in potential_title.lower().split()
-                if len(word.strip()) > 3
-            ][:5]
-
-            #  3. Extract sections (extract from all files, but keep only the first 200 words of each section)
-            all_sections = []
-
-            for idx, content in enumerate(file_contents):
-                file_name = (
-                    file_names[idx] if idx < len(file_names) else f"File {idx+1}"
-                )
-                lines = content.strip().split("\n")
-
-                # Create sections for each file
-                current_section_lines = []
-
-                for line in lines[
-                    :50
-                ]:  # Only the first 50 lines of each file are viewed.
-                    line_stripped = line.strip()
-                    if not line_stripped:
-                        continue
-
-                    # Determine if it is a chapter title
-                    if len(line_stripped) < 100 and (
-                        line_stripped[0].isdigit()
-                        or line_stripped.isupper()
-                        or any(
-                            marker in line_stripped.lower()
-                            for marker in ["step", "phase", "stage", "chapter"]
-                        )
-                    ):
-                        if current_section_lines:
-                            content_preview = " ".join(current_section_lines)[:200]
-                            all_sections.append(
-                                {
-                                    "title": f"{file_name}: {current_section_lines[0][:100]}",
-                                    "content": content_preview,  #  Keep only the first 200 characters
-                                    "level": 1,
-                                    "source_file": file_name,
-                                }
-                            )
-                            current_section_lines = [line_stripped]
-                        else:
-                            current_section_lines = [line_stripped]
-                    else:
-                        if len(current_section_lines) < 3:
-                            current_section_lines.append(line_stripped)
-
-                # Save the last section
-                if current_section_lines:
-                    content_preview = " ".join(current_section_lines)[:200]
-                    all_sections.append(
-                        {
-                            "title": f"{file_name}: {current_section_lines[0][:100]}",
-                            "content": content_preview,
-                            "level": 1,
-                            "source_file": file_name,
-                        }
-                    )
-
-            # If no sections are extracted, create a simple section for each file.
-            if not all_sections:
-                all_sections = [
-                    {
-                        "title": file_names[i]
-                        if i < len(file_names)
-                        else f"File {i+1}",
-                        "content": content[:200]
-                        + "...",  #  Keep only the first 200 characters
-                        "level": 1,
-                        "source_file": file_names[i]
-                        if i < len(file_names)
-                        else f"File {i+1}",
-                    }
-                    for i, content in enumerate(file_contents)
-                ]
-
-            #  4. Create optimized metadata
-            merged_metadata = {
-                "doc_id": f"doc-{generate(size=12)}",
-                "title": potential_title,  #  real title
-                "subject": potential_title,
-                "language": "en",
-                "bypass_local_llm": True,
-                #  keywords
-                "keywords": simple_keywords,
-                #  sections: Contains only chapter titles and a preview of the first 200 words.
-                "sections": all_sections[:15],  # Up to 15 sections
-                #  facets
-                "facets": {
-                    "main_topic": {
-                        "summary": potential_title,
-                        "items": [
-                            {
-                                "value": kw,
-                                "evidence": "",
-                                "location": "",
-                                "confidence": 0.8,
-                            }
-                            for kw in simple_keywords
-                        ],
-                    },
-                    "source_files": {
-                        "summary": f"Content from {len(file_contents)} file(s)",
-                        "items": [
-                            {
-                                "value": name,
-                                "evidence": "",
-                                "location": "",
-                                "confidence": 1.0,
-                            }
-                            for name in file_names
-                        ],
-                    },
-                },
-                #  key_values
-                "key_values": [
-                    {"key": "document_title", "value": potential_title},
-                    {"key": "file_count", "value": str(len(file_contents))},
-                    {"key": "processing_mode", "value": "direct"},
-                    {"key": "source_files", "value": ", ".join(file_names[:3])},
-                ],
-                #  tags
-                "tags": simple_keywords,
-                # Other required fields
-                "source_count": len(file_contents),
-                "source_files": file_names,
-                "triples": [],
-                "questions": [],
-                "risks": [],
-                "actions_todo": [],
-                "metrics": [],
-                "tables": [],
-                "figures": [],
-                "extra": {
-                    "processing_mode": "direct",
-                    "note": "Extracted structure without full text to reduce prompt size",
-                    "file_names": file_names,
-                    "total_length": sum(len(c) for c in file_contents),
-                    "truncated": True,
-                },
-            }
-
-            #  Key point: Do not add raw_text, full_content, or the complete combined_text!
+            merged_metadata = build_deterministic_file_metadata_from_paths(
+                temp_paths,
+                temp_file_names,
+            )
 
             framework_result = process_with_global_llm(
                 metadata=merged_metadata,
                 model=model,
-                use_mock=False,
+                use_mock=should_use_mock_generation(dry_run),
                 reasoning=reasoning,
+                dry_run=dry_run,
             )
             print(" Global LLM completed")
 
         #  MODIFIED: Supports multiple POV outputs
-        frameworks = framework_result.get("frameworks", [framework_result])
+        frameworks = _extract_generated_frameworks(framework_result)
 
-        #  Step 3: Generate framework IDs (the frontend will save them to Firebase).
-        print(
-            "💾 Step 3: Generating framework IDs (data will be saved to Firebase by frontend)..."
+        print(" Step 3: Saving framework(s) to database...")
+        saved_ids = _save_generated_frameworks(
+            frameworks=frameworks,
+            metadata=merged_metadata,
+            creator_id=user_id,
+            db=db,
         )
-
-        saved_ids = []
-        for fw_data in frameworks:
-            # Generate a unique ID for each framework
-            fw_id = f"fw_{generate(size=12)}"
-            fw_data["id"] = fw_id  # Add ID to framework data
-            saved_ids.append(fw_id)
-
-        print(f" Generated {len(saved_ids)} framework IDs: {saved_ids}")
+        print(f" All frameworks saved: {len(saved_ids)} total")
 
         #  MODIFIED: Returns both single and multiple [MODIFIED] values.
         return GenerateResponse(
             success=True,
             framework_id=saved_ids[0] if saved_ids else None,
+            framework_ids=saved_ids,
             framework=frameworks[0] if frameworks else None,
             frameworks=frameworks,
             metadata=merged_metadata,

@@ -4,11 +4,11 @@ import random
 import sys
 from datetime import datetime
 from pathlib import Path
-from typing import List, Optional
+from typing import Any, List, Optional
 
 from fastapi import HTTPException
 from nanoid import generate
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 from sqlalchemy.orm import Session
 
 from ..models import FRAMEWORK_GROUPS, Framework
@@ -29,11 +29,13 @@ class TextGenerateRequest(BaseModel):
     use_global_llm: bool = True
     model: Optional[str] = None
     reasoning: bool = False
+    dry_run: bool = False
 
 
 class GenerateResponse(BaseModel):
     success: bool
     framework_id: Optional[str] = None
+    framework_ids: Optional[List[str]] = None
     framework: Optional[dict] = None
     frameworks: Optional[List[dict]] = None  # Multiple framework
     # Local LLM
@@ -79,6 +81,61 @@ class FrameworkDetailResponse(BaseModel):
     updated_at: datetime
 
 
+class FrameworkOwnerCRUDRequest(BaseModel):
+    """Base request for owner-only framework CRUD endpoints."""
+
+    model_config = ConfigDict(extra="ignore", populate_by_name=True)
+
+    @model_validator(mode="before")
+    @classmethod
+    def reject_client_owner_fields(cls, value):
+        if isinstance(value, dict):
+            forbidden = sorted({"creator_id", "user_id"}.intersection(value))
+            if forbidden:
+                raise ValueError(
+                    "Owner identity fields are not accepted: " + ", ".join(forbidden)
+                )
+        return value
+
+
+class FrameworkCreateRequest(FrameworkOwnerCRUDRequest):
+    """Create a private framework owned by the authenticated user."""
+
+    title: Optional[str] = None
+    version: Optional[str] = None
+    family: Optional[str] = None
+    confidence: Optional[float] = None
+    pov: Optional[str] = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    steps: List[dict] = Field(default_factory=list)
+    artefacts: dict[str, Any] = Field(default_factory=dict)
+    risks: List[dict] = Field(default_factory=list)
+    escalation: List[dict] = Field(default_factory=list)
+    raw_framework: Optional[Any] = Field(default=None, alias="_raw")
+
+
+class FrameworkUpdateRequest(FrameworkOwnerCRUDRequest):
+    """Update a private framework owned by the authenticated user."""
+
+    title: Optional[str] = None
+    version: Optional[str] = None
+    family: Optional[str] = None
+    confidence: Optional[float] = None
+    pov: Optional[str] = None
+    metadata: Optional[dict[str, Any]] = None
+    steps: Optional[List[dict]] = None
+    artefacts: Optional[dict[str, Any]] = None
+    risks: Optional[List[dict]] = None
+    escalation: Optional[List[dict]] = None
+    raw_framework: Optional[Any] = Field(default=None, alias="_raw")
+
+
+class FrameworkMutationResponse(BaseModel):
+    success: bool
+    message: str
+    framework_id: str
+
+
 def coerce_json_value(value, default):
     """Return a JSON-compatible Python value from JSONB or legacy JSON text."""
     if value is None:
@@ -97,6 +154,10 @@ def calculate_mock_confidence() -> float:
     In the future, AI can be used to calculate the true confidence level.
     """
     return round(random.uniform(60, 95), 1)
+
+
+def should_use_mock_generation(dry_run: bool = False) -> bool:
+    return bool(dry_run) or os.getenv("ENV", "").strip().lower() == "dev"
 
 
 def _env_enabled(name: str, default: bool = False) -> bool:
@@ -556,6 +617,7 @@ def process_with_global_llm(
     model: Optional[str] = None,
     use_mock: bool = False,
     reasoning: bool = False,
+    dry_run: bool = False,
 ) -> dict:
     """
     Step 2: Generate the framework using the configured LLM Provider.
@@ -564,6 +626,14 @@ def process_with_global_llm(
     """
     try:
         if use_mock:
+            if not should_use_mock_generation(dry_run):
+                raise HTTPException(
+                    status_code=503,
+                    detail=(
+                        "Mock framework generation is only available when ENV=dev "
+                        "or dry_run=true."
+                    ),
+                )
             print("  Using mock framework generation because mock mode was requested")
             framework = build_mock_framework(metadata)
         else:
@@ -608,6 +678,8 @@ def process_with_global_llm(
 
         return framework
 
+    except HTTPException:
+        raise
     except (LLMProviderError, NotImplementedError) as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:

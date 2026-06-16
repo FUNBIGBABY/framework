@@ -151,16 +151,21 @@ def test_legacy_local_path_is_disabled_by_default(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_generate_from_file_default_path_avoids_legacy_local(monkeypatch):
+    monkeypatch.setenv("ENV", "production")
+
     def fail_if_called(*args, **kwargs):
         raise AssertionError("process_with_local_llm should not run by default")
 
     captured = {}
 
-    def fake_global(metadata, model=None, use_mock=False, reasoning=False):
+    def fake_global(
+        metadata, model=None, use_mock=False, reasoning=False, dry_run=False
+    ):
         captured["metadata"] = metadata
         captured["model"] = model
         captured["use_mock"] = use_mock
         captured["reasoning"] = reasoning
+        captured["dry_run"] = dry_run
         return {"metadata": {"title": metadata["title"]}, "steps": []}
 
     def fake_save_framework_to_db(framework_data, metadata_dict, creator_id, db):
@@ -188,6 +193,7 @@ async def test_generate_from_file_default_path_avoids_legacy_local(monkeypatch):
     assert captured["metadata"]["extra"]["processing_mode"] == "direct_file_metadata"
     assert captured["use_mock"] is False
     assert captured["reasoning"] is False
+    assert captured["dry_run"] is False
 
 
 def test_api_layer_has_no_legacy_llm_call_gates():

@@ -1,6 +1,4 @@
 import re
-import asyncio
-import os
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -16,11 +14,10 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from app.db import SessionLocal
+from app.api.admin_users import router as admin_users_router
 from app.api.materials import router as materials_router
 from app.api.frameworks import router as frameworks_router
 from app.api.users import router as users_router
-from app.api.frameworks import sync_library, SyncLibraryRequest
 
 
 app = FastAPI(title="Valorie Framework Builder API")
@@ -99,6 +96,7 @@ def health():
 # ================= Register Routers =================
 app.include_router(materials_router)
 app.include_router(frameworks_router)
+app.include_router(admin_users_router)
 app.include_router(users_router)
 
 # ================= Serve Frontend Static Files (Docker mode) =================
@@ -121,34 +119,3 @@ if static_dir.exists():
     print("Serving frontend from /app/static/frontend")
 else:
     print("Frontend static files not found (development mode)")
-
-
-@app.on_event("startup")
-async def schedule_library_sync():
-    async def job():
-        while True:
-            try:
-                legacy_vector_enabled = os.getenv(
-                    "OPENAI_VECTOR_STORE_ENABLED", "false"
-                ).lower() in {"1", "true", "yes", "on"}
-                if not legacy_vector_enabled:
-                    await asyncio.sleep(60)
-                    continue
-                req = SyncLibraryRequest(
-                    project_id=os.getenv("FIREBASE_PROJECT_ID"),
-                    api_key=os.getenv("VITE_FIREBASE_API_KEY")
-                    or os.getenv("FIREBASE_API_KEY"),
-                    vector_store_id=os.getenv("OPENAI_VECTOR_STORE_LIBRARY"),
-                    limit=1000,
-                    include_organization=True,
-                )
-                db = SessionLocal()
-                try:
-                    sync_library(req, current_user_id="startup-sync", db=db)
-                finally:
-                    db.close()
-            except Exception as e:  # pylint: disable=broad-exception-caught
-                print("Library sync failed:", e)
-            await asyncio.sleep(60)
-
-    asyncio.create_task(job())
