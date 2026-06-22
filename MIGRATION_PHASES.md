@@ -32,8 +32,8 @@
 | 3 | DeepSeek V4 切换 | 默认 LLM 走 DeepSeek，OpenAI 仅作为可选 fallback | 2 |
 | 4 | 数据库迁移到 Postgres + pgvector（含 Agent/RAG/LLMWiki 表占位） | Alembic 初始版本一次到位 | 1 |
 | 5 | 后端接管 Firestore 业务逻辑 | 全部业务路由在后端，frameworks.py 拆分完成 | 2、4 |
-| 6 | 前端去 Firebase 化 | 删 firebase SDK，AuthContext / Library / Admin 全部走 REST | 5 |
-| 7 | 域名脱钩与遗留清理 | 删 migrate-data / MigrationTool / 多租户入口 / valorie 域 | 6 |
+| 6 | 前端去 Firebase 化 | 移除前端 active Firebase runtime dependency / SDK imports；AuthContext / Library / Admin 全部走 REST | 5 |
+| 7 | 域名脱钩与遗留清理 | 语义清理 Valorie / domain / tenant / invite / migration 残留 | 6 |
 | 8 | Agent 核心循环 + Tool Registry | agent_runs / agent_messages / SSE / Tool Registry / ReAct | 3、4、5 |
 | 9 | RAG 证据检索层 | 上传 → chunk → embed → pgvector 检索 + citation | 4 |
 | 10 | LLMWiki 知识编译层 | wiki_pages / claims / links / eval questions | 3、4、9 |
@@ -125,7 +125,7 @@
 
 ### Step 1.4 Token 策略（最小可用）
 - access token 7d → 缩短到 1h；引入 refresh token（30d，httpOnly cookie）。
-- 提供 `/api/auth/refresh`、`/api/auth/logout`。
+- 提供 `/api/users/refresh`、`/api/users/logout`；Phase 6 统一使用 `/api/users/*` 鉴权路由族，不再引入并行的 `/api/auth/*` 契约。
 - localStorage 不再存 token；前端改用 cookie 自动携带。
 - **如果 Phase 6 还没开始**，先在后端实现完整，前端继续用 localStorage 兼容（用 Authorization header），Phase 6 一并切到 cookie。
 - **当前验收状态**：Phase 1-3 代码尚未实现 1h access + refresh token/httpOnly cookie；当前仍是 7d Bearer token + `localStorage` 的 Phase 6 前兼容债，不得标记为 token 策略已完成。
@@ -340,7 +340,9 @@
 
 ## Phase 6 · 前端去 Firebase 化
 
-**目标**：彻底干掉 firebase SDK 依赖；登录/数据全走 REST。
+**目标**：彻底干掉前端 active Firebase runtime dependency 和 SDK usage；登录/数据全走 REST。
+
+**边界**：Phase 6 只负责为卸载 Firebase SDK 所必需的前端去 Firebase 化。若某些前端文件持续 import Firebase，Phase 6 可以删除或隔离这些文件以解除 active SDK dependency；但 Valorie/domain/tenant/invite/migration 残留的语义清理仍归 Phase 7，Phase 6 不扩展为 Phase 7 cleanup。
 
 ### Step 6.1 AuthContext 重写
 - 删 `onAuthStateChanged` / `signInWithEmailAndPassword`。
@@ -351,6 +353,7 @@
 - 受影响组件至少包括：`Library.jsx`、`YourFrameworks.jsx`、`AdminPanel.jsx`、`UpdateFrameworksButton.jsx`、`FrameworkEditor.jsx`、`AIMergeMode.jsx`、`ManualMergeMode.jsx`、`PublishModal.jsx`、`InviteAccept.jsx`（多租户砍后整体删）。
 - 全部改为 `fetch /api/...`。
 - 实时订阅 `onSnapshot` → 短期改为定时轮询（10-30s）；Phase 8 SSE 通了后再升级。
+- 如某个 Firebase-importing 前端文件只属于 Phase 7 残留路径，Phase 6 可以先删除或隔离到非运行路径以完成 SDK 卸载；语义删除、文案/路由/域名清理仍在 Phase 7。
 
 ### Step 6.3 卸载 firebase SDK
 - `npm uninstall firebase`。
@@ -757,8 +760,6 @@
 7. 个人自用边界提到 Phase 0 就锁死（白名单 + 不开放注册），并在 Phase 13 收尾合规。
 8. 新增 LLMWiki：项目定位从普通 RAG Chat 升级为“个人 AI Agent + LLMWiki 知识编译层 + RAG 证据检索层”。
 9. 新增 Tool Registry / Skill Registry / MCP-compatible adapter：MVP 先做内部工具和技能编排，MCP 作为 read-only 可选兼容层。
-
-
 
 
 
