@@ -1,0 +1,7 @@
+interface:
+  display_name: "Migration Phase Planner"
+  short_description: "Plan migration phases, docs, scope, risks, and handoff criteria."
+  default_prompt: "Use $migration-phase-planner to plan the next migration phase and create or update phase documentation."
+
+policy:
+  allow_implicit_invocation: false
