@@ -38,7 +38,7 @@ Focused repo facts from planning scans:
 - `frontend/src/lib/api.js` still imports Firebase auth, reads `access_token`, sends `Authorization: Bearer`, and derives tenant/user identity from the frontend.
 - Phase 1 token strategy debt is known: current auth may still have 7d Bearer plus `localStorage` compatibility paths. Phase 6 Round 1 owns the narrow backend session repair if cookie-session support is missing.
 - Canonical Phase 6 auth endpoints use the existing `/api/users/*` route family: `POST /api/users/login`, `GET /api/users/me`, `POST /api/users/refresh`, and `POST /api/users/logout`. Do not introduce a parallel `/api/auth/*` contract.
-- Phase 5 is the dependency for Phase 6. Phase 6 implementation can be prepared, but it should not be merged until Phase 5 has final reviewer acceptance. The current Phase 5 report still contains "pending final closure re-review" language; if actual acceptance happened elsewhere, treat the report language as a documentation risk and request a narrow Phase 5 closeout-doc correction instead of reopening Phase 5 implementation.
+- Phase 5 is the dependency for Phase 6. Phase 5 final review accepted the closeout, the staged package was committed and pushed, and Phase 6 planning may proceed. Phase 6 implementation should use the accepted Phase 5 REST surfaces without reopening Phase 5 implementation.
 - Active components still import Firebase or `../lib/firebase`, including `Library.jsx`, `PublishModal.jsx`, `FrameworkCard.jsx`, `FrameworkEditor.jsx`, `AdminPanel.jsx`, `Navbar.jsx`, `YourFrameworks.jsx`, `UpdateFrameworksButton.jsx`, `TenantCreationModal.jsx`, `TenantSettings.jsx`, `YourOrganization.jsx`, and `InviteAccept.jsx`.
 - Phase 5 reports backend REST contracts for private framework CRUD, generation persistence, authenticated public library, publish/unpublish, admin users, and artefact subresources.
 
@@ -59,11 +59,10 @@ Phase 6 may isolate Phase 7 residue if it imports Firebase, but only to break ac
 
 ## Phase 5 Acceptance Gate
 
-Phase 6 depends on Phase 5 backend REST surfaces. Before any Phase 6 implementation is merged:
+Phase 6 depends on accepted Phase 5 backend REST surfaces. Before any Phase 6 implementation is merged:
 
-- Confirm Phase 5 has final reviewer acceptance.
-- If Phase 5 docs still contain stale "pending final closure re-review" language despite actual acceptance, record it as a documentation risk.
-- Ask for a narrow Phase 5 closeout-doc correction when needed.
+- Record that Phase 5 final review accepted the closeout.
+- Record that the staged Phase 5 package was committed and pushed.
 - Do not reopen Phase 5 implementation as part of Phase 6 planning or execution.
 
 ## Explicit Non-Goals
@@ -388,7 +387,7 @@ Backend auth/session tests are required when Round 1 verifies or repairs backend
 - Browser smoke checks should cover login, refresh, framework list, library, publish/unpublish, admin access, artefact edit, and logout.
 - Backend auth/session verification should cover login cookies, cookie-authenticated `/api/users/me`, refresh renewal, logout clearing/revocation, and disabled-user rejection on protected access and refresh.
 - Backend CSRF/Origin verification should include positive and negative unsafe-method tests plus safe-method non-blocking tests.
-- Phase 5 final reviewer acceptance should be recorded before Phase 6 implementation is merged; stale Phase 5 closeout wording should be treated as a documentation risk.
+- Phase 5 accepted-closeout evidence should be recorded before Phase 6 implementation is merged.
 - The final report should list Phase 7 deferrals and confirm they were not semantically cleaned in Phase 6.
 
 ## Reviewer Handoff Criteria
@@ -403,7 +402,7 @@ The reviewer should receive:
 - Evidence that the backend cookie-session contract is present or was repaired in Round 1.
 - Evidence that only `/api/users/*` auth endpoints are used for Phase 6.
 - Evidence that CSRF/Origin/Referer tests pass.
-- Evidence that Phase 5 has final reviewer acceptance, or a documented Phase 5 closeout-doc risk with correction requested.
+- Evidence that Phase 5 final review accepted the closeout and the staged package was committed and pushed.
 - Evidence that no frontend identity fields are sent as authority.
 - Frontend lint/test/build outputs.
 - Manual smoke-test notes.

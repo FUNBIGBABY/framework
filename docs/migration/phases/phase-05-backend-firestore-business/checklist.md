@@ -395,8 +395,11 @@
 - [x] Do not implement RAG/Agent/LLMWiki/Chat/MCP.
 - [x] Do not commit.
 
+## Closeout Note
+
+- Phase 5 final review accepted the closeout; the staged Phase 5 package was committed and pushed, and Phase 6 planning may proceed.
+
 ## Remaining Deferred After Closeout
-- [ ] Phase 5 final closure review remains pending one final re-review after this doc-only stale-status repair.
 - [ ] Phase 9 RAG indexing/retrieval, embedding, pgvector upsert/search, and citation retrieval.
 - [ ] Phase 6 frontend REST rewiring and Firebase SDK removal.
 - [ ] Phase 7 tenant/domain cleanup.

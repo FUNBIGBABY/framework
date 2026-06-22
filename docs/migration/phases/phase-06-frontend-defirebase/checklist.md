@@ -11,8 +11,8 @@ Planning status: this is a planning checklist only. Do not mark Phase 6 complete
 - [ ] Read Phase 5 `checklist.md`, `phase-report.md`, and `verification.md`.
 - [ ] Read Phase 6 `phase-report.md` for current planning status and addressed reviewer findings.
 - [ ] Confirm Phase 5 backend REST surfaces are available for frontend use.
-- [ ] Confirm Phase 5 final reviewer acceptance before any Phase 6 implementation is merged.
-- [ ] If Phase 5 docs still say "pending final closure re-review" despite actual acceptance, record that as a documentation risk and request a narrow Phase 5 closeout-doc correction.
+- [ ] Record that Phase 5 final review accepted the closeout before any Phase 6 implementation is merged.
+- [ ] Confirm Phase 6 does not reopen Phase 5 implementation while using accepted Phase 5 REST surfaces.
 - [ ] Confirm Phase 6 is not being used for semantic Valorie/domain/tenant/invite/migration cleanup.
 
 ## Phase Guardrails
@@ -249,7 +249,7 @@ This gate blocks Phase 6 closeout.
 - [ ] Phase 6 verification records exact commands and outputs.
 - [ ] The reviewer receives static scan evidence for Firebase removal, bearer/localStorage removal, and identity propagation removal.
 - [ ] The reviewer receives frontend lint/test/build output.
-- [ ] The reviewer receives Phase 5 final acceptance evidence or a documented Phase 5 closeout-doc risk.
+- [ ] The reviewer receives Phase 5 accepted-closeout evidence.
 - [ ] The reviewer receives backend auth/session and CSRF/Origin test evidence from Round 1.
 - [ ] Any Phase 7 residue intentionally left behind is listed as a deferral, not hidden as Phase 6 completion.
 - [ ] Phase 6 is not marked complete until reviewer acceptance.

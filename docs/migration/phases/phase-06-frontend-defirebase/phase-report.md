@@ -12,7 +12,7 @@ Current Phase 6 status:
 - Canonical auth route decision recorded: Phase 6 uses only the `/api/users/*` auth route family.
 - Round 1 owns narrow backend cookie-session repair if the Phase 1 token strategy debt is still present.
 - CSRF/Origin/Referer verification requirements are explicit.
-- Phase 5 final reviewer acceptance is a merge gate for Phase 6 implementation.
+- Phase 5 final review accepted the closeout; Phase 6 planning may proceed.
 
 ## Scope
 
@@ -65,7 +65,7 @@ The planning package now states:
 - Logout uses `POST /api/users/logout`.
 - Temporary Bearer compatibility, if retained during transition, must have a documented removal gate and cannot satisfy Phase 6 closeout.
 - Unsafe cookie-authenticated methods require explicit CSRF/Origin/Referer protection and tests.
-- Phase 6 implementation cannot be merged without Phase 5 final reviewer acceptance.
+- Phase 6 implementation can proceed from the accepted Phase 5 REST surfaces without reopening Phase 5 implementation.
 
 ## Reviewer Findings Addressed
 
@@ -86,13 +86,12 @@ The planning package now states:
 
 4. Phase 5 acceptance gate:
 
-- Phase 6 docs now require confirming Phase 5 final reviewer acceptance before Phase 6 implementation is merged.
-- The current Phase 5 report still contains "pending final closure re-review" language. If actual acceptance exists elsewhere, treat this as a documentation risk and request a narrow Phase 5 closeout-doc correction.
+- Phase 6 docs now record that Phase 5 final review accepted the closeout, the staged package was committed and pushed, and Phase 6 planning may proceed.
 - Phase 6 must not reopen Phase 5 implementation.
 
 ## Open Risks
 
-- Phase 5 acceptance documentation may be stale. Resolve through acceptance evidence or a narrow Phase 5 closeout-doc correction before Phase 6 implementation is merged.
+- Phase 5 acceptance documentation has been corrected in the Phase 5 closeout docs; Phase 6 may proceed from the accepted Phase 5 REST surfaces without reopening Phase 5 implementation.
 - Round 1 may need backend cookie-session repair before frontend auth migration can proceed.
 - CSRF policy details must be concrete enough to test; SameSite=None requires stronger protection such as double-submit token.
 - Some Firebase-importing files are also Phase 7 residue. Phase 6 may isolate or delete them only to remove active Firebase dependency.

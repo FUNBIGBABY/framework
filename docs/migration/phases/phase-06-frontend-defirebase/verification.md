@@ -10,7 +10,7 @@ Planning status: verification plan only. No Phase 6 implementation has been veri
 - Do not mark Phase 6 complete until Round 6 passes and a reviewer accepts it.
 - Round 1 owns the narrow backend cookie-session repair if support is absent or incomplete. Record backend commands/results separately and do not preserve Bearer/localStorage as the Phase 6 path.
 - Phase 6 uses only the `/api/users/*` auth route family: `POST /api/users/login`, `GET /api/users/me`, `POST /api/users/refresh`, and `POST /api/users/logout`.
-- Before Phase 6 implementation is merged, verification must record Phase 5 final reviewer acceptance. If Phase 5 docs still contain stale "pending final closure re-review" wording despite actual acceptance, record it as a documentation risk and request a narrow Phase 5 closeout-doc correction.
+- Before Phase 6 implementation is merged, verification must record that Phase 5 final review accepted the closeout, the staged package was committed and pushed, and Phase 6 planning may proceed.
 
 ## Round 0 Verification - Canonical Doc Alignment
 
@@ -30,7 +30,7 @@ Expected evidence:
 - Phase 7 residue is listed separately from Phase 6 Firebase dependency removal.
 - Backend cookie-session blocker, if any, is recorded before Round 1 proceeds.
 - No Phase 6 plan or active frontend/backend contract introduces `/api/auth/*` aliases.
-- Phase 5 final reviewer acceptance is confirmed before merge, or stale Phase 5 closeout wording is recorded as a documentation risk.
+- Phase 5 accepted-closeout evidence is confirmed before merge.
 
 Current result: not run for implementation.
 
@@ -203,7 +203,7 @@ Expected evidence:
 - No frontend-supplied identity authority.
 - Backend cookie-session contract has been verified, including refresh and disabled-user rejection.
 - CSRF/Origin/Referer positive and negative backend tests have passed.
-- Phase 5 final reviewer acceptance has been confirmed before merge, or stale Phase 5 closeout wording is documented as a risk with correction requested.
+- Phase 5 accepted-closeout evidence has been confirmed before merge.
 - Build output contains no Firebase chunk.
 
 Current result: not run for implementation.
@@ -239,7 +239,7 @@ The final Phase 6 handoff should include:
 - Confirmation that backend cookie-session contract is present.
 - Confirmation that only `/api/users/*` auth endpoints are used.
 - Confirmation that CSRF/Origin/Referer tests passed.
-- Confirmation that Phase 5 final reviewer acceptance was checked before merge.
+- Confirmation that Phase 5 accepted-closeout evidence was checked before merge.
 - Confirmation that Firebase SDK dependency is removed.
 - Confirmation that Phase 7 semantic cleanup was not folded into Phase 6.
 - Open risks and deferrals.
@@ -248,7 +248,7 @@ The final Phase 6 handoff should include:
 
 - Cookie-session backend readiness remains the primary Round 1 risk, but it is not a stop reason for preserving Bearer/localStorage. Phase 6 Round 1 owns the narrow backend session repair if cookie support is absent or incomplete.
 - CSRF/cookie-auth unsafe-method protection must be made explicit during Round 1; SameSite=None requires stronger protection such as a double-submit token.
-- Phase 5 report currently contains stale-looking "pending final closure re-review" wording. If actual acceptance exists elsewhere, Phase 6 should request a narrow Phase 5 closeout-doc correction and not reopen Phase 5 implementation.
+- Phase 5 closeout documentation has been corrected to record accepted final review, committed/pushed package, and Phase 6 planning may proceed; Phase 6 should not reopen Phase 5 implementation.
 - Some Firebase-importing files are also tenant/invite/migration residue. Phase 6 may remove or isolate them only to uninstall Firebase; broader semantic cleanup remains Phase 7.
 - Admin UI may currently expose whitelist-domain concepts that have no Phase 5 backend endpoint. Round 4 should remove or isolate that UI instead of inventing a new backend domain-management feature.
 - Artefact UI may still be coupled to legacy `frameworks.artefacts_json`; Round 5 must avoid claiming historical backfill unless a later explicit phase owns it.
