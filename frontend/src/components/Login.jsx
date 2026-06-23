@@ -1,10 +1,9 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
-import { checkUserBlocked } from '../lib/firebase'
 
 function Login() {
-  const { login, logout } = useAuth()
+  const { login } = useAuth()
   const navigate = useNavigate()
 
   const [formData, setFormData] = useState({
@@ -33,18 +32,6 @@ function Login() {
 
       if (result.success) {
         console.log('✅ Login successful')
-
-        if (result.firebaseUser) {
-          const isBlocked = await checkUserBlocked(result.firebaseUser.uid)
-          if (isBlocked) {
-            await logout()
-            setError(
-              'Your account has been blocked. Please contact the administrator.'
-            )
-            setIsLoading(false)
-            return
-          }
-        }
 
         const tenantId = result.user?.tenantId
 

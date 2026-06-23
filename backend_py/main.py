@@ -1,5 +1,6 @@
 import re
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from dotenv import load_dotenv
 
@@ -14,6 +15,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
 
+from app.auth import ACCESS_COOKIE_NAME, REFRESH_COOKIE_NAME
 from app.api.admin_users import router as admin_users_router
 from app.api.materials import router as materials_router
 from app.api.frameworks import router as frameworks_router
@@ -38,6 +40,55 @@ def is_valid_origin(origin: str) -> bool:
         if re.match(pattern, origin):
             return True
     return False
+
+
+def _request_origin(request: Request) -> str:
+    scheme = request.url.scheme
+    host = request.headers.get("host") or request.url.netloc
+    return f"{scheme}://{host}"
+
+
+def _origin_from_referer(referer: str) -> str | None:
+    try:
+        parsed = urlsplit(referer)
+    except ValueError:
+        return None
+    if not parsed.scheme or not parsed.netloc:
+        return None
+    return f"{parsed.scheme}://{parsed.netloc}"
+
+
+def _origin_allowed_for_request(origin: str, request: Request) -> bool:
+    return origin == _request_origin(request) or is_valid_origin(origin)
+
+
+class CookieCSRFMiddleware(BaseHTTPMiddleware):
+    async def dispatch(self, request: Request, call_next):
+        unsafe_method = request.method.upper() in {"POST", "PUT", "PATCH", "DELETE"}
+        has_auth_cookie = bool(
+            request.cookies.get(ACCESS_COOKIE_NAME)
+            or request.cookies.get(REFRESH_COOKIE_NAME)
+        )
+
+        if unsafe_method and has_auth_cookie:
+            origin = request.headers.get("origin")
+            referer = request.headers.get("referer")
+            referer_origin = _origin_from_referer(referer) if referer else None
+
+            if origin:
+                allowed = _origin_allowed_for_request(origin, request)
+            elif referer_origin:
+                allowed = _origin_allowed_for_request(referer_origin, request)
+            else:
+                allowed = False
+
+            if not allowed:
+                return JSONResponse(
+                    content={"detail": "CSRF origin check failed"},
+                    status_code=403,
+                )
+
+        return await call_next(request)
 
 
 class CustomCORSMiddleware(BaseHTTPMiddleware):
@@ -74,6 +125,7 @@ class CustomCORSMiddleware(BaseHTTPMiddleware):
         return response
 
 
+app.add_middleware(CookieCSRFMiddleware)
 app.add_middleware(CustomCORSMiddleware)
 # ================= 🆕 End =================
 

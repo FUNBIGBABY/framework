@@ -3,7 +3,7 @@ User Authentication API
 Handles user registration, login and other authentication-related operations
 """
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from sqlalchemy.orm import Session
 from pydantic import BaseModel, EmailStr, validator
 from nanoid import generate
@@ -16,8 +16,14 @@ from ..auth import (
     hash_password,
     verify_password_with_rehash,
     create_access_token,
+    create_refresh_token,
+    decode_refresh_token,
     get_current_user,
-    get_current_user_id,
+    _get_active_user,
+    ACCESS_COOKIE_NAME,
+    REFRESH_COOKIE_NAME,
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    REFRESH_TOKEN_EXPIRE_DAYS,
 )
 
 
@@ -61,6 +67,7 @@ class UserResponse(BaseModel):
     email: str
     username: str
     created_at: datetime
+    is_super_admin: bool = False
 
     class Config:
         from_attributes = True
@@ -92,6 +99,131 @@ def _allowed_emails() -> set[str]:
 
 def _email_is_allowed(email: str) -> bool:
     return email.strip().lower() in _allowed_emails()
+
+
+def _super_admin_email() -> str:
+    return os.getenv("SUPER_ADMIN_EMAIL", "").strip().lower()
+
+
+def _is_super_admin(user: User) -> bool:
+    admin_email = _super_admin_email()
+    return bool(admin_email and user.email.strip().lower() == admin_email)
+
+
+def _user_response(user: User) -> UserResponse:
+    return UserResponse(
+        id=user.id,
+        email=user.email,
+        username=user.username,
+        created_at=user.created_at,
+        is_super_admin=_is_super_admin(user),
+    )
+
+
+def _refresh_session_version(user: User) -> int:
+    return int(getattr(user, "refresh_token_version", 0) or 0)
+
+
+def _cookie_secure() -> bool:
+    env = os.getenv("ENV", os.getenv("APP_ENV", "")).strip().lower()
+    if env in {"prod", "production"}:
+        return True
+
+    configured = os.getenv("AUTH_COOKIE_SECURE")
+    if configured is not None:
+        return configured.strip().lower() in {"1", "true", "yes", "on"}
+    return False
+
+
+def _cookie_samesite() -> str:
+    value = os.getenv("AUTH_COOKIE_SAMESITE", "lax").strip().lower()
+    if value not in {"lax", "strict"}:
+        value = "lax"
+    return value
+
+
+def _set_auth_cookies(response: Response, access_token: str, refresh_token: str) -> None:
+    secure = _cookie_secure()
+    samesite = _cookie_samesite()
+
+    response.set_cookie(
+        ACCESS_COOKIE_NAME,
+        access_token,
+        max_age=ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        httponly=True,
+        secure=secure,
+        samesite=samesite,
+        path="/",
+    )
+    response.set_cookie(
+        REFRESH_COOKIE_NAME,
+        refresh_token,
+        max_age=REFRESH_TOKEN_EXPIRE_DAYS * 24 * 60 * 60,
+        httponly=True,
+        secure=secure,
+        samesite=samesite,
+        path="/",
+    )
+
+
+def _clear_auth_cookies(response: Response) -> None:
+    secure = _cookie_secure()
+    samesite = _cookie_samesite()
+    response.delete_cookie(ACCESS_COOKIE_NAME, path="/", secure=secure, samesite=samesite)
+    response.delete_cookie(
+        REFRESH_COOKIE_NAME, path="/", secure=secure, samesite=samesite
+    )
+
+
+def _issue_auth_response(
+    *,
+    response: Response,
+    user: User,
+    message: str,
+) -> AuthResponse:
+    access_token = create_access_token(
+        data={"sub": user.id, "email": user.email, "username": user.username}
+    )
+    refresh_token = create_refresh_token(
+        data={
+            "sub": user.id,
+            "email": user.email,
+            "username": user.username,
+            "ver": _refresh_session_version(user),
+        }
+    )
+    _set_auth_cookies(response, access_token, refresh_token)
+    return AuthResponse(
+        success=True,
+        message=message,
+        access_token=access_token,
+        user=_user_response(user),
+    )
+
+
+def _user_from_refresh_cookie(request: Request, db: Session) -> User:
+    refresh_token = request.cookies.get(REFRESH_COOKIE_NAME)
+    if not refresh_token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh cookie is missing",
+        )
+
+    payload = decode_refresh_token(refresh_token)
+    user_id = payload.get("sub")
+    if not user_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token payload",
+        )
+
+    user = _get_active_user(db, user_id)
+    if int(payload.get("ver", -1)) != _refresh_session_version(user):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Refresh session expired",
+        )
+    return user
 
 
 @router.post(
@@ -166,12 +298,16 @@ def register_user(request: UserRegisterRequest, db: Session = Depends(get_db)):
         success=True,
         message="User registered successfully",
         access_token=access_token,
-        user=UserResponse.from_orm(new_user),
+        user=_user_response(new_user),
     )
 
 
 @router.post("/login", response_model=AuthResponse)
-def login_user(request: UserLoginRequest, db: Session = Depends(get_db)):
+def login_user(
+    request: UserLoginRequest,
+    response: Response,
+    db: Session = Depends(get_db),
+):
     """
     User login
 
@@ -182,7 +318,7 @@ def login_user(request: UserLoginRequest, db: Session = Depends(get_db)):
     - password: password
 
     **Returns:**
-    - access_token: JWT token (valid for 7 days)
+    - access_token: temporary bearer compatibility token (valid for 1 hour)
     - user: basic user info
     """
 
@@ -217,17 +353,7 @@ def login_user(request: UserLoginRequest, db: Session = Depends(get_db)):
     user.last_login = datetime.utcnow()
     db.commit()
 
-    # Generate JWT token
-    access_token = create_access_token(
-        data={"sub": user.id, "email": user.email, "username": user.username}
-    )
-
-    return AuthResponse(
-        success=True,
-        message="Login successful",
-        access_token=access_token,
-        user=UserResponse.from_orm(user),
-    )
+    return _issue_auth_response(response=response, user=user, message="Login successful")
 
 
 @router.get("/me", response_model=UserResponse)
@@ -235,12 +361,26 @@ def get_current_user_info(current_user: User = Depends(get_current_user)):
     """
     Get current logged-in user's information
 
-    **Requires Authentication:** A valid JWT token must be provided in Authorization header
+    **Requires Authentication:** A valid access cookie or temporary bearer token
 
     **Returns:** Basic information of the current user
     """
 
-    return UserResponse.from_orm(current_user)
+    return _user_response(current_user)
+
+
+@router.post("/refresh", response_model=AuthResponse)
+def refresh_user_session(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+):
+    user = _user_from_refresh_cookie(request, db)
+    return _issue_auth_response(
+        response=response,
+        user=user,
+        message="Session refreshed",
+    )
 
 
 @router.get("/check-email/{email}")
@@ -281,17 +421,28 @@ def check_username_availability(
 
 
 @router.post("/logout")
-def logout_user(user_id: str = Depends(get_current_user_id)):
+def logout_user(
+    request: Request,
+    response: Response,
+    db: Session = Depends(get_db),
+):
     """
     User logout
 
-    Note: Since JWT is stateless, logout is handled on the frontend (token deletion)
-    This endpoint is mainly for logging or performing cleanup actions
-
-    **Requires Authentication**
+    Clears auth cookies and revokes the current refresh session when the
+    refresh cookie is valid.
     """
 
-    # You may record logout logs here
-    print(f"User {user_id} logged out")
+    refresh_token = request.cookies.get(REFRESH_COOKIE_NAME)
+    if refresh_token:
+        try:
+            user = _user_from_refresh_cookie(request, db)
+            user.refresh_token_version = _refresh_session_version(user) + 1
+            db.commit()
+            print(f"User {user.id} logged out")
+        except HTTPException:
+            pass
+
+    _clear_auth_cookies(response)
 
     return {"success": True, "message": "Logged out successfully"}

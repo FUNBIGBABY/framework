@@ -1,9 +1,6 @@
 import { useNavigate, useLocation, useParams } from 'react-router-dom'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
-import { doc, getDoc } from 'firebase/firestore'
-import { db } from '../lib/firebase'
-import { isSuperAdmin } from '../lib/firebase'
 
 /**
  * Navbar - Global navigation bar component (path mode)
@@ -18,40 +15,13 @@ function Navbar() {
   const { user, logout, isAuthenticated } = useAuth()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showFrameworksMenu, setShowFrameworksMenu] = useState(false)
-  const [memberCount, setMemberCount] = useState(0)
-  const [isAdmin, setIsAdmin] = useState(false)
+  const isAdmin = Boolean(user?.isSuperAdmin)
 
   // Use the tenantId from the URL or the tenantId of the user.
   const tenantId = urlTenantId || user?.tenantId
 
   const hasOrganizationAccess = !!(user?.tenantId || user?.joinedOrganization)
-  const organizationId = user?.joinedOrganization || user?.tenantId
   const isOwner = !user?.joinedOrganization
-
-  useEffect(() => {
-    const fetchMemberCount = async () => {
-      if (!organizationId) return
-
-      try {
-        const tenantRef = doc(db, 'tenants', organizationId)
-        const tenantDoc = await getDoc(tenantRef)
-
-        if (tenantDoc.exists()) {
-          const tenantData = tenantDoc.data()
-          setMemberCount(tenantData.members?.length || 0)
-        }
-      } catch (error) {
-        console.error('Error fetching member count:', error)
-      }
-    }
-
-    fetchMemberCount()
-  }, [organizationId])
-
-  // check is admin or not
-  useEffect(() => {
-    setIsAdmin(isSuperAdmin())
-  }, [user])
 
   // path gennerate function：/{tenantId}{path}
   const getPath = path => {
@@ -230,9 +200,9 @@ function Navbar() {
                         </svg>
                         <span>My Organization</span>
                       </div>
-                      {hasOrganizationAccess && memberCount > 0 && (
+                      {hasOrganizationAccess && (
                         <span className="text-xs text-gray-500">
-                          {memberCount} {isOwner ? 'members' : 'joined'}
+                          {isOwner ? 'owner' : 'joined'}
                         </span>
                       )}
                     </button>

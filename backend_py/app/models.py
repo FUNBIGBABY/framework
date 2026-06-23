@@ -41,6 +41,9 @@ class User(Base):
     email = sa.Column(sa.String, unique=True, nullable=False, index=True)
     username = sa.Column(sa.String, unique=True, nullable=False, index=True)
     password_hash = sa.Column(sa.String, nullable=False)  # Argon2id password hash
+    refresh_token_version = sa.Column(
+        sa.Integer, nullable=False, default=0, server_default="0"
+    )
     is_disabled = sa.Column(
         sa.Boolean, nullable=False, default=False, server_default=sa.false(), index=True
     )

@@ -1,85 +1,32 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useState, useEffect } from 'react'
+import { createContext, useContext, useEffect, useState } from 'react'
 import {
-  onAuthStateChanged,
-  signInWithEmailAndPassword,
-  signOut,
-} from 'firebase/auth'
-import {
-  doc,
-  getDoc,
-  setDoc,
-  updateDoc,
-  serverTimestamp,
-} from 'firebase/firestore'
-import { auth, db } from '../lib/firebase'
-import { loginWithBackend } from '../lib/api'
+  getCurrentBackendUser,
+  loginWithBackend,
+  logoutWithBackend,
+} from '../lib/api'
 
 const AuthContext = createContext()
 
-function buildBackendUser(backendUser, fallbackEmail) {
-  const email = backendUser?.email || fallbackEmail
+function buildBackendUser(backendUser, existingUser = {}) {
+  const email = backendUser?.email || existingUser?.email
 
   return {
-    uid: backendUser?.id,
-    id: backendUser?.id,
-    backendUserId: backendUser?.id,
+    uid: backendUser?.id || existingUser?.uid,
+    id: backendUser?.id || existingUser?.id,
+    backendUserId: backendUser?.id || existingUser?.backendUserId,
     email,
-    username: backendUser?.username || email?.split('@')[0] || 'user',
-    tenantId: null,
-    joinedOrganization: null,
-    roles: [],
-    expertProfile: null,
-    authProvider: 'backend-jwt',
-  }
-}
-
-function getStoredBackendUser() {
-  const token = localStorage.getItem('access_token')
-  const rawUser = localStorage.getItem('user')
-
-  if (!token || !rawUser) return null
-
-  try {
-    return JSON.parse(rawUser)
-  } catch {
-    localStorage.removeItem('user')
-    return null
-  }
-}
-
-function saveBackendSession(authData, fallbackEmail) {
-  const backendUser = buildBackendUser(authData.user, fallbackEmail)
-
-  localStorage.setItem('access_token', authData.access_token)
-  localStorage.setItem('user', JSON.stringify(backendUser))
-
-  return backendUser
-}
-
-function clearBackendSession() {
-  localStorage.removeItem('access_token')
-  localStorage.removeItem('user')
-}
-
-function buildFirebaseCompatibleUser(backendUser, firebaseUser, userData = {}) {
-  return {
-    ...backendUser,
-    uid: firebaseUser.uid,
-    firebaseUid: firebaseUser.uid,
-    email: firebaseUser.email || backendUser.email,
     username:
-      userData.username ||
-      firebaseUser.displayName ||
-      backendUser.username ||
-      firebaseUser.email?.split('@')[0],
-    tenantId: userData.tenantId || null,
-    joinedOrganization: userData.joinedOrganization || null,
-    roles: userData.roles || [],
-    expertProfile: userData.expertProfile || null,
-    createdAt: userData.createdAt || backendUser.createdAt,
-    lastLogin: userData.lastLogin || backendUser.lastLogin,
-    authProvider: 'backend-jwt+firebase-compat',
+      backendUser?.username ||
+      existingUser?.username ||
+      email?.split('@')[0] ||
+      'user',
+    tenantId: existingUser?.tenantId || null,
+    joinedOrganization: existingUser?.joinedOrganization || null,
+    roles: existingUser?.roles || [],
+    expertProfile: existingUser?.expertProfile || null,
+    isSuperAdmin: Boolean(backendUser?.is_super_admin),
+    authProvider: 'backend-cookie',
   }
 }
 
@@ -96,71 +43,40 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async firebaseUser => {
-      const backendUser = getStoredBackendUser()
+    let cancelled = false
 
-      if (!backendUser) {
-        setUser(null)
-        setLoading(false)
-        return
-      }
+    const restoreSession = async () => {
+      try {
+        const backendUser = await getCurrentBackendUser({
+          suppressAuthRedirect: true,
+        })
 
-      if (firebaseUser) {
-        try {
-          const userDocRef = doc(db, 'users', firebaseUser.uid)
-          const userDoc = await getDoc(userDocRef)
-
-          if (userDoc.exists()) {
-            const userData = userDoc.data()
-
-            setUser(
-              buildFirebaseCompatibleUser(backendUser, firebaseUser, userData)
-            )
-
-            await updateDoc(userDocRef, {
-              lastLogin: serverTimestamp(),
-            })
-          } else {
-            console.warn(
-              'User document not found in Firestore, creating one...'
-            )
-
-            const newUserData = {
-              uid: firebaseUser.uid,
-              email: firebaseUser.email,
-              username:
-                firebaseUser.displayName || firebaseUser.email.split('@')[0],
-              tenantId: null,
-              joinedOrganization: null, // ✅ added
-              roles: [],
-              expertProfile: null,
-              createdAt: serverTimestamp(),
-              lastLogin: serverTimestamp(),
-            }
-
-            await setDoc(userDocRef, newUserData)
-
-            setUser(
-              buildFirebaseCompatibleUser(
-                backendUser,
-                firebaseUser,
-                newUserData
-              )
-            )
-          }
-        } catch (error) {
-          console.error('Error fetching user data from Firestore:', error)
-
-          setUser(buildFirebaseCompatibleUser(backendUser, firebaseUser))
+        if (!cancelled) {
+          setUser(currentUser => buildBackendUser(backendUser, currentUser))
         }
-      } else {
-        setUser(backendUser)
+      } catch {
+        if (!cancelled) setUser(null)
+      } finally {
+        if (!cancelled) setLoading(false)
       }
+    }
 
-      setLoading(false)
-    })
+    restoreSession()
 
-    return () => unsubscribe()
+    return () => {
+      cancelled = true
+    }
+  }, [])
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      setUser(null)
+    }
+
+    window.addEventListener('auth:unauthorized', handleUnauthorized)
+    return () => {
+      window.removeEventListener('auth:unauthorized', handleUnauthorized)
+    }
   }, [])
 
   const signup = async () => {
@@ -173,103 +89,36 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       const backendAuth = await loginWithBackend(email, password)
-      const backendUser = saveBackendSession(backendAuth, email)
-      let nextUser = backendUser
-      let firebaseUser = null
-
-      try {
-        const userCredential = await signInWithEmailAndPassword(
-          auth,
-          email,
-          password
-        )
-        firebaseUser = userCredential.user
-
-        const userDocRef = doc(db, 'users', firebaseUser.uid)
-        const userDoc = await getDoc(userDocRef)
-
-        if (userDoc.exists()) {
-          const userData = userDoc.data()
-          nextUser = buildFirebaseCompatibleUser(
-            backendUser,
-            firebaseUser,
-            userData
-          )
-
-          await updateDoc(userDocRef, {
-            lastLogin: serverTimestamp(),
-          })
-        } else {
-          console.warn('User document not found, creating one...')
-
-          const newUserData = {
-            uid: firebaseUser.uid,
-            email: firebaseUser.email,
-            username:
-              firebaseUser.displayName || firebaseUser.email.split('@')[0],
-            tenantId: null,
-            joinedOrganization: null, // ✅ added
-            roles: [],
-            expertProfile: null,
-            createdAt: serverTimestamp(),
-            lastLogin: serverTimestamp(),
-          }
-
-          await setDoc(userDocRef, newUserData)
-          nextUser = buildFirebaseCompatibleUser(
-            backendUser,
-            firebaseUser,
-            newUserData
-          )
-        }
-      } catch (firebaseError) {
-        console.warn(
-          'Firebase login compatibility skipped; backend JWT login succeeded.',
-          firebaseError
-        )
-      }
-
+      const nextUser = buildBackendUser(backendAuth.user)
       setUser(nextUser)
-      localStorage.setItem('user', JSON.stringify(nextUser))
-      console.log('✅ Backend JWT login successful:', nextUser.backendUserId)
 
-      return { success: true, user: nextUser, firebaseUser }
+      return { success: true, user: nextUser }
     } catch (error) {
       console.error('Login failed:', error)
-      clearBackendSession()
 
       let errorMessage = 'Login failed, please check your account and password'
 
-      if (
-        error.status === 401 ||
-        error.code === 'auth/user-not-found' ||
-        error.code === 'auth/wrong-password' ||
-        error.code === 'auth/invalid-credential'
-      ) {
+      if (error.status === 401) {
         errorMessage = 'wrong email or password'
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'invalid email'
-      } else if (error.code === 'auth/user-disabled') {
-        errorMessage = 'account got banned'
-      } else if (error.code === 'auth/too-many-requests') {
-        errorMessage = 'please try later'
+      } else if (error.status === 403) {
+        errorMessage =
+          'Your account has been blocked. Please contact the administrator.'
       }
 
+      setUser(null)
       return { success: false, error: errorMessage }
     }
   }
 
   const logout = async () => {
     try {
-      clearBackendSession()
-      await signOut(auth)
-      setUser(null)
-      console.log('✅ User logged out successfully')
+      await logoutWithBackend()
       return { success: true }
     } catch (error) {
       console.error('Logout failed:', error)
-      setUser(null)
       return { success: false, error: 'Logout failed, please try again.' }
+    } finally {
+      setUser(null)
     }
   }
 
@@ -278,71 +127,30 @@ export const AuthProvider = ({ children }) => {
       throw new Error('No user logged in')
     }
 
-    try {
-      const userDocRef = doc(db, 'users', user.uid)
+    setUser(currentUser => ({
+      ...currentUser,
+      tenantId,
+      roles: currentUser.roles?.includes('expert')
+        ? currentUser.roles
+        : [...(currentUser.roles || []), 'expert'],
+      expertProfile: currentUser.expertProfile || {
+        displayName: `${currentUser.username} Expert`,
+        isApproved: true,
+      },
+    }))
 
-      await updateDoc(userDocRef, {
-        tenantId: tenantId,
-        roles: user.roles.includes('expert')
-          ? user.roles
-          : [...user.roles, 'expert'],
-        expertProfile: user.expertProfile || {
-          displayName: user.username + ' Expert',
-          isApproved: true,
-        },
-        updatedAt: serverTimestamp(),
-      })
-
-      setUser({
-        ...user,
-        tenantId: tenantId,
-        roles: user.roles.includes('expert')
-          ? user.roles
-          : [...user.roles, 'expert'],
-        expertProfile: user.expertProfile || {
-          displayName: user.username + ' Expert',
-          isApproved: true,
-        },
-      })
-
-      console.log('✅ User tenantId updated:', tenantId)
-
-      if (reload) {
-        window.location.reload()
-      }
-    } catch (error) {
-      console.error('Error updating user tenantId:', error)
-      throw error
+    if (reload) {
+      window.location.reload()
     }
   }
 
-  // ✅ Added: Refresh user data
   const refreshUser = async () => {
     if (!user) {
       throw new Error('No user logged in')
     }
 
-    try {
-      const userDocRef = doc(db, 'users', user.uid)
-      const userDoc = await getDoc(userDocRef)
-
-      if (userDoc.exists()) {
-        const userData = userDoc.data()
-
-        setUser({
-          ...user,
-          tenantId: userData.tenantId || null,
-          joinedOrganization: userData.joinedOrganization || null,
-          roles: userData.roles || [],
-          expertProfile: userData.expertProfile || null,
-        })
-
-        console.log('✅ User data refreshed')
-      }
-    } catch (error) {
-      console.error('Error refreshing user data:', error)
-      throw error
-    }
+    const backendUser = await getCurrentBackendUser()
+    setUser(currentUser => buildBackendUser(backendUser, currentUser))
   }
 
   const value = {
@@ -352,7 +160,7 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     updateUserTenant,
-    refreshUser, // ✅ added method
+    refreshUser,
     isAuthenticated: !!user,
   }
 

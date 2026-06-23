@@ -15,7 +15,7 @@ import secrets
 from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
 from argon2.low_level import Type
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
@@ -32,10 +32,14 @@ if not SECRET_KEY:
     raise RuntimeError("JWT_SECRET_KEY environment variable is required")
 
 ALGORITHM = "HS256"
-ACCESS_TOKEN_EXPIRE_DAYS = 7
+ACCESS_TOKEN_EXPIRE_MINUTES = 60
+REFRESH_TOKEN_EXPIRE_DAYS = 30
+ACCESS_COOKIE_NAME = "access_token"
+REFRESH_COOKIE_NAME = "refresh_token"
 
-# HTTP Bearer authentication
-security = HTTPBearer()
+# Temporary HTTP Bearer compatibility remains for Phase 6 transition tests.
+# Frontend Phase 6 closeout is blocked until active bearer/localStorage paths are gone.
+security = HTTPBearer(auto_error=False)
 
 # Argon2id password hashing
 password_hasher = PasswordHasher(type=Type.ID)
@@ -108,7 +112,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
     Args:
         data: data to encode into the token (usually contains user_id)
-        expires_delta: token expiration time (default 7 days)
+        expires_delta: token expiration time (default 1 hour)
 
     Returns:
         JWT token string
@@ -118,17 +122,29 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(days=ACCESS_TOKEN_EXPIRE_DAYS)
+        expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
 
-    to_encode.update({"exp": expire, "iat": datetime.utcnow()})
+    to_encode.update({"exp": expire, "iat": datetime.utcnow(), "typ": "access"})
 
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
 
-def decode_access_token(token: str) -> dict:
+def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    """Create a JWT refresh token for the httpOnly refresh cookie."""
+    to_encode = data.copy()
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(days=REFRESH_TOKEN_EXPIRE_DAYS)
+
+    to_encode.update({"exp": expire, "iat": datetime.utcnow(), "typ": "refresh"})
+    return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+
+
+def _decode_token_payload(token: str) -> dict:
     """
-    Decode and validate JWT token
+    Decode and validate JWT signature and expiry.
 
     Args:
         token: JWT token string
@@ -140,8 +156,7 @@ def decode_access_token(token: str) -> dict:
         HTTPException: token invalid or expired
     """
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload
+        return jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
     except JWTError as e:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -150,14 +165,58 @@ def decode_access_token(token: str) -> dict:
         )
 
 
+def decode_access_token(token: str) -> dict:
+    """
+    Decode and validate a JWT access token.
+
+    Protected endpoints must never accept refresh tokens as credentials.
+    """
+    payload = _decode_token_payload(token)
+    if payload.get("typ") != "access":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid access token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return payload
+
+
+def decode_refresh_token(token: str) -> dict:
+    """Decode and validate a refresh token payload."""
+    payload = _decode_token_payload(token)
+    if payload.get("typ") != "refresh":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    return payload
+
+
 # ============= Dependency Injection - Get Current User =============
 
 
-def _decode_user_id_from_credentials(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+def _extract_access_token(
+    request: Request,
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
 ) -> str:
-    token = credentials.credentials
+    cookie_token = request.cookies.get(ACCESS_COOKIE_NAME)
+    if cookie_token:
+        return cookie_token
 
+    if credentials and credentials.credentials:
+        return credentials.credentials
+
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Not authenticated",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
+def _decode_user_id_from_request(
+    token: str = Depends(_extract_access_token),
+) -> str:
     payload = decode_access_token(token)
     user_id: str = payload.get("sub")
 
@@ -187,7 +246,7 @@ def _get_active_user(db: Session, user_id: str) -> User:
 
 
 def get_current_user_id(
-    user_id: str = Depends(_decode_user_id_from_credentials),
+    user_id: str = Depends(_decode_user_id_from_request),
     db: Session = Depends(get_db),
 ) -> str:
     """
@@ -200,7 +259,7 @@ def get_current_user_id(
 
 
 def get_current_user(
-    user_id: str = Depends(_decode_user_id_from_credentials),
+    user_id: str = Depends(_decode_user_id_from_request),
     db: Session = Depends(get_db),
 ) -> User:
     """
@@ -225,6 +284,7 @@ def get_current_user(
 
 
 def get_optional_user_id(
+    request: Request,
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(
         HTTPBearer(auto_error=False)
     ),
@@ -241,11 +301,15 @@ def get_optional_user_id(
     Returns:
         User ID or None
     """
-    if not credentials:
+    token = request.cookies.get(ACCESS_COOKIE_NAME)
+    if not token and credentials:
+        token = credentials.credentials
+
+    if not token:
         return None
 
     try:
-        payload = decode_access_token(credentials.credentials)
+        payload = decode_access_token(token)
         return payload.get("sub")
     except:
         return None
