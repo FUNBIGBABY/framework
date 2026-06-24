@@ -1,105 +1,129 @@
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
-  isSuperAdmin,
-  getWhitelistDomains,
-  addWhitelistDomain,
-  removeWhitelistDomain,
-  getAllUsers,
-  blockUser,
-  unblockUser,
-} from '../lib/firebase'
+  APIError,
+  createAdminUser,
+  disableAdminUser,
+  enableAdminUser,
+  getAdminUsers,
+} from '../lib/api'
+
+const emptyUserForm = {
+  email: '',
+  username: '',
+  password: '',
+}
+
+function formatDate(value) {
+  if (!value) return 'Never'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Unknown'
+  return date.toLocaleString()
+}
+
+function getErrorMessage(error, fallback) {
+  if (error instanceof APIError) {
+    if (error.status === 403) {
+      return 'Admin access is enforced by the backend. This account cannot manage users.'
+    }
+    if (error.status === 401) {
+      return 'Sign in is required before opening the admin panel.'
+    }
+  }
+
+  return error?.message || fallback
+}
 
 const AdminPanel = () => {
   const navigate = useNavigate()
-
-  // States
-  const [whitelistDomains, setWhitelistDomains] = useState([])
   const [users, setUsers] = useState([])
-  const [newDomain, setNewDomain] = useState('')
+  const [newUser, setNewUser] = useState(emptyUserForm)
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
+  const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState('')
   const [successMessage, setSuccessMessage] = useState('')
+  const [accessState, setAccessState] = useState('ready')
 
-  // check admin
+  const loadUsers = useCallback(async () => {
+    setLoading(true)
+    setError('')
+    setSuccessMessage('')
+
+    try {
+      const backendUsers = await getAdminUsers({ suppressAuthRedirect: true })
+      setUsers(Array.isArray(backendUsers) ? backendUsers : [])
+      setAccessState('ready')
+    } catch (err) {
+      console.error('Admin users load failed:', err)
+      setUsers([])
+      if (err instanceof APIError && err.status === 403) {
+        setAccessState('forbidden')
+      } else if (err instanceof APIError && err.status === 401) {
+        setAccessState('unauthenticated')
+      } else {
+        setAccessState('error')
+      }
+      setError(getErrorMessage(err, 'Failed to load admin users.'))
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   useEffect(() => {
-    if (!isSuperAdmin()) {
-      alert('Unauthorized access. Admin only.')
-      navigate('/')
-      return
-    }
+    loadUsers()
+  }, [loadUsers])
 
-    loadData()
-  }, [navigate])
+  const filteredUsers = useMemo(() => {
+    const search = searchTerm.trim().toLowerCase()
+    if (!search) return users
 
-  // reload data
-  const loadData = async () => {
-    try {
-      setLoading(true)
-      const [domains, allUsers] = await Promise.all([
-        getWhitelistDomains(),
-        getAllUsers(),
-      ])
+    return users.filter(user => {
+      return (
+        user.email?.toLowerCase().includes(search) ||
+        user.username?.toLowerCase().includes(search) ||
+        user.id?.toLowerCase().includes(search)
+      )
+    })
+  }, [searchTerm, users])
 
-      setWhitelistDomains(domains)
-      setUsers(allUsers)
-      setLoading(false)
-    } catch (err) {
-      console.error('Load data error:', err)
-      setError('Failed to load data: ' + err.message)
-      setLoading(false)
-    }
-  }
+  const activeCount = users.filter(user => !user.is_disabled).length
+  const disabledCount = users.filter(user => user.is_disabled).length
 
-  // add domain
-  const handleAddDomain = async e => {
-    e.preventDefault()
+  const handleCreateUser = async event => {
+    event.preventDefault()
     setError('')
     setSuccessMessage('')
 
-    if (!newDomain.trim()) {
-      setError('Please enter a domain')
+    if (!newUser.email.trim() || !newUser.password) {
+      setError('Email and password are required.')
       return
     }
 
     try {
-      await addWhitelistDomain(newDomain)
-      setSuccessMessage(`Domain @${newDomain} added successfully!`)
-      setNewDomain('')
-      // reload data
-      const domains = await getWhitelistDomains()
-      setWhitelistDomains(domains)
+      setSubmitting(true)
+      const createdUser = await createAdminUser(
+        {
+          email: newUser.email.trim(),
+          username: newUser.username.trim(),
+          password: newUser.password,
+        },
+        { suppressAuthRedirect: true }
+      )
+      setNewUser(emptyUserForm)
+      await loadUsers()
+      setSuccessMessage(`Created user ${createdUser.email}.`)
     } catch (err) {
-      setError(err.message)
+      console.error('Admin user creation failed:', err)
+      setError(getErrorMessage(err, 'Failed to create user.'))
+    } finally {
+      setSubmitting(false)
     }
   }
 
-  // remove domain
-  const handleRemoveDomain = async domain => {
-    if (
-      !confirm(`Are you sure you want to remove @${domain} from the whitelist?`)
-    ) {
-      return
-    }
-
-    setError('')
-    setSuccessMessage('')
-
-    try {
-      await removeWhitelistDomain(domain)
-      setSuccessMessage(`Domain @${domain} removed successfully!`)
-      // reload data
-      const domains = await getWhitelistDomains()
-      setWhitelistDomains(domains)
-    } catch (err) {
-      setError(err.message)
-    }
-  }
-
-  // Block user
-  const handleBlockUser = async (userId, userEmail) => {
-    if (!confirm(`Are you sure you want to block ${userEmail}?`)) {
+  const handleToggleDisabled = async user => {
+    const action = user.is_disabled ? 'enable' : 'disable'
+    if (!window.confirm(`Are you sure you want to ${action} ${user.email}?`)) {
       return
     }
 
@@ -107,284 +131,316 @@ const AdminPanel = () => {
     setSuccessMessage('')
 
     try {
-      await blockUser(userId)
-      setSuccessMessage(`User ${userEmail} has been blocked.`)
-      // reload user list
-      const allUsers = await getAllUsers()
-      setUsers(allUsers)
+      setSubmitting(true)
+      const updatedUser = user.is_disabled
+        ? await enableAdminUser(user.id, { suppressAuthRedirect: true })
+        : await disableAdminUser(user.id, { suppressAuthRedirect: true })
+
+      setUsers(currentUsers =>
+        currentUsers.map(currentUser =>
+          currentUser.id === updatedUser.id ? updatedUser : currentUser
+        )
+      )
+      setSuccessMessage(
+        `${updatedUser.email} is now ${
+          updatedUser.is_disabled ? 'disabled' : 'enabled'
+        }.`
+      )
     } catch (err) {
-      setError(err.message)
+      console.error('Admin user status update failed:', err)
+      setError(getErrorMessage(err, `Failed to ${action} user.`))
+    } finally {
+      setSubmitting(false)
     }
   }
-
-  // Unblock user
-  const handleUnblockUser = async (userId, userEmail) => {
-    if (!confirm(`Are you sure you want to unblock ${userEmail}?`)) {
-      return
-    }
-
-    setError('')
-    setSuccessMessage('')
-
-    try {
-      await unblockUser(userId)
-      setSuccessMessage(`User ${userEmail} has been unblocked.`)
-      // reload user list
-      const allUsers = await getAllUsers()
-      setUsers(allUsers)
-    } catch (err) {
-      setError(err.message)
-    }
-  }
-
-  // filter user
-  const filteredUsers = users.filter(user => {
-    if (!searchTerm) return true
-    const search = searchTerm.toLowerCase()
-    return (
-      user.email?.toLowerCase().includes(search) ||
-      user.username?.toLowerCase().includes(search) ||
-      user.uid?.toLowerCase().includes(search)
-    )
-  })
 
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading admin panel...</p>
+          <p className="text-gray-600">Loading admin users...</p>
         </div>
       </div>
     )
   }
 
+  const showAccessBlock =
+    accessState === 'forbidden' || accessState === 'unauthenticated'
+  const accessStatus = accessState === 'forbidden' ? '403' : '401'
+
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            🔐 Admin Panel
-          </h1>
-          <p className="text-gray-600">
-            Manage whitelist domains and user access
-          </p>
+        <div className="mb-8 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Admin Users
+            </h1>
+            <p className="text-gray-600">
+              Backend-managed account access. Public registration remains
+              disabled.
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={loadUsers}
+              className="px-4 py-2 border border-gray-300 bg-white text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
+            >
+              Reload
+            </button>
+            {accessState === 'unauthenticated' && (
+              <button
+                type="button"
+                onClick={() => navigate('/login')}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+              >
+                Sign in
+              </button>
+            )}
+          </div>
         </div>
 
-        {/* Success/Error Messages */}
         {successMessage && (
           <div className="mb-6 bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg flex items-center justify-between">
-            <span>✅ {successMessage}</span>
+            <span>{successMessage}</span>
             <button
+              type="button"
               onClick={() => setSuccessMessage('')}
-              className="text-green-600 hover:text-green-800"
+              className="text-green-700 hover:text-green-900"
+              aria-label="Dismiss success message"
             >
-              ✕
+              Close
             </button>
           </div>
         )}
 
         {error && (
-          <div className="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-center justify-between">
-            <span>❌ {error}</span>
+          <div className="mb-6 bg-red-50 border border-red-200 text-red-800 px-4 py-3 rounded-lg flex items-center justify-between gap-4">
+            <span>{error}</span>
             <button
+              type="button"
               onClick={() => setError('')}
-              className="text-red-600 hover:text-red-800"
+              className="text-red-700 hover:text-red-900"
+              aria-label="Dismiss error message"
             >
-              ✕
+              Close
             </button>
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Whitelist Domains Section */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-              <svg
-                className="w-6 h-6 mr-2 text-blue-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"
-                />
-              </svg>
-              Email Domain Whitelist
+        {showAccessBlock ? (
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-8">
+            <h2 className="text-xl font-semibold text-gray-900 mb-2">
+              Admin access unavailable
             </h2>
-
-            <p className="text-sm text-gray-600 mb-4">
-              Only users with these email domains can register
+            <p className="text-gray-600">
+              The backend returned {accessStatus}, so user management is not
+              available for this session.
             </p>
-
-            {/* Add Domain Form */}
-            <form onSubmit={handleAddDomain} className="mb-6">
-              <div className="flex gap-2">
-                <div className="flex-1 relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
-                    @
-                  </span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 xl:grid-cols-[420px_1fr] gap-8">
+            <section className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                Create User
+              </h2>
+              <form onSubmit={handleCreateUser} className="space-y-4">
+                <div>
+                  <label
+                    htmlFor="admin-email"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Email
+                  </label>
                   <input
-                    type="text"
-                    value={newDomain}
-                    onChange={e => setNewDomain(e.target.value)}
-                    placeholder="ad.unsw.edu.au"
-                    className="w-full pl-8 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    id="admin-email"
+                    type="email"
+                    value={newUser.email}
+                    onChange={event =>
+                      setNewUser(current => ({
+                        ...current,
+                        email: event.target.value,
+                      }))
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    autoComplete="email"
                   />
                 </div>
+
+                <div>
+                  <label
+                    htmlFor="admin-username"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Username
+                  </label>
+                  <input
+                    id="admin-username"
+                    type="text"
+                    value={newUser.username}
+                    onChange={event =>
+                      setNewUser(current => ({
+                        ...current,
+                        username: event.target.value,
+                      }))
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    autoComplete="username"
+                  />
+                </div>
+
+                <div>
+                  <label
+                    htmlFor="admin-password"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Temporary Password
+                  </label>
+                  <input
+                    id="admin-password"
+                    type="password"
+                    value={newUser.password}
+                    onChange={event =>
+                      setNewUser(current => ({
+                        ...current,
+                        password: event.target.value,
+                      }))
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    autoComplete="new-password"
+                  />
+                </div>
+
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+                  disabled={submitting}
+                  className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-blue-300 transition-colors font-medium"
                 >
-                  Add Domain
+                  Create User
                 </button>
-              </div>
-            </form>
+              </form>
 
-            {/* Domains List */}
-            <div className="space-y-2">
-              {whitelistDomains.length === 0 ? (
-                <p className="text-gray-500 text-sm italic">
-                  No domains in whitelist
+              <div className="mt-6 border-t border-gray-200 pt-4">
+                <h3 className="text-sm font-semibold text-gray-900 mb-1">
+                  Domain Policy
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Domain management is not part of the accepted Phase 5 admin
+                  REST contract.
                 </p>
-              ) : (
-                whitelistDomains.map(domain => (
-                  <div
-                    key={domain}
-                    className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg"
-                  >
-                    <span className="font-mono text-sm text-gray-800">
-                      @{domain}
-                    </span>
-                    <button
-                      onClick={() => handleRemoveDomain(domain)}
-                      className="text-red-600 hover:text-red-800 text-sm font-medium"
-                    >
-                      Remove
-                    </button>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
+              </div>
+            </section>
 
-          {/* User Management Section */}
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4 flex items-center">
-              <svg
-                className="w-6 h-6 mr-2 text-blue-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+            <section className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between mb-4">
+                <h2 className="text-xl font-semibold text-gray-900">
+                  User Management
+                </h2>
+                <input
+                  type="search"
+                  value={searchTerm}
+                  onChange={event => setSearchTerm(event.target.value)}
+                  placeholder="Search users"
+                  className="w-full lg:w-72 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
-              </svg>
-              User Management
-            </h2>
-
-            {/* Search */}
-            <div className="mb-4">
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                placeholder="Search by email, username, or UID..."
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-
-            {/* Stats */}
-            <div className="mb-4 grid grid-cols-3 gap-2 text-sm">
-              <div className="bg-gray-50 p-2 rounded text-center">
-                <div className="font-semibold text-gray-900">
-                  {users.length}
-                </div>
-                <div className="text-gray-600 text-xs">Total Users</div>
               </div>
-              <div className="bg-green-50 p-2 rounded text-center">
-                <div className="font-semibold text-green-700">
-                  {users.filter(u => !u.isBlocked).length}
-                </div>
-                <div className="text-gray-600 text-xs">Active</div>
-              </div>
-              <div className="bg-red-50 p-2 rounded text-center">
-                <div className="font-semibold text-red-700">
-                  {users.filter(u => u.isBlocked).length}
-                </div>
-                <div className="text-gray-600 text-xs">Blocked</div>
-              </div>
-            </div>
 
-            {/* Users List */}
-            <div className="max-h-96 overflow-y-auto space-y-2">
-              {filteredUsers.length === 0 ? (
-                <p className="text-gray-500 text-sm italic">No users found</p>
-              ) : (
-                filteredUsers.map(user => (
-                  <div
-                    key={user.uid}
-                    className={`p-3 border rounded-lg ${
-                      user.isBlocked
-                        ? 'bg-red-50 border-red-200'
-                        : 'bg-gray-50 border-gray-200'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2">
-                          <p className="font-medium text-gray-900 truncate">
-                            {user.username || user.email?.split('@')[0]}
+              <div className="mb-4 grid grid-cols-3 gap-2 text-sm">
+                <div className="bg-gray-50 p-3 rounded text-center">
+                  <div className="font-semibold text-gray-900">
+                    {users.length}
+                  </div>
+                  <div className="text-gray-600 text-xs">Total</div>
+                </div>
+                <div className="bg-green-50 p-3 rounded text-center">
+                  <div className="font-semibold text-green-700">
+                    {activeCount}
+                  </div>
+                  <div className="text-gray-600 text-xs">Enabled</div>
+                </div>
+                <div className="bg-red-50 p-3 rounded text-center">
+                  <div className="font-semibold text-red-700">
+                    {disabledCount}
+                  </div>
+                  <div className="text-gray-600 text-xs">Disabled</div>
+                </div>
+              </div>
+
+              <div className="max-h-[32rem] overflow-y-auto space-y-2">
+                {filteredUsers.length === 0 ? (
+                  <p className="text-gray-500 text-sm italic">
+                    No users found
+                  </p>
+                ) : (
+                  filteredUsers.map(user => (
+                    <div
+                      key={user.id}
+                      className={`p-4 border rounded-lg ${
+                        user.is_disabled
+                          ? 'bg-red-50 border-red-200'
+                          : 'bg-gray-50 border-gray-200'
+                      }`}
+                    >
+                      <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div className="min-w-0">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-medium text-gray-900 truncate">
+                              {user.username || user.email}
+                            </p>
+                            {user.is_super_admin && (
+                              <span className="px-2 py-0.5 bg-purple-100 text-purple-800 text-xs font-semibold rounded">
+                                SUPER ADMIN
+                              </span>
+                            )}
+                            {user.is_disabled && (
+                              <span className="px-2 py-0.5 bg-red-100 text-red-800 text-xs font-semibold rounded">
+                                DISABLED
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-sm text-gray-600 truncate">
+                            {user.email}
                           </p>
-                          {user.isBlocked && (
-                            <span className="px-2 py-0.5 bg-red-100 text-red-800 text-xs font-semibold rounded">
-                              BLOCKED
-                            </span>
-                          )}
+                          <p className="text-xs text-gray-400 font-mono truncate">
+                            {user.id}
+                          </p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            Last login: {formatDate(user.last_login)}
+                          </p>
                         </div>
-                        <p className="text-sm text-gray-600 truncate">
-                          {user.email}
-                        </p>
-                        <p className="text-xs text-gray-400 font-mono truncate">
-                          {user.uid}
-                        </p>
-                      </div>
-                      <div className="ml-2">
-                        {user.isBlocked ? (
+
+                        {user.is_super_admin ? (
                           <button
-                            onClick={() =>
-                              handleUnblockUser(user.uid, user.email)
-                            }
-                            className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 transition-colors"
+                            type="button"
+                            disabled
+                            className="px-3 py-1 bg-gray-200 text-gray-500 text-sm rounded cursor-not-allowed"
                           >
-                            Unblock
+                            Protected
                           </button>
                         ) : (
                           <button
-                            onClick={() =>
-                              handleBlockUser(user.uid, user.email)
-                            }
-                            className="px-3 py-1 bg-red-600 text-white text-sm rounded hover:bg-red-700 transition-colors"
+                            type="button"
+                            onClick={() => handleToggleDisabled(user)}
+                            disabled={submitting}
+                            className={`px-3 py-1 text-white text-sm rounded transition-colors disabled:opacity-60 ${
+                              user.is_disabled
+                                ? 'bg-green-600 hover:bg-green-700'
+                                : 'bg-red-600 hover:bg-red-700'
+                            }`}
                           >
-                            Block
+                            {user.is_disabled ? 'Enable' : 'Disable'}
                           </button>
                         )}
                       </div>
                     </div>
-                  </div>
-                ))
-              )}
-            </div>
+                  ))
+                )}
+              </div>
+            </section>
           </div>
-        </div>
+        )}
       </div>
     </div>
   )

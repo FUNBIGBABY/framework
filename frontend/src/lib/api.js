@@ -687,6 +687,44 @@ export async function unpublishFramework(frameworkId) {
   })
 }
 
+export async function getAdminUsers(options = {}) {
+  return await apiRequest('/api/admin/users', {
+    suppressAuthRedirect: Boolean(options.suppressAuthRedirect),
+  })
+}
+
+export async function createAdminUser(userData = {}, options = {}) {
+  const payload = {
+    email: userData.email,
+    password: userData.password,
+  }
+
+  if (userData.username !== undefined && userData.username !== '') {
+    payload.username = userData.username
+  }
+
+  return await apiRequest('/api/admin/users', {
+    method: 'POST',
+    suppressAuthRedirect: Boolean(options.suppressAuthRedirect),
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function disableAdminUser(userId, options = {}) {
+  return await apiRequest(`/api/admin/users/${userId}/disable`, {
+    method: 'POST',
+    suppressAuthRedirect: Boolean(options.suppressAuthRedirect),
+  })
+}
+
+export async function enableAdminUser(userId, options = {}) {
+  return await apiRequest(`/api/admin/users/${userId}/enable`, {
+    method: 'POST',
+    suppressAuthRedirect: Boolean(options.suppressAuthRedirect),
+  })
+}
+
 export async function checkHealth() {
   return apiRequest('/api/frameworks/health')
 }

@@ -1,27 +1,27 @@
-# Phase 06 Round 0/1/2/3 Report - Frontend de-Firebase
+# Phase 06 Round 0/1/2/3/4 Report - Frontend de-Firebase
 
-Round 0/1/2/3 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 2 core framework REST wiring, Round 2 review repairs, and Round 3 Library plus publish/unpublish REST wiring have been implemented with static scan, lint, unit-test, and build verification. No Round 2 or Round 3 browser smoke test has been run. Phase 6 is not complete; Rounds 4-6 remain open.
+Round 0/1/2/3/4 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 2 core framework REST wiring, Round 2 review repairs, Round 3 Library plus publish/unpublish REST wiring, and Round 4 Admin users REST wiring have been implemented with static scan, lint, unit-test, and build verification. No Round 2, Round 3, or Round 4 browser smoke test has been run. Phase 6 is not complete; Rounds 5-6 remain open.
 
 ## Status
 
-This report is now the Round 0/1/2/3 implementation and review-repair record. Earlier planning-only wording has been superseded; full Phase 6 remains incomplete until Rounds 4-6 and reviewer closeout pass.
+This report is now the Round 0/1/2/3/4 implementation and review-repair record. Earlier planning-only wording has been superseded; full Phase 6 remains incomplete until Rounds 5-6 and reviewer closeout pass.
 
 Current Phase 6 status:
 
 - Planning package created: `checklist.md`, `phase-plan.md`, `verification.md`, and this `phase-report.md`.
 - Canonical auth route decision recorded: Phase 6 uses only the `/api/users/*` auth route family.
-- Round 0, Round 1, Round 2, and Round 3 implementation is complete with recorded static scan, lint, test, and build verification.
+- Round 0, Round 1, Round 2, Round 3, and Round 4 implementation is complete with recorded static scan, lint, test, and build verification.
 - Current repair passes fix the Round 2 update payload, route-gate, tenant-modal, and verification wording review findings.
 - Round 1 repaired backend cookie-session support because the Phase 1 token strategy debt was still present.
 - Protected backend endpoints now reject refresh JWTs on both access-cookie and temporary Bearer paths.
 - Shared frontend API requests now attempt one `/api/users/refresh` on normal expired-access `401` responses, then retry the original request once.
 - CSRF/Origin/Referer verification requirements are explicit.
 - Phase 5 final review accepted the closeout; Phase 6 planning may proceed.
-- Phase 6 is not complete; Rounds 4-6 remain open.
+- Phase 6 is not complete; Rounds 5-6 remain open.
 
-## Current Round 2 Review Repair Scope
+## Earlier Round 2 Review Repair Scope
 
-This repair fixes only the remaining Round 2 review findings. It does not implement Rounds 3-6 and does not mark Phase 6 complete.
+This historical repair fixed only the remaining Round 2 review findings. Rounds 3 and 4 are now implemented; Rounds 5-6 and reviewer closeout remain open, so this report does not mark Phase 6 complete.
 
 Frontend files changed by this repair:
 
@@ -48,7 +48,7 @@ Implementation decisions:
 - `TenantRoute.jsx` allows authenticated users without `user.tenantId` through the route shell. The legacy path segment remains a UI route shim only.
 - `CreateFramework.jsx` cancel and `FrameworkEditor.jsx` fallback/discard navigation use the existing route shim instead of `/` or `/frameworks`.
 - No request body, query string, or header was changed to send `tenant_id`, `X-Tenant-ID`, `user_id`, `creator_id`, or any route tenant value to backend framework APIs.
-- `TenantCreationModal.jsx`, Firebase SDK files, Library, PublishModal, AdminPanel, artefacts, tenant/invite components, and semantic tenant/domain cleanup remain deferred to their existing owner rounds/phases.
+- `TenantCreationModal.jsx`, Firebase SDK files, artefact child-resource UI wiring, tenant/invite components, and semantic tenant/domain cleanup remain deferred to their existing owner rounds/phases.
 
 ## Round 0 Inventory
 
@@ -89,7 +89,7 @@ Frontend changes:
 - `frontend/src/components/Navbar.jsx` no longer imports Firebase for super-admin or member-count checks. It uses the backend `is_super_admin` response as display convenience only; backend admin routes remain the authority.
 - `frontend/src/lib/api.test.js` covers the shared API-client refresh retry behavior, 403 non-refresh behavior, refresh-endpoint retry guard, and failed-refresh retry stop.
 
-Temporary bearer compatibility remains only in the backend dependency layer for existing tests and transitional clients. It cannot satisfy Phase 6 closeout. Removal gate: after Rounds 4-6 remove remaining transitional clients/tests from that path, remove the `HTTPBearer` fallback in `backend_py/app/auth.py`, and stop returning `access_token` as a frontend contract.
+Temporary bearer compatibility remains only in the backend dependency layer for existing tests and transitional clients. It cannot satisfy Phase 6 closeout. Removal gate: after Rounds 5-6 remove remaining transitional clients/tests from that path, remove the `HTTPBearer` fallback in `backend_py/app/auth.py`, and stop returning `access_token` as a frontend contract.
 
 ## Round 1 Files Changed
 
@@ -182,7 +182,7 @@ Backend files were not changed in Round 2.
 
 ## Round 3 Scope
 
-Round 3 implements the Library plus publish/unpublish REST wiring only. It does not complete Phase 6; Rounds 4-6 remain open.
+Round 3 implemented the Library plus publish/unpublish REST wiring only. It did not complete Phase 6.
 
 Frontend files changed:
 
@@ -232,12 +232,56 @@ Backend files were not changed in Round 3.
 - Did not add public registration, SaaS tenant/org sharing, Chat UI, Agent loop, RAG indexing/retrieval/citations, LLMWiki, MCP marketplace, or tool registry work.
 - Did not show or log vector sync success from publish UI; real vector sync/indexing/retrieval remains Phase 9.
 
-## Round 2 Reviewer Attention
+## Round 4 Scope
 
-- `AdminPanel.jsx`, artefact child-resource UI wiring, tenant/invite components, and Firebase SDK/package removal are intentionally still open for Rounds 4-6.
-- `Library.jsx`, `LibraryCard.jsx`, `PublishModal.jsx`, and `FrameworkCard.jsx` have now been rewired for Round 3 REST behavior.
+Round 4 implements Admin users REST wiring only. It does not complete Phase 6; Rounds 5-6 remain open.
+
+Frontend files changed:
+
+- `frontend/src/lib/api.js`
+- `frontend/src/lib/api.test.js`
+- `frontend/src/components/AdminPanel.jsx`
+- `frontend/src/components/AdminPanel.test.jsx`
+- `docs/migration/phases/phase-06-frontend-defirebase/checklist.md`
+- `docs/migration/phases/phase-06-frontend-defirebase/phase-report.md`
+- `docs/migration/phases/phase-06-frontend-defirebase/verification.md`
+
+Backend files were not changed in Round 4.
+
+## Round 4 Endpoint Mapping
+
+- Admin user list: `AdminPanel.jsx` -> `getAdminUsers()` -> `GET /api/admin/users`.
+- Admin user create: `AdminPanel.jsx` -> `createAdminUser()` -> `POST /api/admin/users`.
+- Admin user disable: `AdminPanel.jsx` -> `disableAdminUser(user.id)` -> `POST /api/admin/users/{user_id}/disable`.
+- Admin user enable: `AdminPanel.jsx` -> `enableAdminUser(user.id)` -> `POST /api/admin/users/{user_id}/enable`.
+
+## Round 4 Implementation Notes
+
+- `AdminPanel.jsx` no longer imports `frontend/src/lib/firebase.js` or Firebase admin helpers.
+- The old frontend `isSuperAdmin()` gate was removed from `AdminPanel.jsx`; the first admin list request is the authorization check, and backend `403` renders an admin-unavailable state.
+- `api.js` added focused admin helpers that use the shared cookie-session client and keep `credentials: "include"`.
+- Admin create sends only `email`, `password`, and optional `username`; it does not expose or submit `password_hash`.
+- Admin list and status controls use backend `id`, `is_disabled`, `disabled_at`, and `is_super_admin`. Firebase `uid` and `isBlocked` are no longer used.
+- Disable/enable calls put the backend user id in the accepted Phase 5 URL path and do not send frontend identity fields in request bodies or headers.
+- Whitelist/domain add/remove UI was removed from active admin behavior. The panel shows a small unsupported-domain-policy note because Phase 5 did not accept a whitelist-domain endpoint.
+- Public registration remains disabled; Round 4 adds no signup or self-service registration path.
+
+## Round 4 Boundaries Honored
+
+- Did not modify backend code.
+- Did not rewire artefact child-resource UI behavior.
+- Did not uninstall Firebase or delete `frontend/src/lib/firebase.js`.
+- Did not implement Phase 7 Valorie/domain/tenant/invite/migration semantic cleanup.
+- Did not add a whitelist-domain/domain-management backend feature.
+- Did not add public registration, SaaS tenant/org sharing, invites, Chat UI, Agent loop, RAG indexing/retrieval/citations, LLMWiki, MCP marketplace, or tool registry work.
+
+## Round 4 Reviewer Attention
+
+- Artefact child-resource UI wiring, tenant/invite components, and Firebase SDK/package removal are intentionally still open for Rounds 5-6 and Phase 7.
+- `AdminPanel.jsx` is now rewired to the accepted Phase 5 backend admin REST contract.
+- The domain-policy note is intentionally non-functional because no accepted Phase 5 whitelist-domain endpoint exists.
 - Backend temporary Bearer compatibility remains the Phase 6 closeout blocker already documented from Round 1.
-- No browser smoke test was run in Round 2 or Round 3; verification is static scans plus frontend lint/tests/build. Owner-flow and public-library browser behavior remain unchecked in `verification.md`.
+- No browser smoke test was run in Round 2, Round 3, or Round 4; verification is static scans plus frontend lint/tests/build. Owner-flow, public-library, and admin browser behavior remain unchecked in `verification.md`.
 
 ## Round 2 Review Repairs Addressed
 
@@ -255,7 +299,7 @@ Backend files were not changed in Round 3.
 - Round 2 verification now distinguishes static scans, lint, unit tests, and build from browser smoke tests.
 - No browser smoke test was run for Round 2, and the docs now say so in the status, reviewer attention, verification section, and browser checklist.
 - Focused REST UI behavior tests remain unchecked until implemented.
-- Phase 6 remains incomplete; Rounds 4-6 and reviewer closeout remain open.
+- Phase 6 remains incomplete; Rounds 5-6 and reviewer closeout remain open.
 
 ## Round 2 Remaining Review Repairs Addressed
 
@@ -271,7 +315,7 @@ Backend files were not changed in Round 3.
 
 - `checklist.md` and `verification.md` now scope exact identity-field scan claims to active Round 2 production files.
 - Test files may contain exact identity strings only as intentional negative assertions.
-- The full Phase 6 completion state remains unchanged: Phase 6 is not complete, and Rounds 4-6 remain open.
+- The full Phase 6 completion state remains unchanged: Phase 6 is not complete, and Rounds 5-6 remain open after Round 4.
 
 ## Scope
 
@@ -367,7 +411,7 @@ The Round 0/1 implementation now establishes:
 3. P3 stale planning-only report wording:
 
 - This report now states that Round 0/1 implementation has happened and is under review repair.
-- Phase 6 remains explicitly not complete, with Rounds 4-6 and Phase 7 deferrals still open after the Round 3 implementation.
+- Phase 6 remains explicitly not complete, with Rounds 5-6 and Phase 7 deferrals still open after the Round 4 implementation.
 
 ## Open Risks
 
@@ -375,9 +419,9 @@ The Round 0/1 implementation now establishes:
 - Temporary backend Bearer compatibility remains for transitional clients and tests; it is blocked from satisfying Phase 6 closeout and now rejects refresh JWTs.
 - CSRF policy is currently Origin/Referer based with SameSite=None clamped to Lax; if SameSite=None is later allowed, stronger CSRF protection such as double-submit token must be added and tested.
 - Some Firebase-importing files are also Phase 7 residue. Phase 6 may isolate or delete them only to remove active Firebase dependency.
-- Admin UI may expose whitelist-domain concepts without a Phase 5 backend endpoint.
+- The old whitelist-domain admin controls are removed from active Round 4 behavior; real domain/allowlist semantics remain outside Phase 6 unless a later accepted backend contract adds them.
 - Artefact UI may still be coupled to legacy `frameworks.artefacts_json`; historical backfill is not Phase 6 scope.
 
 ## Completion Note
 
-Phase 6 is not complete. This report records Round 0/1/2/3 implementation and current review repairs; Rounds 4-6, Firebase SDK removal, and reviewer closeout remain open.
+Phase 6 is not complete. This report records Round 0/1/2/3/4 implementation and current review repairs; Rounds 5-6, Firebase SDK removal, and reviewer closeout remain open.

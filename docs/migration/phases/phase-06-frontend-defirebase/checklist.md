@@ -1,6 +1,6 @@
 # Phase 06 Checklist - Frontend de-Firebase
 
-Round 0/1/2/3 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 0/1 review repairs, Round 2 core framework REST wiring, Round 2 review repairs, and Round 3 Library plus publish/unpublish REST wiring are implemented with static scan, lint, unit-test, and build verification. No Round 2 or Round 3 browser smoke test has been run. Do not mark Phase 6 complete from this document; Rounds 4-6 remain open.
+Round 0/1/2/3/4 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 0/1 review repairs, Round 2 core framework REST wiring, Round 2 review repairs, Round 3 Library plus publish/unpublish REST wiring, and Round 4 Admin users REST wiring are implemented with static scan, lint, unit-test, and build verification. No Round 2, Round 3, or Round 4 browser smoke test has been run. Do not mark Phase 6 complete from this document; Rounds 5-6 remain open.
 
 ## Required Context
 
@@ -149,20 +149,20 @@ Acceptance criteria:
 
 ## Round 4 - Admin Users REST
 
-- [ ] Rewire `AdminPanel.jsx` from Firebase admin helpers to `/api/admin/users`.
-- [ ] Implement frontend list/create/disable/enable flows against backend admin endpoints.
-- [ ] Remove whitelist-domain Firestore UI or isolate it as unsupported unless a backend endpoint exists.
-- [ ] Treat backend 403 as the source of admin authorization truth.
-- [ ] Ensure admin user list does not assume Firebase `uid`; use backend user `id`.
-- [ ] Ensure blocked/disabled UI maps to backend `is_disabled`.
+- [x] Rewire `AdminPanel.jsx` from Firebase admin helpers to `/api/admin/users`.
+- [x] Implement frontend list/create/disable/enable flows against backend admin endpoints.
+- [x] Remove whitelist-domain Firestore UI or isolate it as unsupported unless a backend endpoint exists.
+- [x] Treat backend 403 as the source of admin authorization truth.
+- [x] Ensure admin user list does not assume Firebase `uid`; use backend user `id`.
+- [x] Ensure blocked/disabled UI maps to backend `is_disabled`.
 
 Acceptance criteria:
 
-- [ ] Super-admin can list users through backend REST.
-- [ ] Super-admin can create users without exposing `password_hash`.
-- [ ] Super-admin can disable and enable users through backend REST.
-- [ ] Non-admin users receive backend 403; frontend checks are convenience only.
-- [ ] `AdminPanel.jsx` has no Firebase imports.
+- [x] Super-admin can list users through backend REST.
+- [x] Super-admin can create users without exposing `password_hash`.
+- [x] Super-admin can disable and enable users through backend REST.
+- [x] Non-admin users receive backend 403; frontend checks are convenience only.
+- [x] `AdminPanel.jsx` has no Firebase imports.
 
 ## Round 5 - Artefact Subresource Wiring
 
@@ -219,7 +219,7 @@ Acceptance criteria:
 - [x] Frontend must not send `Authorization: Bearer` after the removal gate.
 - [x] Shared frontend API requests refresh once on normal expired-access `401` responses and do not refresh true `403` authorization failures.
 - [x] Frontend must not send `user_id`, `creator_id`, `tenant_id`, or `X-Tenant-ID` as identity authority.
-- [ ] Admin permissions must be enforced by backend responses, not frontend button visibility.
+- [x] Admin permissions must be enforced by backend responses, not frontend button visibility.
 - [x] Private APIs and authenticated public library remain login-required.
 - [x] Cookie/CORS behavior must not use wildcard credentialed origins in production.
 - [x] Any CSRF mitigation required by backend cookie strategy must be wired consistently before write requests are accepted.
@@ -252,6 +252,7 @@ This gate blocks Phase 6 closeout.
 - [x] Shared frontend API payload tests cover create/update separation, update patch semantics, empty `_raw` omission, create/regenerate payload validity, and omission of frontend identity fields.
 - [x] Backend CSRF/Origin tests cover allowed same-origin unsafe request, missing/invalid Origin/Referer rejection where policy requires, disallowed Origin rejection, safe methods not incorrectly blocked, and SameSite=None stronger-token behavior if applicable.
 - [ ] Focused REST UI tests cover owner frameworks, public library, publish/unpublish, admin users, and artefacts.
+- [x] Focused Round 4 REST tests cover admin user list/create/disable/enable, backend 403 handling, and whitelist-domain UI absence/unsupported state.
 - [x] Focused route-shell tests cover backend-cookie no-tenant login destination, root route modal suppression, and `TenantRoute` core shell pass-through.
 - [ ] Forbidden Firebase scan passes.
 - [x] Forbidden bearer/localStorage auth scan passes for the active Round 1 auth surface and all `frontend/src`.

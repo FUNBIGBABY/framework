@@ -2,7 +2,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   apiFetch,
   createFramework,
+  createAdminUser,
+  disableAdminUser,
+  enableAdminUser,
   generateFrameworkFromText,
+  getAdminUsers,
   getPublicFrameworks,
   publishFramework,
   regenerateFramework,
@@ -364,6 +368,112 @@ describe('library and publish REST helpers', () => {
       '/api/frameworks/fw_123/unpublish'
     )
     expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      method: 'POST',
+      credentials: 'include',
+    })
+  })
+})
+
+describe('admin users REST helpers', () => {
+  it('loads backend admin users with cookie credentials', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      mockResponse(200, [
+        {
+          id: 'user_admin',
+          email: 'admin@example.com',
+          username: 'admin',
+          is_disabled: false,
+        },
+      ])
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const users = await getAdminUsers({ suppressAuthRedirect: true })
+
+    expect(users[0]).toMatchObject({
+      id: 'user_admin',
+      email: 'admin@example.com',
+    })
+    expect(fetchMock.mock.calls[0][0]).toContain('/api/admin/users')
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      credentials: 'include',
+    })
+  })
+
+  it('creates backend users without password hashes or client identity fields', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      mockResponse(201, {
+        id: 'user_new',
+        email: 'new@example.com',
+        username: 'new_user',
+        is_disabled: false,
+      })
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await createAdminUser(
+      {
+        email: 'new@example.com',
+        username: 'new_user',
+        password: 'temporary-password',
+        password_hash: 'must-not-send',
+        user_id: 'client-user',
+        creator_id: 'client-creator',
+        tenant_id: 'client-tenant',
+      },
+      { suppressAuthRedirect: true }
+    )
+
+    expect(fetchMock.mock.calls[0][0]).toContain('/api/admin/users')
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    })
+    expect(requestBody(fetchMock)).toEqual({
+      email: 'new@example.com',
+      username: 'new_user',
+      password: 'temporary-password',
+    })
+    expect(JSON.stringify(requestBody(fetchMock))).not.toContain(
+      'password_hash'
+    )
+    expectNoClientIdentityFields(requestBody(fetchMock))
+  })
+
+  it('disables and enables users through backend admin endpoints', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValueOnce(
+        mockResponse(200, {
+          id: 'user_regular',
+          email: 'regular@example.com',
+          is_disabled: true,
+        })
+      )
+      .mockResolvedValueOnce(
+        mockResponse(200, {
+          id: 'user_regular',
+          email: 'regular@example.com',
+          is_disabled: false,
+        })
+      )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await disableAdminUser('user_regular', { suppressAuthRedirect: true })
+    await enableAdminUser('user_regular', { suppressAuthRedirect: true })
+
+    expect(fetchMock.mock.calls[0][0]).toContain(
+      '/api/admin/users/user_regular/disable'
+    )
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      method: 'POST',
+      credentials: 'include',
+    })
+    expect(fetchMock.mock.calls[1][0]).toContain(
+      '/api/admin/users/user_regular/enable'
+    )
+    expect(fetchMock.mock.calls[1][1]).toMatchObject({
       method: 'POST',
       credentials: 'include',
     })

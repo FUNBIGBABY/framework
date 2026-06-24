@@ -1,6 +1,6 @@
 # Phase 06 Verification - Frontend de-Firebase
 
-Round 0/1/2/3 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 0/1 reviewer repairs, Round 2 core framework REST wiring, Round 2 review repairs, and Round 3 Library plus publish/unpublish REST wiring have static scan, lint, unit-test, and build verification. No Round 2 or Round 3 browser smoke test has been run. Phase 6 is not complete; Rounds 4-6 remain open.
+Round 0/1/2/3/4 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 0/1 reviewer repairs, Round 2 core framework REST wiring, Round 2 review repairs, Round 3 Library plus publish/unpublish REST wiring, and Round 4 Admin users REST wiring have static scan, lint, unit-test, and build verification. No Round 2, Round 3, or Round 4 browser smoke test has been run. Phase 6 is not complete; Rounds 5-6 remain open.
 
 ## Verification Principles
 
@@ -990,21 +990,309 @@ Result: passed with exit code `0` and no output.
 
 ## Round 4 Verification - Admin Users REST
 
-Planned commands:
+Implemented in Round 4. Evidence below covers AdminPanel REST wiring, backend user `id` / `is_disabled` shape usage, backend `403` handling, whitelist-domain UI removal/unsupported state, frontend lint, focused tests, full frontend tests, production build, and diff whitespace check.
+
+Backend tests were not run because Round 4 did not change backend code.
+
+### Round 4 Initial Firebase Import Scan Attempt
+
+Initial command:
+
+```powershell
+rg -n "from ['\"]firebase|firebase/firestore|firebase/|\.\./lib/firebase|\./firebase" frontend\src\components\AdminPanel.jsx frontend\src\lib\api.js
+```
+
+Initial result: failed before scanning because PowerShell parsed the quote sequence incorrectly:
+
+```text
+字符串缺少终止符: "。
+ParserError: TerminatorExpectedAtEndOfString
+```
+
+Rerun command:
+
+```powershell
+rg -n 'from [''\"]firebase|firebase/firestore|firebase/|\.\./lib/firebase|\./firebase' frontend\src\components\AdminPanel.jsx frontend\src\lib\api.js
+```
+
+Rerun result: no matches. `rg` exited `1`.
+
+### Round 4 Admin Firebase Helper Scan
+
+Command:
 
 ```powershell
 rg -n "getAllUsers|blockUser|unblockUser|getWhitelistDomains|addWhitelistDomain|removeWhitelistDomain|isSuperAdmin|firebase/firestore|../lib/firebase|./firebase" frontend/src/components/AdminPanel.jsx frontend/src/lib/api.js
 ```
 
-Planned behavior checks:
+Result: no matches. `rg` exited `1`.
+
+### Round 4 Identity Authority Scan
+
+Command:
+
+```powershell
+rg -n "user_id|creator_id|tenant_id|X-Tenant-ID" frontend\src\components\AdminPanel.jsx frontend\src\lib\api.js
+```
+
+Result: no matches. `rg` exited `1`.
+
+### Round 4 Bearer and Token Storage Scan
+
+Command:
+
+```powershell
+rg -n "Authorization:\s*Bearer|Authorization.*Bearer|access_token|localStorage\.(getItem|setItem).*access_token|getAuthToken" frontend\src\components\AdminPanel.jsx frontend\src\lib\api.js
+```
+
+Result: no matches. `rg` exited `1`.
+
+### Round 4 Password Hash Production Scan
+
+Command:
+
+```powershell
+rg -n "password_hash" frontend\src\components\AdminPanel.jsx frontend\src\lib\api.js
+```
+
+Result: no matches. `rg` exited `1`.
+
+Note: `frontend/src/lib/api.test.js` and `frontend/src/components/AdminPanel.test.jsx` intentionally contain `password_hash` as negative assertions proving the UI/API helpers do not submit it.
+
+### Round 4 Backend User Shape Scan
+
+Command:
+
+```powershell
+rg -n "uid|isBlocked" frontend\src\components\AdminPanel.jsx frontend\src\lib\api.js
+```
+
+Result: no matches. `rg` exited `1`.
+
+### Round 4 Whitelist-Domain UI Scan
+
+Command:
+
+```powershell
+rg -n "Whitelist|whitelist|Add Domain|Remove Domain|getWhitelist" frontend\src\components\AdminPanel.jsx
+```
+
+Result: no matches. `rg` exited `1`.
+
+The active add/remove whitelist-domain controls are absent from `AdminPanel.jsx`. The remaining domain-policy note states that domain management is not part of the accepted Phase 5 admin REST contract.
+
+### Round 4 Focused Tests
+
+Initial sandboxed command:
+
+```powershell
+cd frontend
+npm test -- src/lib/api.test.js src/components/AdminPanel.test.jsx
+```
+
+Initial result: failed before tests ran because Vite/Vitest/esbuild could not read config paths in the sandbox:
+
+```text
+Cannot read directory "../../../..": Access is denied.
+Could not resolve "C:\Users\micha\Desktop\project\framework\frontend\vitest.config.js"
+```
+
+Escalated rerun command:
+
+```powershell
+cd frontend
+npm test -- src/lib/api.test.js src/components/AdminPanel.test.jsx
+```
+
+Escalated rerun result:
+
+```text
+src/lib/api.test.js (15 tests) passed
+src/components/AdminPanel.test.jsx (5 tests) passed
+2 test files passed
+20 tests passed
+Duration 6.13s
+```
+
+Warning: `baseline-browser-mapping` data is over two months old.
+
+Coverage added:
 
 - Super-admin can list backend users.
-- Super-admin can create a user.
-- Super-admin can disable and enable a user.
-- Non-admin receives backend 403.
-- Admin UI does not expose or submit `password_hash`.
+- Super-admin can create a user through `POST /api/admin/users`.
+- Create-user request shape excludes `password_hash` and frontend identity fields.
+- Super-admin can disable and enable a user through backend admin endpoints.
+- Non-admin/backend `403` renders an admin-unavailable state sourced from the backend response.
+- Admin UI uses backend `id` and `is_disabled`, not Firebase `uid` / `isBlocked`.
+- Whitelist-domain UI controls are absent and the unsupported domain policy is explicit.
 
-Current result: not run for implementation.
+### Round 4 Frontend Lint
+
+Command:
+
+```powershell
+cd frontend
+npm run lint
+```
+
+Result: passed with exit code `0`.
+
+```text
+> frontend@0.0.0 lint
+> eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0
+```
+
+### Round 4 Full Frontend Tests
+
+Initial sandboxed command:
+
+```powershell
+cd frontend
+npm test
+```
+
+Initial result: failed before tests ran because Vite/Vitest/esbuild could not read config paths in the sandbox:
+
+```text
+Cannot read directory "../../../..": Access is denied.
+Could not resolve "C:\Users\micha\Desktop\project\framework\frontend\vitest.config.js"
+```
+
+Escalated rerun command:
+
+```powershell
+cd frontend
+npm test
+```
+
+Escalated rerun result:
+
+```text
+src/lib/api.test.js (15 tests) passed
+src/App.test.jsx (13 tests) passed
+src/components/Library.test.jsx (2 tests) passed
+src/components/TenantRoute.test.jsx (1 test) passed
+src/App.route.test.jsx (1 test) passed
+src/components/PublishModal.test.jsx (1 test) passed
+src/components/FrameworkCard.test.jsx (1 test) passed
+src/components/Login.test.jsx (1 test) passed
+src/components/AdminPanel.test.jsx (5 tests) passed
+9 test files passed
+40 tests passed
+Duration 5.69s
+```
+
+Warnings/output: existing test stdout from `PublishModal.test.jsx` and `Login.test.jsx`; `baseline-browser-mapping` data is over two months old.
+
+### Round 4 Frontend Build
+
+Initial sandboxed command:
+
+```powershell
+cd frontend
+npm run build
+```
+
+Initial result: failed before build compilation because Vite/esbuild could not read config paths in the sandbox:
+
+```text
+Cannot read directory "../../../..": Access is denied.
+Could not resolve "C:\Users\micha\Desktop\project\framework\frontend\vite.config.js"
+```
+
+Escalated rerun command:
+
+```powershell
+cd frontend
+npm run build
+```
+
+Escalated rerun result:
+
+```text
+vite v7.1.9 building for production...
+157 modules transformed.
+dist/index.html                 0.47 kB | gzip:   0.31 kB
+dist/assets/index-BIVVgKSx.css 42.47 kB | gzip:   7.52 kB
+dist/assets/index-BIp5NNzE.js   1,457.99 kB | gzip: 402.07 kB
+built in 11.60s
+```
+
+Warnings: `baseline-browser-mapping` data is over two months old; Browserslist/caniuse data is 8 months old; one chunk is larger than 500 kB after minification. These are not Round 4 blockers.
+
+### Round 4 Git Diff Check
+
+Command:
+
+```powershell
+git diff --check
+```
+
+Result: passed with exit code `0` and no output.
+
+### Round 4 Post-Documentation Rerun
+
+After updating this checklist/report/verification package, the relevant Round 4 source scans were rerun.
+
+Commands:
+
+```powershell
+rg -n 'from [''\"]firebase|firebase/firestore|firebase/|\.\./lib/firebase|\./firebase' frontend\src\components\AdminPanel.jsx frontend\src\lib\api.js
+rg -n "getAllUsers|blockUser|unblockUser|getWhitelistDomains|addWhitelistDomain|removeWhitelistDomain|isSuperAdmin" frontend\src\components\AdminPanel.jsx frontend\src\lib\api.js
+rg -n "user_id|creator_id|tenant_id|X-Tenant-ID" frontend\src\components\AdminPanel.jsx frontend\src\lib\api.js
+rg -n "Authorization:\s*Bearer|Authorization.*Bearer|access_token|localStorage\.(getItem|setItem).*access_token|getAuthToken" frontend\src\components\AdminPanel.jsx frontend\src\lib\api.js
+rg -n "password_hash" frontend\src\components\AdminPanel.jsx frontend\src\lib\api.js
+rg -n "uid|isBlocked" frontend\src\components\AdminPanel.jsx frontend\src\lib\api.js
+rg -n "Whitelist|whitelist|Add Domain|Remove Domain|getWhitelist" frontend\src\components\AdminPanel.jsx
+```
+
+Result: all seven commands returned no matches. `rg` exited `1` for each command.
+
+Command:
+
+```powershell
+git diff --check
+```
+
+Result: passed with exit code `0` and no output.
+
+### Round 4 Final AdminPanel Text Polish Rerun
+
+After a small JSX text cleanup in the backend 401/403 access-state message, the focused AdminPanel test and quick source scan were rerun.
+
+Command:
+
+```powershell
+cd frontend
+npm test -- src/components/AdminPanel.test.jsx
+```
+
+Result:
+
+```text
+src/components/AdminPanel.test.jsx (5 tests) passed
+1 test file passed
+5 tests passed
+Duration 3.33s
+```
+
+Warning: `baseline-browser-mapping` data is over two months old.
+
+Command:
+
+```powershell
+rg -n "getAllUsers|blockUser|unblockUser|getWhitelistDomains|addWhitelistDomain|removeWhitelistDomain|isSuperAdmin|uid|isBlocked|password_hash" frontend\src\components\AdminPanel.jsx frontend\src\lib\api.js
+```
+
+Result: no matches. `rg` exited `1`.
+
+Command:
+
+```powershell
+git diff --check
+```
+
+Result: passed with exit code `0` and no output.
 
 ## Round 5 Verification - Artefact Subresource Wiring
 
@@ -1062,7 +1350,7 @@ Current result: not run for implementation.
 
 ## Browser Smoke Checklist
 
-No Round 2 or Round 3 browser smoke test was run during these implementation passes. The checklist remains unchecked until an actual browser/manual smoke session is performed.
+No Round 2, Round 3, or Round 4 browser smoke test was run during these implementation passes. The checklist remains unchecked until an actual browser/manual smoke session is performed.
 
 - [ ] Login with a backend-created user.
 - [ ] Confirm login sets access and refresh cookies without storing frontend tokens.
@@ -1106,5 +1394,5 @@ The final Phase 6 handoff should include:
 - CSRF/cookie-auth unsafe-method protection is currently Origin/Referer based and verified for Round 1; SameSite=None remains clamped to Lax. If SameSite=None is later allowed, stronger protection such as a double-submit token must be added and tested.
 - Phase 5 closeout documentation has been corrected to record accepted final review, committed/pushed package, and Phase 6 planning may proceed; Phase 6 should not reopen Phase 5 implementation.
 - Some Firebase-importing files are also tenant/invite/migration residue. Phase 6 may remove or isolate them only to uninstall Firebase; broader semantic cleanup remains Phase 7.
-- Admin UI may currently expose whitelist-domain concepts that have no Phase 5 backend endpoint. Round 4 should remove or isolate that UI instead of inventing a new backend domain-management feature.
+- Round 4 removed active whitelist-domain admin controls and left only an unsupported domain-policy note because no Phase 5 backend endpoint exists for whitelist-domain management.
 - Artefact UI may still be coupled to legacy `frameworks.artefacts_json`; Round 5 must avoid claiming historical backfill unless a later explicit phase owns it.
