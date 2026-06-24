@@ -1,6 +1,6 @@
 # Phase 06 Verification - Frontend de-Firebase
 
-Round 0/1/2 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 0/1 reviewer repairs, Round 2 core framework REST wiring, and Round 2 review repairs have static scan, lint, unit-test, and build verification. No Round 2 browser smoke test has been run. Phase 6 is not complete; Rounds 3-6 remain open.
+Round 0/1/2/3 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 0/1 reviewer repairs, Round 2 core framework REST wiring, Round 2 review repairs, and Round 3 Library plus publish/unpublish REST wiring have static scan, lint, unit-test, and build verification. No Round 2 or Round 3 browser smoke test has been run. Phase 6 is not complete; Rounds 4-6 remain open.
 
 ## Verification Principles
 
@@ -812,21 +812,181 @@ Result: passed with exit code `0` and no output.
 
 ## Round 3 Verification - Library + Publish/Unpublish REST
 
-Planned commands:
+Implemented in Round 3. Evidence below covers the Library public-list REST switch, publish/unpublish REST helpers, removal of Firestore from the touched UI files, removal of publish UI vector-sync side effects, frontend lint, focused tests, full frontend tests, production build, and diff whitespace check.
+
+Backend tests were not run because Round 3 did not change backend code.
+
+### Round 3 Focused Firebase Import Scan
+
+Command:
 
 ```powershell
-rg -n "onSnapshot|collection\\(|query\\(|where\\(|firebase/firestore|../lib/firebase|./firebase" frontend/src/components/Library.jsx frontend/src/components/PublishModal.jsx frontend/src/components/FrameworkCard.jsx
+rg -n 'firebase/firestore|onSnapshot|collection\(|query\(|where\(|\.\./lib/firebase|\./firebase' frontend\src\lib\api.js frontend\src\components\Library.jsx frontend\src\components\LibraryCard.jsx frontend\src\components\PublishModal.jsx frontend\src\components\FrameworkCard.jsx
 ```
 
-Planned behavior checks:
+Result: no matches. `rg` exited `1`.
 
-- Authenticated user can load `/api/frameworks/public`.
-- Unauthenticated user cannot see public-library data.
-- Owner can publish through `POST /api/frameworks/{framework_id}/publish`.
-- Owner can unpublish through `POST /api/frameworks/{framework_id}/unpublish`.
-- Library renders backend response fields without Firestore timestamp assumptions.
+### Round 3 Vector Sync Side-Effect Scan
 
-Current result: not run for implementation.
+Command:
+
+```powershell
+rg -n "push-framework|Vector Store|vector sync|pushed to Vector|PUSH_FRAMEWORK" frontend\src\lib\api.js frontend\src\components\Library.jsx frontend\src\components\LibraryCard.jsx frontend\src\components\PublishModal.jsx frontend\src\components\FrameworkCard.jsx
+```
+
+Result: no matches. `rg` exited `1`.
+
+### Round 3 Identity Authority Scan
+
+Command:
+
+```powershell
+rg -n "getFirebaseUserId|X-Tenant-ID|tenant_id|user_id|creator_id" frontend\src\lib\api.js frontend\src\components\Library.jsx frontend\src\components\LibraryCard.jsx frontend\src\components\PublishModal.jsx frontend\src\components\FrameworkCard.jsx
+```
+
+Result: no matches. `rg` exited `1`.
+
+This scan is scoped to active Round 3 production files. `frontend/src/lib/api.test.js` intentionally contains exact identity-field strings as negative assertions.
+
+### Round 3 Bearer and Token Storage Scan
+
+Command:
+
+```powershell
+rg -n "Authorization:\s*Bearer|Authorization.*Bearer|access_token|localStorage\.(getItem|setItem).*access_token|getAuthToken" frontend\src\lib\api.js frontend\src\components\Library.jsx frontend\src\components\LibraryCard.jsx frontend\src\components\PublishModal.jsx frontend\src\components\FrameworkCard.jsx
+```
+
+Result: no matches. `rg` exited `1`.
+
+### Round 3 Focused Tests
+
+Initial sandboxed command:
+
+```powershell
+cd frontend
+npm test -- src/lib/api.test.js src/components/Library.test.jsx src/components/PublishModal.test.jsx src/components/FrameworkCard.test.jsx
+```
+
+Initial result: failed before tests ran because Vite/Vitest/esbuild could not read config paths in the sandbox:
+
+```text
+Cannot read directory "../../../..": Access is denied.
+Could not resolve "C:\Users\micha\Desktop\project\framework\frontend\vitest.config.js"
+```
+
+Initial escalated rerun result during implementation: tests ran and found two test/code issues before the final fix pass:
+
+```text
+2 failed | 2 passed
+14 passed | 2 failed
+```
+
+Failures were limited to the new Round 3 tests: the 401 Library test did not account for the shared API client's one-shot refresh retry, and `PublishModal` labels were not associated with their controls. `PublishModal.jsx` was updated with `htmlFor`/`id` label wiring, and the 401 test now mocks the failed refresh response.
+
+Final escalated rerun command:
+
+```powershell
+cd frontend
+npm test -- src/lib/api.test.js src/components/Library.test.jsx src/components/PublishModal.test.jsx src/components/FrameworkCard.test.jsx
+```
+
+Final escalated rerun result:
+
+```text
+src/lib/api.test.js (12 tests) passed
+src/components/Library.test.jsx (2 tests) passed
+src/components/FrameworkCard.test.jsx (1 test) passed
+src/components/PublishModal.test.jsx (1 test) passed
+4 test files passed
+16 tests passed
+Duration 6.04s
+```
+
+Warning: `baseline-browser-mapping` data is over two months old.
+
+Coverage added:
+
+- `getPublicFrameworks()` loads backend `items`, `next_cursor`, `limit`, `preview_artefacts`, `published_at`, and `tags` with `credentials: "include"`.
+- `Library.jsx` renders authenticated backend public-list items.
+- `Library.jsx` renders an auth-required state when the backend and refresh attempt return 401.
+- `publishFramework()` and `PublishModal.jsx` use `POST /api/frameworks/{framework_id}/publish`.
+- `unpublishFramework()` and `FrameworkCard.jsx` use `POST /api/frameworks/{framework_id}/unpublish`.
+- Publish UI makes no `push-framework` or vector-sync call.
+
+### Round 3 Frontend Lint
+
+Command:
+
+```powershell
+cd frontend
+npm run lint
+```
+
+Result: passed with exit code `0`.
+
+```text
+> frontend@0.0.0 lint
+> eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0
+```
+
+### Round 3 Full Frontend Tests
+
+Command:
+
+```powershell
+cd frontend
+npm test
+```
+
+Result:
+
+```text
+src/App.test.jsx (13 tests) passed
+src/lib/api.test.js (12 tests) passed
+src/components/TenantRoute.test.jsx (1 test) passed
+src/components/Library.test.jsx (2 tests) passed
+src/App.route.test.jsx (1 test) passed
+src/components/FrameworkCard.test.jsx (1 test) passed
+src/components/PublishModal.test.jsx (1 test) passed
+src/components/Login.test.jsx (1 test) passed
+8 test files passed
+32 tests passed
+Duration 7.32s
+```
+
+Warning: `baseline-browser-mapping` data is over two months old.
+
+### Round 3 Frontend Build
+
+Command:
+
+```powershell
+cd frontend
+npm run build
+```
+
+Result:
+
+```text
+vite v7.1.9 building for production...
+157 modules transformed.
+dist/index.html                 0.47 kB | gzip:   0.31 kB
+dist/assets/index-Cy3PGD3Q.css 42.13 kB | gzip:   7.43 kB
+dist/assets/index-Sa27hTG0.js  1,459.44 kB | gzip: 402.18 kB
+built in 19.76s
+```
+
+Warnings: `baseline-browser-mapping` data is over two months old; Browserslist/caniuse data is 8 months old; one chunk is larger than 500 kB after minification. These are not Round 3 blockers.
+
+### Round 3 Git Diff Check
+
+Command:
+
+```powershell
+git diff --check
+```
+
+Result: passed with exit code `0` and no output.
 
 ## Round 4 Verification - Admin Users REST
 
@@ -902,7 +1062,7 @@ Current result: not run for implementation.
 
 ## Browser Smoke Checklist
 
-No Round 2 browser smoke test was run during this repair pass. The checklist remains unchecked until an actual browser/manual smoke session is performed.
+No Round 2 or Round 3 browser smoke test was run during these implementation passes. The checklist remains unchecked until an actual browser/manual smoke session is performed.
 
 - [ ] Login with a backend-created user.
 - [ ] Confirm login sets access and refresh cookies without storing frontend tokens.
@@ -941,6 +1101,7 @@ The final Phase 6 handoff should include:
 ## Known Remaining Risks
 
 - Round 2 owner framework flows have code wiring, static scans, API payload unit tests, lint, full frontend tests, and build coverage, but no browser/manual smoke test was run.
+- Round 3 Library and publish/unpublish flows have code wiring, static scans, API/helper/component tests, lint, full frontend tests, and build coverage, but no browser/manual smoke test was run.
 - Cookie-session backend readiness has been repaired and verified for Round 1, including strict access-vs-refresh token typing. Temporary backend Bearer compatibility remains a Phase 6 closeout blocker until later rounds remove transitional clients/tests from that path.
 - CSRF/cookie-auth unsafe-method protection is currently Origin/Referer based and verified for Round 1; SameSite=None remains clamped to Lax. If SameSite=None is later allowed, stronger protection such as a double-submit token must be added and tested.
 - Phase 5 closeout documentation has been corrected to record accepted final review, committed/pushed package, and Phase 6 planning may proceed; Phase 6 should not reopen Phase 5 implementation.

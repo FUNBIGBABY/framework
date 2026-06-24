@@ -1,6 +1,6 @@
 # Phase 06 Checklist - Frontend de-Firebase
 
-Round 0/1/2 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 0/1 review repairs, Round 2 core framework REST wiring, and Round 2 review repairs are implemented with static scan, lint, unit-test, and build verification. No Round 2 browser smoke test has been run. Do not mark Phase 6 complete from this document; Rounds 3-6 remain open.
+Round 0/1/2/3 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 0/1 review repairs, Round 2 core framework REST wiring, Round 2 review repairs, and Round 3 Library plus publish/unpublish REST wiring are implemented with static scan, lint, unit-test, and build verification. No Round 2 or Round 3 browser smoke test has been run. Do not mark Phase 6 complete from this document; Rounds 4-6 remain open.
 
 ## Required Context
 
@@ -132,20 +132,20 @@ Acceptance criteria:
 
 ## Round 3 - Library + Publish/Unpublish REST
 
-- [ ] Rewire `Library.jsx` from Firestore `onSnapshot` to authenticated `GET /api/frameworks/public`.
-- [ ] Replace realtime Firestore subscription with short polling, manual reload, or one-shot fetch per canonical Phase 6 guidance.
-- [ ] Adapt Library UI to backend public-list response shape: `items`, `next_cursor`, `limit`, `preview_artefacts`, `published_at`, and `tags`.
-- [ ] Rewire `PublishModal.jsx` to `POST /api/frameworks/{framework_id}/publish`.
-- [ ] Rewire unpublish controls to `POST /api/frameworks/{framework_id}/unpublish`.
-- [ ] Remove non-blocking `push-framework` vector-store call from publish UI unless it remains clearly Phase 9-deferred and non-successful.
-- [ ] Preserve authenticated public library behavior: public library is not anonymous access.
+- [x] Rewire `Library.jsx` from Firestore `onSnapshot` to authenticated `GET /api/frameworks/public`.
+- [x] Replace realtime Firestore subscription with short polling, manual reload, or one-shot fetch per canonical Phase 6 guidance.
+- [x] Adapt Library UI to backend public-list response shape: `items`, `next_cursor`, `limit`, `preview_artefacts`, `published_at`, and `tags`.
+- [x] Rewire `PublishModal.jsx` to `POST /api/frameworks/{framework_id}/publish`.
+- [x] Rewire unpublish controls to `POST /api/frameworks/{framework_id}/unpublish`.
+- [x] Remove non-blocking `push-framework` vector-store call from publish UI unless it remains clearly Phase 9-deferred and non-successful.
+- [x] Preserve authenticated public library behavior: public library is not anonymous access.
 
 Acceptance criteria:
 
-- [ ] Authenticated users can see published frameworks through `/api/frameworks/public`.
-- [ ] Unauthenticated public-library access redirects to login or shows an auth-required state.
-- [ ] Owner publish and unpublish use backend REST and update the UI.
-- [ ] Library and publish/unpublish UI have no Firebase imports.
+- [x] Authenticated users can see published frameworks through `/api/frameworks/public`.
+- [x] Unauthenticated public-library access redirects to login or shows an auth-required state.
+- [x] Owner publish and unpublish use backend REST and update the UI.
+- [x] Library and publish/unpublish UI have no Firebase imports.
 
 ## Round 4 - Admin Users REST
 

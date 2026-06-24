@@ -290,6 +290,7 @@ function buildFrameworkUpdatePayload(frameworkData = {}) {
 export function normalizeFrameworkSummary(framework = {}) {
   const createdAt = framework.created_at || framework.createdAt
   const updatedAt = framework.updated_at || framework.updatedAt || createdAt
+  const publishedAt = framework.published_at || framework.publishedAt || null
 
   return {
     id: framework.id,
@@ -297,12 +298,44 @@ export function normalizeFrameworkSummary(framework = {}) {
     version: framework.version || '1.0.0',
     family: framework.family || 'Other',
     confidence: Number(framework.confidence || 0),
+    category: framework.category || framework.family || 'Other',
+    tags: Array.isArray(framework.tags) ? framework.tags : [],
     created_at: createdAt,
     updated_at: updatedAt,
+    published_at: publishedAt,
+    publishedAt,
     preview_artefacts: normalizePreviewArtefacts(framework.preview_artefacts),
-    isPublic: Boolean(framework.isPublic),
+    isPublic: Boolean(framework.is_public ?? framework.isPublic),
     publishedToOrganization: Boolean(framework.publishedToOrganization),
     canManage: true,
+  }
+}
+
+export function normalizePublicFramework(framework = {}) {
+  const publishedAt = framework.published_at || framework.publishedAt || null
+  const updatedAt = framework.updated_at || framework.updatedAt || null
+  const previewArtefacts =
+    framework.preview_artefacts ||
+    framework.previewArtefacts ||
+    framework.artefacts?.additional
+
+  return {
+    id: framework.id,
+    title: framework.title || 'Untitled Framework',
+    version: framework.version || '1.0.0',
+    family: framework.family || 'Other',
+    confidence: Number(framework.confidence || 0),
+    category: framework.category || framework.family || 'Other',
+    tags: Array.isArray(framework.tags)
+      ? framework.tags.map(tag => String(tag)).filter(Boolean)
+      : [],
+    published_at: publishedAt,
+    publishedAt,
+    updated_at: updatedAt,
+    updatedAt,
+    preview_artefacts: normalizePreviewArtefacts(previewArtefacts),
+    isPublic: true,
+    canManage: false,
   }
 }
 
@@ -542,6 +575,32 @@ export async function getMyFrameworksByFamily() {
   return await apiRequest('/api/frameworks/my-frameworks/by-family')
 }
 
+export async function getPublicFrameworks(options = {}) {
+  const {
+    cursor = '',
+    limit = 20,
+    suppressAuthRedirect = false,
+  } = options
+  const params = new URLSearchParams()
+
+  if (cursor) params.set('cursor', cursor)
+  if (limit) params.set('limit', String(limit))
+
+  const queryString = params.toString()
+  const response = await apiRequest(
+    `/api/frameworks/public${queryString ? `?${queryString}` : ''}`,
+    { suppressAuthRedirect }
+  )
+
+  return {
+    items: Array.isArray(response.items)
+      ? response.items.map(normalizePublicFramework)
+      : [],
+    next_cursor: response.next_cursor || null,
+    limit: response.limit || limit,
+  }
+}
+
 export async function getFrameworkById(frameworkId) {
   const framework = await apiRequest(`/api/frameworks/${frameworkId}`)
   return normalizeFrameworkForEditor(framework)
@@ -600,6 +659,28 @@ export async function mergeFrameworksWithAI(frameworks) {
   })
 }
 
+export async function publishFramework(frameworkId, options = {}) {
+  const payload = {}
+
+  if (options.category !== undefined) payload.category = options.category
+  if (options.version !== undefined) payload.version = options.version
+
+  if (options.tags !== undefined) {
+    payload.tags = Array.isArray(options.tags)
+      ? options.tags
+      : String(options.tags)
+          .split(',')
+          .map(tag => tag.trim())
+          .filter(Boolean)
+  }
+
+  return await apiRequest(`/api/frameworks/${frameworkId}/publish`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+}
+
 export async function unpublishFramework(frameworkId) {
   return await apiRequest(`/api/frameworks/${frameworkId}/unpublish`, {
     method: 'POST',
@@ -628,7 +709,6 @@ export const API_ENDPOINTS = {
   REGENERATE: `${API_BASE_URL}/api/frameworks/regenerate`,
   AI_MERGE: `${API_BASE_URL}/api/frameworks/ai-merge`,
   AI_FILL: `${API_BASE_URL}/api/frameworks/ai-fill`,
-  PUSH_FRAMEWORK: `${API_BASE_URL}/api/frameworks/push-framework`,
 }
 
 export default API_ENDPOINTS

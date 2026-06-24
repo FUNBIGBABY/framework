@@ -10,6 +10,16 @@ import { useState } from 'react'
  */
 function LibraryCard({ framework }) {
   const [showDetails, setShowDetails] = useState(false)
+  const previewArtefacts = Array.isArray(framework.preview_artefacts)
+    ? framework.preview_artefacts
+    : framework.artefacts?.additional || []
+  const tags = Array.isArray(framework.tags) ? framework.tags : []
+
+  const formatDate = value => {
+    const date = value ? new Date(value) : null
+    if (!date || Number.isNaN(date.getTime())) return 'Unknown'
+    return date.toLocaleDateString()
+  }
 
   // Process export
   const handleExport = () => {
@@ -24,9 +34,9 @@ function LibraryCard({ framework }) {
       link.click()
       document.body.removeChild(link)
       URL.revokeObjectURL(url)
-      console.log('✅ Framework exported')
+      console.log('Framework exported')
     } catch (error) {
-      console.error('❌ Error exporting framework:', error)
+      console.error('Error exporting framework:', error)
       alert('Failed to export framework')
     }
   }
@@ -64,7 +74,7 @@ function LibraryCard({ framework }) {
         </div>
 
         {/* Confidence Badge */}
-        {framework.confidence && (
+        {framework.confidence !== undefined && framework.confidence !== null && (
           <div className="mb-3">
             <span className="text-sm text-gray-600">
               {Math.round(framework.confidence)}% confidence
@@ -73,40 +83,39 @@ function LibraryCard({ framework }) {
         )}
 
         {/* Key Artefacts Preview */}
-        {framework.artefacts?.additional &&
-          framework.artefacts.additional.length > 0 && (
-            <div className="mb-3">
-              <p className="text-sm font-medium text-gray-700 mb-1">
-                Key Artefacts:
-              </p>
-              <ul className="space-y-1">
-                {framework.artefacts.additional.slice(0, 3).map((art, idx) => (
-                  <li
-                    key={idx}
-                    className="text-sm text-gray-600 flex items-start"
-                  >
-                    <span className="mr-2">•</span>
-                    <span>{typeof art === 'object' ? art.name : art}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+        {previewArtefacts.length > 0 && (
+          <div className="mb-3">
+            <p className="text-sm font-medium text-gray-700 mb-1">
+              Key Artefacts:
+            </p>
+            <ul className="space-y-1">
+              {previewArtefacts.slice(0, 3).map((art, idx) => (
+                <li
+                  key={idx}
+                  className="text-sm text-gray-600 flex items-start"
+                >
+                  <span className="mr-2">•</span>
+                  <span>{typeof art === 'object' ? art.name : art}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         {/* Tags */}
-        {framework.tags && framework.tags.length > 0 && (
+        {tags.length > 0 && (
           <div className="flex flex-wrap gap-2 mb-3">
-            {framework.tags.slice(0, 3).map((tag, idx) => (
+            {tags.slice(0, 3).map((tag, idx) => (
               <span
                 key={idx}
                 className="px-2 py-1 bg-gray-100 text-gray-600 text-xs rounded"
               >
-                🏷️ {tag}
+                {tag}
               </span>
             ))}
-            {framework.tags.length > 3 && (
+            {tags.length > 3 && (
               <span className="px-2 py-1 bg-gray-100 text-gray-500 text-xs rounded">
-                +{framework.tags.length - 3} more
+                +{tags.length - 3} more
               </span>
             )}
           </div>
@@ -116,8 +125,7 @@ function LibraryCard({ framework }) {
         <div className="text-xs text-gray-500 mb-4 space-y-1">
           <div>
             Published:{' '}
-            {framework.publishedAt?.toDate?.()?.toLocaleDateString() ||
-              'Unknown'}
+            {formatDate(framework.published_at || framework.publishedAt)}
           </div>
         </div>
 
@@ -191,18 +199,19 @@ function LibraryCard({ framework }) {
             {/* Modal Content */}
             <div className="p-6 space-y-6">
               {/* Confidence */}
-              {framework.confidence && (
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                    Confidence
-                  </h3>
-                  <div className="flex items-center space-x-2">
-                    <div className="text-3xl font-bold text-green-600">
-                      {Math.round(framework.confidence)}%
+              {framework.confidence !== undefined &&
+                framework.confidence !== null && (
+                  <div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      Confidence
+                    </h3>
+                    <div className="flex items-center space-x-2">
+                      <div className="text-3xl font-bold text-green-600">
+                        {Math.round(framework.confidence)}%
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {/* POV */}
               {framework.pov && (
@@ -215,33 +224,32 @@ function LibraryCard({ framework }) {
               )}
 
               {/* Artefacts */}
-              {framework.artefacts?.additional &&
-                framework.artefacts.additional.length > 0 && (
-                  <div>
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                      Key Artefacts
-                    </h3>
-                    <ul className="space-y-2">
-                      {framework.artefacts.additional.map((art, idx) => (
-                        <li key={idx} className="text-gray-700">
-                          •{' '}
-                          {typeof art === 'object'
-                            ? `${art.name}: ${art.description || ''}`
-                            : art}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                )}
+              {previewArtefacts.length > 0 && (
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                    Key Artefacts
+                  </h3>
+                  <ul className="space-y-2">
+                    {previewArtefacts.map((art, idx) => (
+                      <li key={idx} className="text-gray-700">
+                        •{' '}
+                        {typeof art === 'object'
+                          ? `${art.name}: ${art.description || ''}`
+                          : art}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
 
               {/* Tags */}
-              {framework.tags && framework.tags.length > 0 && (
+              {tags.length > 0 && (
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-2">
                     Tags
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {framework.tags.map((tag, idx) => (
+                    {tags.map((tag, idx) => (
                       <span
                         key={idx}
                         className="px-3 py-1 bg-gray-100 text-gray-700 text-sm rounded-full"
@@ -263,8 +271,7 @@ function LibraryCard({ framework }) {
                   <div>Version: {framework.version || 'v1.0'}</div>
                   <div>
                     Published:{' '}
-                    {framework.publishedAt?.toDate?.()?.toLocaleDateString() ||
-                      'Unknown'}
+                    {formatDate(framework.published_at || framework.publishedAt)}
                   </div>
                 </div>
               </div>

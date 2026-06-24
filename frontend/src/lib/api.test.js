@@ -3,7 +3,10 @@ import {
   apiFetch,
   createFramework,
   generateFrameworkFromText,
+  getPublicFrameworks,
+  publishFramework,
   regenerateFramework,
+  unpublishFramework,
   updateFramework,
 } from './api'
 
@@ -252,5 +255,117 @@ describe('framework mutation payloads', () => {
     })
     expect(regenerateBody.framework).not.toHaveProperty('_raw')
     expectNoClientIdentityFields(regenerateBody)
+  })
+})
+
+describe('library and publish REST helpers', () => {
+  it('loads authenticated public library items from the backend response shape', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      mockResponse(200, {
+        items: [
+          {
+            id: 'fw_public',
+            title: 'Published Framework',
+            version: '2.0.0',
+            family: 'Research',
+            confidence: 88,
+            category: 'Research',
+            tags: ['evidence', 'planning'],
+            published_at: '2026-06-23T10:00:00Z',
+            updated_at: '2026-06-23T10:01:00Z',
+            preview_artefacts: [
+              { name: 'Canvas', description: 'Research canvas' },
+            ],
+          },
+        ],
+        next_cursor: 'cursor-2',
+        limit: 20,
+      })
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const result = await getPublicFrameworks({
+      limit: 20,
+      suppressAuthRedirect: true,
+    })
+
+    expect(fetchMock.mock.calls[0][0]).toContain(
+      '/api/frameworks/public?limit=20'
+    )
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      credentials: 'include',
+    })
+    expect(result).toMatchObject({
+      next_cursor: 'cursor-2',
+      limit: 20,
+    })
+    expect(result.items[0]).toMatchObject({
+      id: 'fw_public',
+      title: 'Published Framework',
+      tags: ['evidence', 'planning'],
+      published_at: '2026-06-23T10:00:00Z',
+      preview_artefacts: [{ name: 'Canvas', description: 'Research canvas' }],
+      isPublic: true,
+      canManage: false,
+    })
+  })
+
+  it('publishes through the backend owner endpoint without client identity fields', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      mockResponse(200, {
+        success: true,
+        framework_id: 'fw_123',
+        is_public: true,
+        category: 'Research',
+        tags: ['evidence'],
+      })
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await publishFramework('fw_123', {
+      category: 'Research',
+      tags: ['evidence'],
+      version: '2.0.0',
+      user_id: 'ignored-user',
+      creator_id: 'ignored-creator',
+      tenant_id: 'ignored-tenant',
+    })
+
+    expect(fetchMock.mock.calls[0][0]).toContain(
+      '/api/frameworks/fw_123/publish'
+    )
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    })
+    expect(requestBody(fetchMock)).toEqual({
+      category: 'Research',
+      tags: ['evidence'],
+      version: '2.0.0',
+    })
+    expectNoClientIdentityFields(requestBody(fetchMock))
+    expect(JSON.stringify(fetchMock.mock.calls)).not.toContain('push-framework')
+  })
+
+  it('unpublishes through the backend owner endpoint', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      mockResponse(200, {
+        success: true,
+        framework_id: 'fw_123',
+        is_public: false,
+      })
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await unpublishFramework('fw_123')
+
+    expect(fetchMock.mock.calls[0][0]).toContain(
+      '/api/frameworks/fw_123/unpublish'
+    )
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      method: 'POST',
+      credentials: 'include',
+    })
   })
 })

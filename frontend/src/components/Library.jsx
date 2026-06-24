@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react'
-import { collection, query, where, onSnapshot } from 'firebase/firestore'
-import { db } from '../lib/firebase'
+import { useState, useEffect, useCallback } from 'react'
 import LibraryCard from './LibraryCard'
+import { APIError, getPublicFrameworks } from '../lib/api'
+
+const PUBLIC_LIBRARY_PAGE_SIZE = 20
 
 /**
  * Library - Public Framework Library Page
@@ -15,44 +16,47 @@ import LibraryCard from './LibraryCard'
 function Library() {
   const [frameworks, setFrameworks] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
   const [error, setError] = useState(null)
+  const [nextCursor, setNextCursor] = useState(null)
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [searchQuery, setSearchQuery] = useState('')
 
-  // Real-time monitoring of all public frameworks
-  useEffect(() => {
-    // Simplified query: Only query isPublic, without sorting.
-    // Sorting is performed on the client side to avoid indexing issues.
-    const q = query(collection(db, 'frameworks'), where('isPublic', '==', true))
-
-    const unsubscribe = onSnapshot(
-      q,
-      querySnapshot => {
-        const frameworksList = querySnapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-        }))
-
-        // Client sorting: by publishedAt in descending order
-        frameworksList.sort((a, b) => {
-          const aTime = a.publishedAt?.toMillis?.() || 0
-          const bTime = b.publishedAt?.toMillis?.() || 0
-          return bTime - aTime
-        })
-
-        setFrameworks(frameworksList)
-        setLoading(false)
-        setError(null)
-      },
-      err => {
-        console.error('Error fetching library frameworks:', err)
-        setError('Failed to load library. Please try again.')
-        setLoading(false)
+  const loadFrameworks = useCallback(async (cursor = '', append = false) => {
+    try {
+      if (append) {
+        setLoadingMore(true)
+      } else {
+        setLoading(true)
       }
-    )
+      setError(null)
 
-    return () => unsubscribe()
+      const response = await getPublicFrameworks({
+        cursor,
+        limit: PUBLIC_LIBRARY_PAGE_SIZE,
+        suppressAuthRedirect: true,
+      })
+
+      setFrameworks(current =>
+        append ? [...current, ...response.items] : response.items
+      )
+      setNextCursor(response.next_cursor)
+    } catch (err) {
+      console.error('Error fetching library frameworks:', err)
+      if (err instanceof APIError && [401, 403].includes(err.status)) {
+        setError('Sign in is required to view the Library.')
+      } else {
+        setError('Failed to load library. Please try again.')
+      }
+    } finally {
+      setLoading(false)
+      setLoadingMore(false)
+    }
   }, [])
+
+  useEffect(() => {
+    loadFrameworks()
+  }, [loadFrameworks])
 
   // Filtering framework
   const filteredFrameworks = frameworks.filter(framework => {
@@ -96,11 +100,16 @@ function Library() {
   // Available categories
   const categories = [
     'All',
-    'Technology',
-    'Healthcare',
-    'Research',
-    'Financial',
-    'Other',
+    ...Array.from(
+      new Set([
+        'Technology',
+        'Healthcare',
+        'Research',
+        'Financial',
+        'Other',
+        ...frameworks.map(framework => framework.category || 'Other'),
+      ])
+    ),
   ]
 
   // Loading status
@@ -122,7 +131,7 @@ function Library() {
         <div className="text-center">
           <p className="text-red-600 mb-4">{error}</p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => loadFrameworks()}
             className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
           >
             Retry
@@ -136,12 +145,22 @@ function Library() {
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Marketplace</h1>
-          <p className="text-gray-600">
-            Discover and use expert-curated frameworks ({frameworks.length}{' '}
-            available)
-          </p>
+        <div className="mb-8 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">
+              Marketplace
+            </h1>
+            <p className="text-gray-600">
+              Discover and use expert-curated frameworks ({frameworks.length}{' '}
+              available)
+            </p>
+          </div>
+          <button
+            onClick={() => loadFrameworks()}
+            className="self-start px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-100 transition"
+          >
+            Reload
+          </button>
         </div>
 
         {/* Search Bar */}
@@ -263,6 +282,18 @@ function Library() {
                   </div>
                 </div>
               ))}
+
+            {nextCursor && (
+              <div className="text-center">
+                <button
+                  onClick={() => loadFrameworks(nextCursor, true)}
+                  disabled={loadingMore}
+                  className="px-5 py-2 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 disabled:opacity-50"
+                >
+                  {loadingMore ? 'Loading...' : 'Load more'}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

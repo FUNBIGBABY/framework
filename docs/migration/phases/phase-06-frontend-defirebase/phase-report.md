@@ -1,23 +1,23 @@
-# Phase 06 Round 0/1/2 Report - Frontend de-Firebase
+# Phase 06 Round 0/1/2/3 Report - Frontend de-Firebase
 
-Round 0/1/2 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 2 core framework REST wiring, and Round 2 review repairs have been implemented with static scan, lint, unit-test, and build verification. No Round 2 browser smoke test has been run. Phase 6 is not complete; Rounds 3-6 remain open.
+Round 0/1/2/3 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 2 core framework REST wiring, Round 2 review repairs, and Round 3 Library plus publish/unpublish REST wiring have been implemented with static scan, lint, unit-test, and build verification. No Round 2 or Round 3 browser smoke test has been run. Phase 6 is not complete; Rounds 4-6 remain open.
 
 ## Status
 
-This report is now the Round 0/1/2 implementation and review-repair record. Earlier planning-only wording has been superseded; full Phase 6 remains incomplete until Rounds 3-6 and reviewer closeout pass.
+This report is now the Round 0/1/2/3 implementation and review-repair record. Earlier planning-only wording has been superseded; full Phase 6 remains incomplete until Rounds 4-6 and reviewer closeout pass.
 
 Current Phase 6 status:
 
 - Planning package created: `checklist.md`, `phase-plan.md`, `verification.md`, and this `phase-report.md`.
 - Canonical auth route decision recorded: Phase 6 uses only the `/api/users/*` auth route family.
-- Round 0, Round 1, and Round 2 implementation is complete with recorded static scan, lint, test, and build verification.
+- Round 0, Round 1, Round 2, and Round 3 implementation is complete with recorded static scan, lint, test, and build verification.
 - Current repair passes fix the Round 2 update payload, route-gate, tenant-modal, and verification wording review findings.
 - Round 1 repaired backend cookie-session support because the Phase 1 token strategy debt was still present.
 - Protected backend endpoints now reject refresh JWTs on both access-cookie and temporary Bearer paths.
 - Shared frontend API requests now attempt one `/api/users/refresh` on normal expired-access `401` responses, then retry the original request once.
 - CSRF/Origin/Referer verification requirements are explicit.
 - Phase 5 final review accepted the closeout; Phase 6 planning may proceed.
-- Phase 6 is not complete; Rounds 3-6 remain open.
+- Phase 6 is not complete; Rounds 4-6 remain open.
 
 ## Current Round 2 Review Repair Scope
 
@@ -89,7 +89,7 @@ Frontend changes:
 - `frontend/src/components/Navbar.jsx` no longer imports Firebase for super-admin or member-count checks. It uses the backend `is_super_admin` response as display convenience only; backend admin routes remain the authority.
 - `frontend/src/lib/api.test.js` covers the shared API-client refresh retry behavior, 403 non-refresh behavior, refresh-endpoint retry guard, and failed-refresh retry stop.
 
-Temporary bearer compatibility remains only in the backend dependency layer for existing tests and transitional clients. It cannot satisfy Phase 6 closeout. Removal gate: after Rounds 3-6 remove remaining transitional clients/tests from that path, remove the `HTTPBearer` fallback in `backend_py/app/auth.py`, and stop returning `access_token` as a frontend contract.
+Temporary bearer compatibility remains only in the backend dependency layer for existing tests and transitional clients. It cannot satisfy Phase 6 closeout. Removal gate: after Rounds 4-6 remove remaining transitional clients/tests from that path, remove the `HTTPBearer` fallback in `backend_py/app/auth.py`, and stop returning `access_token` as a frontend contract.
 
 ## Round 1 Files Changed
 
@@ -180,12 +180,64 @@ Backend files were not changed in Round 2.
 - Did not add Chat UI, Agent loop, RAG retrieval/indexing/citations, LLMWiki, MCP marketplace, public registration, SaaS tenant features, org sharing, or invite cleanup.
 - Did not claim vector sync/indexing succeeded; the Round 2 card path no longer calls the Phase 9-deferred `push-framework` route.
 
+## Round 3 Scope
+
+Round 3 implements the Library plus publish/unpublish REST wiring only. It does not complete Phase 6; Rounds 4-6 remain open.
+
+Frontend files changed:
+
+- `frontend/src/lib/api.js`
+- `frontend/src/lib/api.test.js`
+- `frontend/src/components/Library.jsx`
+- `frontend/src/components/Library.test.jsx`
+- `frontend/src/components/LibraryCard.jsx`
+- `frontend/src/components/PublishModal.jsx`
+- `frontend/src/components/PublishModal.test.jsx`
+- `frontend/src/components/FrameworkCard.jsx`
+- `frontend/src/components/FrameworkCard.test.jsx`
+- `docs/migration/phases/phase-06-frontend-defirebase/checklist.md`
+- `docs/migration/phases/phase-06-frontend-defirebase/phase-report.md`
+- `docs/migration/phases/phase-06-frontend-defirebase/verification.md`
+
+Backend files were not changed in Round 3.
+
+## Round 3 Endpoint Mapping
+
+- Authenticated public library: `Library.jsx` -> `getPublicFrameworks()` -> `GET /api/frameworks/public?limit=20` with optional `cursor`.
+- Library pagination: `Library.jsx` load-more -> `getPublicFrameworks({ cursor })` -> `GET /api/frameworks/public?cursor=...&limit=20`.
+- Owner publish: `PublishModal.jsx` -> `publishFramework()` -> `POST /api/frameworks/{framework_id}/publish`.
+- Owner-card publish launcher: `FrameworkCard.jsx` opens the REST-backed `PublishModal`.
+- Owner unpublish: `FrameworkCard.jsx` -> `unpublishFramework()` -> `POST /api/frameworks/{framework_id}/unpublish`.
+
+## Round 3 Implementation Notes
+
+- `Library.jsx` no longer imports Firestore or `frontend/src/lib/firebase.js`.
+- The old realtime Firestore `onSnapshot` public-list subscription was replaced with one-shot backend REST loading, a manual `Reload` action, and cursor-based `Load more`.
+- `Library.jsx` requests the backend public-list endpoint with cookie credentials through the shared API client and suppresses automatic redirect so a 401/403 can render an auth-required state inside the already protected route shell.
+- `api.js` now normalizes backend public-list items with `items`, `next_cursor`, `limit`, `preview_artefacts`, `published_at`, and `tags`.
+- `LibraryCard.jsx` renders backend `preview_artefacts`, `published_at`, and `tags` without Firestore timestamp assumptions.
+- `PublishModal.jsx` no longer imports Firestore, no longer writes Firestore publish fields, and no longer calls the Phase 9-deferred `push-framework` route.
+- `PublishModal.jsx` sends only `category`, `tags`, and `version` to the backend publish endpoint. It does not send frontend owner or tenant identity.
+- `FrameworkCard.jsx` now opens `PublishModal` for owner publish and uses backend unpublish responses to update local published state.
+- `api.js` no longer exports the frontend `PUSH_FRAMEWORK` endpoint constant because no active Round 3 UI should call that Phase 9-deferred route.
+
+## Round 3 Boundaries Honored
+
+- Did not modify backend code.
+- Did not rewire `AdminPanel.jsx`.
+- Did not implement artefact child-resource UI wiring.
+- Did not uninstall Firebase or delete `frontend/src/lib/firebase.js`.
+- Did not implement Phase 7 Valorie/domain/tenant/invite/migration semantic cleanup.
+- Did not add anonymous public library access; `/library` remains behind `PrivateRoute`, and backend public-list requests still rely on cookie-session auth.
+- Did not add public registration, SaaS tenant/org sharing, Chat UI, Agent loop, RAG indexing/retrieval/citations, LLMWiki, MCP marketplace, or tool registry work.
+- Did not show or log vector sync success from publish UI; real vector sync/indexing/retrieval remains Phase 9.
+
 ## Round 2 Reviewer Attention
 
-- `PublishModal.jsx`, `Library.jsx`, `AdminPanel.jsx`, tenant/invite components, and Firebase SDK/package removal are intentionally still open for Rounds 3-6.
-- `FrameworkCard.jsx` now prevents the owner card from launching the Firebase-backed `PublishModal`; formal publish/unpublish UI rewiring remains Round 3.
+- `AdminPanel.jsx`, artefact child-resource UI wiring, tenant/invite components, and Firebase SDK/package removal are intentionally still open for Rounds 4-6.
+- `Library.jsx`, `LibraryCard.jsx`, `PublishModal.jsx`, and `FrameworkCard.jsx` have now been rewired for Round 3 REST behavior.
 - Backend temporary Bearer compatibility remains the Phase 6 closeout blocker already documented from Round 1.
-- No browser smoke test was run in Round 2; verification is static scans plus frontend lint/tests/build. Owner-flow browser behavior remains unchecked in `verification.md`.
+- No browser smoke test was run in Round 2 or Round 3; verification is static scans plus frontend lint/tests/build. Owner-flow and public-library browser behavior remain unchecked in `verification.md`.
 
 ## Round 2 Review Repairs Addressed
 
@@ -203,7 +255,7 @@ Backend files were not changed in Round 2.
 - Round 2 verification now distinguishes static scans, lint, unit tests, and build from browser smoke tests.
 - No browser smoke test was run for Round 2, and the docs now say so in the status, reviewer attention, verification section, and browser checklist.
 - Focused REST UI behavior tests remain unchecked until implemented.
-- Phase 6 remains incomplete; Rounds 3-6 and reviewer closeout remain open.
+- Phase 6 remains incomplete; Rounds 4-6 and reviewer closeout remain open.
 
 ## Round 2 Remaining Review Repairs Addressed
 
@@ -219,7 +271,7 @@ Backend files were not changed in Round 2.
 
 - `checklist.md` and `verification.md` now scope exact identity-field scan claims to active Round 2 production files.
 - Test files may contain exact identity strings only as intentional negative assertions.
-- The full Phase 6 completion state remains unchanged: Phase 6 is not complete, and Rounds 3-6 remain open.
+- The full Phase 6 completion state remains unchanged: Phase 6 is not complete, and Rounds 4-6 remain open.
 
 ## Scope
 
@@ -315,7 +367,7 @@ The Round 0/1 implementation now establishes:
 3. P3 stale planning-only report wording:
 
 - This report now states that Round 0/1 implementation has happened and is under review repair.
-- Phase 6 remains explicitly not complete, with Rounds 3-6 and Phase 7 deferrals still open after the Round 2 implementation.
+- Phase 6 remains explicitly not complete, with Rounds 4-6 and Phase 7 deferrals still open after the Round 3 implementation.
 
 ## Open Risks
 
@@ -328,4 +380,4 @@ The Round 0/1 implementation now establishes:
 
 ## Completion Note
 
-Phase 6 is not complete. This report records Round 0/1/2 implementation and current review repairs; Rounds 3-6, Firebase SDK removal, and reviewer closeout remain open.
+Phase 6 is not complete. This report records Round 0/1/2/3 implementation and current review repairs; Rounds 4-6, Firebase SDK removal, and reviewer closeout remain open.

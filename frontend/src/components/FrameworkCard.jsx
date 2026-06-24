@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import PublishModal from './PublishModal'
 import API_ENDPOINTS, {
   apiFetch,
   deleteFramework,
@@ -16,7 +17,10 @@ function FrameworkCard({ framework, showCreator = false }) {
   const [showDropdown, setShowDropdown] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [isDeleted, setIsDeleted] = useState(false)
-  const [isPublic, setIsPublic] = useState(Boolean(framework.isPublic))
+  const [isPublic, setIsPublic] = useState(
+    Boolean(framework.is_public ?? framework.isPublic)
+  )
+  const [showPublishModal, setShowPublishModal] = useState(false)
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
   const buttonRef = useRef(null)
   const dropdownRef = useRef(null)
@@ -25,8 +29,8 @@ function FrameworkCard({ framework, showCreator = false }) {
   const isShared = Boolean(framework.publishedToOrganization)
 
   useEffect(() => {
-    setIsPublic(Boolean(framework.isPublic))
-  }, [framework.isPublic])
+    setIsPublic(Boolean(framework.is_public ?? framework.isPublic))
+  }, [framework.is_public, framework.isPublic])
 
   const handleEdit = () => {
     navigate(`/${tenantShim}/editor/${framework.id}`)
@@ -73,8 +77,12 @@ function FrameworkCard({ framework, showCreator = false }) {
   }
 
   const handlePublish = () => {
-    alert('Publishing is handled in a later migration round.')
+    setShowPublishModal(true)
     setShowDropdown(false)
+  }
+
+  const handlePublishSuccess = result => {
+    setIsPublic(Boolean(result?.is_public ?? true))
   }
 
   const handleUnpublish = async () => {
@@ -85,8 +93,8 @@ function FrameworkCard({ framework, showCreator = false }) {
     if (!confirmed) return
 
     try {
-      await unpublishFramework(framework.id)
-      setIsPublic(false)
+      const result = await unpublishFramework(framework.id)
+      setIsPublic(Boolean(result?.is_public))
       setShowDropdown(false)
     } catch (error) {
       console.error('Error unpublishing framework:', error)
@@ -412,6 +420,14 @@ function FrameworkCard({ framework, showCreator = false }) {
           </div>,
           document.body
         )}
+
+      {showPublishModal && (
+        <PublishModal
+          framework={framework}
+          onClose={() => setShowPublishModal(false)}
+          onSuccess={handlePublishSuccess}
+        />
+      )}
     </>
   )
 }

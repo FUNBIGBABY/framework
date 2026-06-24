@@ -1,7 +1,5 @@
 import { useState } from 'react'
-import { doc, updateDoc, serverTimestamp } from 'firebase/firestore'
-import { db } from '../lib/firebase'
-import API_ENDPOINTS, { apiFetch } from '../lib/api'
+import { publishFramework } from '../lib/api'
 
 /**
  * PublishModal - A configuration pop-up for publishing frameworks to a library.
@@ -38,67 +36,29 @@ function PublishModal({ framework, onClose, onSuccess }) {
     setError(null)
 
     try {
-      const frameworkRef = doc(db, 'frameworks', framework.id)
-
-      // Handling tags: Convert comma-separated strings into arrays
       const tagsArray = tags
         .split(',')
         .map(tag => tag.trim())
         .filter(tag => tag.length > 0)
 
-      // Update the framework and add the fields required by the Library.
-      await updateDoc(frameworkRef, {
-        isPublic: true,
-        category: category,
+      const result = await publishFramework(framework.id, {
+        category,
         tags: tagsArray,
-        version: version,
-        publishedAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
+        version,
       })
 
-      console.log('✅ Framework published to library:', framework.id)
-
-      // ========== NEW Push to Vector Store ==========
-      try {
-        const pushResponse = await apiFetch(API_ENDPOINTS.PUSH_FRAMEWORK, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            framework: {
-              ...framework,
-              isPublic: true,
-              category: category,
-              tags: tagsArray,
-              version: version,
-              tenantId: framework.tenantId,
-            },
-          }),
-        })
-
-        if (pushResponse.ok) {
-          console.log('✅ Framework pushed to Vector Store successfully')
-        } else {
-          console.error(
-            '⚠️ Vector Store push failed (non-blocking):',
-            pushResponse.statusText
-          )
-        }
-      } catch (vectorError) {
-        console.error('⚠️ Vector Store push error (non-blocking):', vectorError)
-      }
+      console.log('Framework published to library:', framework.id)
 
       // Successful callback call
       if (onSuccess) {
-        onSuccess()
+        onSuccess(result)
       }
 
       // Close pop-up window
       onClose()
     } catch (err) {
-      console.error('❌ Error publishing framework:', err)
-      setError('Failed to publish framework. Please try again.')
+      console.error('Error publishing framework:', err)
+      setError(err.message || 'Failed to publish framework. Please try again.')
       setIsPublishing(false)
     }
   }
@@ -148,10 +108,14 @@ function PublishModal({ framework, onClose, onSuccess }) {
 
           {/* Category */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="publish-category"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Category
             </label>
             <select
+              id="publish-category"
               value={category}
               onChange={e => setCategory(e.target.value)}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -167,10 +131,14 @@ function PublishModal({ framework, onClose, onSuccess }) {
 
           {/* Tags */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="publish-tags"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Tags (comma-separated)
             </label>
             <input
+              id="publish-tags"
               type="text"
               value={tags}
               onChange={e => setTags(e.target.value)}
@@ -185,10 +153,14 @@ function PublishModal({ framework, onClose, onSuccess }) {
 
           {/* Version */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label
+              htmlFor="publish-version"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
               Version
             </label>
             <input
+              id="publish-version"
               type="text"
               value={version}
               onChange={e => setVersion(e.target.value)}
@@ -209,8 +181,7 @@ function PublishModal({ framework, onClose, onSuccess }) {
               disabled={isPublishing}
             />
             <label htmlFor="confirm" className="text-sm text-gray-700">
-              I confirm this framework is ready to be shared publicly in the
-              Library
+              I confirm this framework is ready to be shared in the Library
             </label>
           </div>
 
