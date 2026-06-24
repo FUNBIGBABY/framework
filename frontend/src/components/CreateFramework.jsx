@@ -3,15 +3,13 @@ import { useNavigate } from 'react-router-dom'
 import {
   generateFrameworkFromText,
   generateFrameworkFromFiles,
+  getCurrentTenantId,
   APIError,
 } from '../lib/api'
-import { createFramework } from '../lib/firebase'
-import { useAuth } from '../contexts/AuthContext'
 import PrivacyLockDialog from './PrivacyLockDialog'
 
 function CreateFramework() {
   const navigate = useNavigate()
-  const { user: _user } = useAuth()
   const [activeTab, setActiveTab] = useState('text')
   const [textContent, setTextContent] = useState('')
 
@@ -28,6 +26,7 @@ function CreateFramework() {
   const [privacyLockEnabled, setPrivacyLockEnabled] = useState(false) // Off by default
   const [showLockDialog, setShowLockDialog] = useState(false)
   const [generationMode, setGenerationMode] = useState('fast')
+  const tenantShim = getCurrentTenantId() || 'personal'
 
   const handleTextChange = e => {
     const value = e.target.value
@@ -132,7 +131,7 @@ function CreateFramework() {
   }
 
   const handleCancel = () => {
-    navigate('/')
+    navigate(`/${tenantShim}/frameworks`)
   }
 
   // 🔥 Modification: When the "Generate" button is clicked, a privacy pop-up window will be displayed first (in both text and file modes).
@@ -213,55 +212,14 @@ function CreateFramework() {
           setProgress('✅ Framework generated successfully!')
         }
 
-        //Save to both Firestore and localStorage
-        console.log('💾 Saving to Firestore...')
-
-        // Prepare the data to be saved
-        const frameworkDataToSave = {
-          title:
-            response.framework?.title ||
-            response.metadata?.title ||
-            'Generated Framework',
-          version: response.framework?.version || '1.0.0',
-          family: response.framework?.family || 'Other',
-          confidence:
-            response.framework?.confidence ||
-            Math.floor(Math.random() * 36) + 60,
-          metadata: {
-            title:
-              response.framework?.title ||
-              response.metadata?.title ||
-              'Generated Framework',
-            version: response.framework?.version || '1.0.0',
-            tags: (response.framework?.tags || []).join(', '),
-            lastUpdated: new Date().toISOString(),
-          },
-          steps: convertToSteps(response.framework),
-          artefacts: convertToArtefacts(response.framework),
-          risks: convertToRisks(response.framework),
-          escalation: convertToEscalation(response.framework),
-          _raw: JSON.stringify({
-            framework: response.framework || {},
-            metadata: response.metadata || {},
-          }),
-        }
-
-        // Save to Firestore
-        const firestoreId = await createFramework(frameworkDataToSave)
-        console.log('✅ Saved to Firestore with ID:', firestoreId)
-
-        // Also save to localStorage (for backup and offline support).
-        localStorage.setItem(
-          `framework-draft-${firestoreId}`,
-          JSON.stringify({
-            id: firestoreId,
-            ...frameworkDataToSave,
-          })
+        const frameworkId = getGeneratedFrameworkId(response)
+        storeGeneratedDraft(
+          frameworkId,
+          buildEditorDraftFromGeneration(response)
         )
 
-        // Jump to the editor (using your Firestore ID)
         setTimeout(() => {
-          navigate(`/${_user.tenantId}/editor/${firestoreId}`)
+          navigate(`/${tenantShim}/editor/${frameworkId}`)
         }, 1000)
       } else {
         // ========== File Mode ==========
@@ -297,54 +255,14 @@ function CreateFramework() {
           setProgress('✅ Framework generated successfully!')
         }
 
-        // Save to both Firestore and localStorage
-        console.log('💾 Saving to Firestore...')
-
-        const frameworkDataToSave = {
-          title:
-            response.framework?.title ||
-            response.metadata?.title ||
-            'Generated Framework',
-          version: response.framework?.version || '1.0.0',
-          family: response.framework?.family || 'Other',
-          confidence:
-            response.framework?.confidence ||
-            Math.floor(Math.random() * 36) + 60,
-          metadata: {
-            title:
-              response.framework?.title ||
-              response.metadata?.title ||
-              'Generated Framework',
-            version: response.framework?.version || '1.0.0',
-            tags: (response.framework?.tags || []).join(', '),
-            lastUpdated: new Date().toISOString(),
-          },
-          steps: convertToSteps(response.framework),
-          artefacts: convertToArtefacts(response.framework),
-          risks: convertToRisks(response.framework),
-          escalation: convertToEscalation(response.framework),
-          _raw: JSON.stringify({
-            framework: response.framework || {},
-            metadata: response.metadata || {},
-          }),
-        }
-
-        // Save to Firestore
-        const firestoreId = await createFramework(frameworkDataToSave)
-        console.log('✅ Saved to Firestore with ID:', firestoreId)
-
-        // Also saved to localStoragee
-        localStorage.setItem(
-          `framework-draft-${firestoreId}`,
-          JSON.stringify({
-            id: firestoreId,
-            ...frameworkDataToSave,
-          })
+        const frameworkId = getGeneratedFrameworkId(response)
+        storeGeneratedDraft(
+          frameworkId,
+          buildEditorDraftFromGeneration(response)
         )
 
-        // Jump to editor
         setTimeout(() => {
-          navigate(`/${_user.tenantId}/editor/${firestoreId}`)
+          navigate(`/${tenantShim}/editor/${frameworkId}`)
         }, 1000)
       }
     } catch (err) {
@@ -760,6 +678,56 @@ function CreateFramework() {
         onCancel={cancelLockToggle}
       />
     </div>
+  )
+}
+
+function getGeneratedFrameworkId(response) {
+  const frameworkId =
+    response.framework_id ||
+    (Array.isArray(response.framework_ids) ? response.framework_ids[0] : null)
+
+  if (!frameworkId) {
+    throw new Error('Generation completed without a saved framework ID')
+  }
+
+  return frameworkId
+}
+
+function buildEditorDraftFromGeneration(response) {
+  const generatedFramework = response.framework || {}
+  const metadata = response.metadata || {}
+  const title =
+    generatedFramework.title || metadata.title || 'Generated Framework'
+
+  return {
+    title,
+    version: generatedFramework.version || '1.0.0',
+    family: generatedFramework.family || 'Other',
+    confidence: generatedFramework.confidence || 0,
+    metadata: {
+      title,
+      version: generatedFramework.version || '1.0.0',
+      tags: (generatedFramework.tags || []).join(', '),
+      lastUpdated: new Date().toISOString(),
+    },
+    steps: convertToSteps(generatedFramework),
+    artefacts: convertToArtefacts(generatedFramework),
+    risks: convertToRisks(generatedFramework),
+    escalation: convertToEscalation(generatedFramework),
+    _raw: {
+      framework: generatedFramework,
+      metadata,
+    },
+  }
+}
+
+function storeGeneratedDraft(frameworkId, draft) {
+  localStorage.setItem(
+    `framework-draft-${frameworkId}`,
+    JSON.stringify({
+      id: frameworkId,
+      ...draft,
+    })
   )
 }
 

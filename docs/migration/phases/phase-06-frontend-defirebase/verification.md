@@ -1,6 +1,6 @@
 # Phase 06 Verification - Frontend de-Firebase
 
-Round 0/1 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, and current Round 0/1 reviewer repairs have been verified. Phase 6 is not complete; Rounds 2-6 remain open.
+Round 0/1/2 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 0/1 reviewer repairs, Round 2 core framework REST wiring, and Round 2 review repairs have static scan, lint, unit-test, and build verification. No Round 2 browser smoke test has been run. Phase 6 is not complete; Rounds 3-6 remain open.
 
 ## Verification Principles
 
@@ -417,21 +417,398 @@ Current result: implemented and verified above for Round 1.
 
 ## Round 2 Verification - Core Framework REST
 
-Planned commands:
+Implemented in Round 2. Review repair passes updated API payload behavior, fixed the no-tenant backend-cookie route gate, suppressed the active tenant-creation modal path, and corrected verification wording. Evidence below distinguishes static scans, unit tests, lint, and build from browser smoke coverage.
+
+### Round 2 Focused Firebase Import Scan
+
+Command:
 
 ```powershell
-rg -n "firebase/firestore|../lib/firebase|./firebase|getFirebaseUserId|X-Tenant-ID|tenant_id|user_id|creator_id" frontend/src/lib/api.js frontend/src/components/YourFrameworks.jsx frontend/src/components/FrameworkCard.jsx frontend/src/components/FrameworkEditor.jsx frontend/src/components/CreateFramework.jsx frontend/src/components/AIMergeMode.jsx frontend/src/components/ManualMergeMode.jsx frontend/src/components/UpdateFrameworksButton.jsx
+rg -n "firebase/firestore|firebase/|\\.\\./lib/firebase|\\./firebase" frontend/src/lib/api.js frontend/src/components/YourFrameworks.jsx frontend/src/components/FrameworkCard.jsx frontend/src/components/FrameworkEditor.jsx frontend/src/components/CreateFramework.jsx frontend/src/components/AIMergeMode.jsx frontend/src/components/ManualMergeMode.jsx frontend/src/components/UpdateFrameworksButton.jsx
 ```
 
-Planned behavior checks:
+Result: no matches. `rg` exited `1`.
 
-- Owner can list frameworks.
-- Owner can load framework detail.
-- Owner can update and delete a framework.
-- Generation flows work and request payloads do not contain frontend identity fields.
+This confirms the active Round 2 production files do not import Firestore/Firebase helpers.
+
+### Round 2 Focused Bearer/Token Scan
+
+Command:
+
+```powershell
+rg -n "localStorage\\.(getItem|setItem).*access_token|Authorization.*Bearer|getAuthToken|access_token" frontend/src/lib/api.js frontend/src/components/YourFrameworks.jsx frontend/src/components/FrameworkCard.jsx frontend/src/components/FrameworkEditor.jsx frontend/src/components/CreateFramework.jsx frontend/src/components/AIMergeMode.jsx frontend/src/components/ManualMergeMode.jsx frontend/src/components/UpdateFrameworksButton.jsx
+```
+
+Result: no matches. `rg` exited `1`.
+
+### Round 2 Focused Identity Field Scan
+
+Command:
+
+```powershell
+rg -n "getFirebaseUserId|X-Tenant-ID|tenant_id|user_id|creator_id" frontend/src/lib/api.js frontend/src/components/YourFrameworks.jsx frontend/src/components/FrameworkCard.jsx frontend/src/components/FrameworkEditor.jsx frontend/src/components/CreateFramework.jsx frontend/src/components/AIMergeMode.jsx frontend/src/components/ManualMergeMode.jsx frontend/src/components/UpdateFrameworksButton.jsx
+```
+
+Result: no matches. `rg` exited `1`.
+
+This confirms exact frontend identity-field strings were not reintroduced in the active Round 2 production files. `frontend/src/lib/api.test.js` intentionally contains these strings only as negative test assertions.
+
+### Round 2 API Payload Review Repair Tests
+
+Initial sandboxed command:
+
+```powershell
+cd frontend
+npm test -- src/lib/api.test.js
+```
+
+Initial result: failed before tests ran because Vite/Vitest/esbuild could not read config paths in the sandbox:
+
+```text
+Cannot read directory "../../../..": Access is denied.
+Could not resolve "C:\Users\micha\Desktop\project\framework\frontend\vitest.config.js"
+```
+
+Escalated rerun command:
+
+```powershell
+cd frontend
+npm test -- src/lib/api.test.js
+```
+
+Escalated rerun result:
+
+```text
+src/lib/api.test.js (9 tests) passed
+1 test file passed
+9 tests passed
+Duration 1.73s
+```
+
+Coverage added in this repair: `updateFramework(id, partialData)` omits missing `family`, `confidence`, and `_raw`; `updateFramework(id, { _raw: {} })` omits `_raw`; editor autosave-style payloads do not wipe raw framework data; create/regenerate payloads remain valid; payloads and headers do not include frontend identity fields.
+
+Warning: `baseline-browser-mapping` data is over two months old.
+
+### Round 2 Frontend Lint
+
+Command:
+
+```powershell
+cd frontend
+npm run lint
+```
+
+Result: passed with exit code `0`.
+
+```text
+> frontend@0.0.0 lint
+> eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0
+```
+
+### Round 2 Frontend Tests
+
+Initial sandboxed command:
+
+```powershell
+cd frontend
+npm test
+```
+
+Initial result: failed before tests ran because Vite/Vitest/esbuild could not read config paths in the sandbox:
+
+```text
+Cannot read directory "../../../..": Access is denied.
+Could not resolve "C:\Users\micha\Desktop\project\framework\frontend\vitest.config.js"
+```
+
+Escalated rerun command:
+
+```powershell
+cd frontend
+npm test
+```
+
+Escalated rerun result:
+
+```text
+src/lib/api.test.js (9 tests) passed
+src/App.test.jsx (13 tests) passed
+2 test files passed
+22 tests passed
+Duration 1.94s
+```
+
+Warning: `baseline-browser-mapping` data is over two months old.
+
+### Round 2 Frontend Build
+
+Initial sandboxed command:
+
+```powershell
+cd frontend
+npm run build
+```
+
+Initial result: failed before build compilation because Vite/esbuild could not read config paths in the sandbox:
+
+```text
+Cannot read directory "../../../..": Access is denied.
+Could not resolve "C:\Users\micha\Desktop\project\framework\frontend\vite.config.js"
+```
+
+Escalated rerun command:
+
+```powershell
+cd frontend
+npm run build
+```
+
+Escalated rerun result:
+
+```text
+158 modules transformed.
+dist/index.html                 0.47 kB
+dist/assets/index-tNJY5lD5.css  42.01 kB
+dist/assets/index-wrMje9Mu.js   1,467.87 kB
+built in 9.05s
+```
+
+Warnings: `baseline-browser-mapping` and Browserslist/caniuse data are stale; one chunk is larger than 500 kB after minification. These are not Round 2 blockers.
+
+### Round 2 Post-Documentation Source Scan Rerun
+
+Command:
+
+```powershell
+rg -n "firebase/firestore|firebase/|\\.\\./lib/firebase|\\./firebase" frontend\src\lib\api.js frontend\src\components\YourFrameworks.jsx frontend\src\components\FrameworkCard.jsx frontend\src\components\FrameworkEditor.jsx frontend\src\components\CreateFramework.jsx frontend\src\components\AIMergeMode.jsx frontend\src\components\ManualMergeMode.jsx frontend\src\components\UpdateFrameworksButton.jsx
+```
+
+Result: no matches. `rg` exited `1`.
+
+Command:
+
+```powershell
+rg -n "localStorage\\.(getItem|setItem).*access_token|Authorization.*Bearer|getAuthToken|access_token" frontend\src\lib\api.js frontend\src\components\YourFrameworks.jsx frontend\src\components\FrameworkCard.jsx frontend\src\components\FrameworkEditor.jsx frontend\src\components\CreateFramework.jsx frontend\src\components\AIMergeMode.jsx frontend\src\components\ManualMergeMode.jsx frontend\src\components\UpdateFrameworksButton.jsx
+```
+
+Result: no matches. `rg` exited `1`.
+
+Command:
+
+```powershell
+rg -n "getFirebaseUserId|X-Tenant-ID|tenant_id|user_id|creator_id" frontend\src\lib\api.js frontend\src\components\YourFrameworks.jsx frontend\src\components\FrameworkCard.jsx frontend\src\components\FrameworkEditor.jsx frontend\src\components\CreateFramework.jsx frontend\src\components\AIMergeMode.jsx frontend\src\components\ManualMergeMode.jsx frontend\src\components\UpdateFrameworksButton.jsx
+```
+
+Result: no matches. `rg` exited `1`.
+
+### Round 2 Git Diff Check
+
+Command:
+
+```powershell
+git diff --check
+```
+
+Result: passed with exit code `0` and no output.
+
+### Round 2 Static And Unit-Test Coverage
+
+- Owner framework list/detail/update/delete code paths are wired to backend REST helpers in the active Round 2 source files.
+- API payload tests prove update requests are patch-like and do not send absent `family`, absent `confidence`, missing `_raw`, or empty `_raw`.
+- API payload tests prove editor autosave-style payloads do not wipe raw framework data.
+- API payload tests prove create/regenerate/generation helpers still send valid payloads and do not include frontend identity fields.
+- Static scans prove active Round 2 production files do not import Firebase helpers, reintroduce Bearer/localStorage auth-token behavior, or contain exact frontend identity-field strings.
 - Deferred vector-sync/indexing UI does not claim success for Phase 9-deferred behavior.
 
-Current result: not run for implementation.
+Current result: code wiring is implemented and covered by focused static scans, API payload unit tests, frontend lint, full frontend tests, and production build. No browser smoke test was run in Round 2, so manual/browser owner-flow behavior is not claimed as proven.
+
+Backend tests were not run because Round 2 did not change backend code.
+
+## Round 2 Route-Gate Review Repair Verification
+
+This repair was run on 2026-06-23. It fixes only the remaining Round 2 review findings and does not implement Rounds 3-6.
+
+### Focused Route Tests
+
+Initial sandboxed command:
+
+```powershell
+cd frontend
+npm test -- src/components/TenantRoute.test.jsx src/components/Login.test.jsx src/App.route.test.jsx
+```
+
+Initial result: failed before tests ran because Vite/Vitest/esbuild could not read config paths in the sandbox:
+
+```text
+Cannot read directory "../../../..": Access is denied.
+Could not resolve "C:\Users\micha\Desktop\project\framework\frontend\vitest.config.js"
+```
+
+Escalated rerun command:
+
+```powershell
+cd frontend
+npm test -- src/components/TenantRoute.test.jsx src/components/Login.test.jsx src/App.route.test.jsx
+```
+
+Escalated rerun result:
+
+```text
+src/components/TenantRoute.test.jsx (1 test) passed
+src/App.route.test.jsx (1 test) passed
+src/components/Login.test.jsx (1 test) passed
+3 test files passed
+3 tests passed
+Duration 2.58s
+```
+
+Warning: `baseline-browser-mapping` data is over two months old.
+
+Coverage added:
+
+- authenticated backend-cookie user with `tenantId: null` can access the core framework `TenantRoute` shell.
+- successful backend-cookie login with no tenant routes to `/personal/frameworks`.
+- app root for an authenticated backend-cookie no-tenant user reaches `/personal/frameworks` and does not render `TenantCreationModal`.
+
+### Route-Gate Modal Path Scan
+
+Command:
+
+```powershell
+rg -n 'TenantCreationModal|showTenantModal|handleTenantCreated|createTenant|setDoc' frontend\src\App.jsx frontend\src\components\Login.jsx frontend\src\components\TenantRoute.jsx
+```
+
+Result: no matches. `rg` exited `1`.
+
+This confirms the normal post-login route shell does not import, mount, or call the Firebase-backed tenant creation path.
+
+### Round 2 Route/Auth/Core Firebase Import Scan
+
+Final command:
+
+```powershell
+rg -n "firebase/auth|firebase/firestore|firebase/|\\.\\./lib/firebase|\\./firebase" frontend\src\App.jsx frontend\src\components\TenantRoute.jsx frontend\src\components\Login.jsx frontend\src\contexts\AuthContext.jsx frontend\src\lib\api.js frontend\src\components\YourFrameworks.jsx frontend\src\components\FrameworkCard.jsx frontend\src\components\FrameworkEditor.jsx frontend\src\components\CreateFramework.jsx frontend\src\components\AIMergeMode.jsx frontend\src\components\ManualMergeMode.jsx frontend\src\components\UpdateFrameworksButton.jsx
+```
+
+Result: no matches. `rg` exited `1`.
+
+This confirms the active Round 2 route/auth/core production files do not import Firebase Auth, Firestore, or the local Firebase helper.
+
+### Round 2 Route/Auth/Core Bearer Token Scan
+
+Command:
+
+```powershell
+rg -n "localStorage\\.(getItem|setItem).*access_token|Authorization.*Bearer|getAuthToken|access_token" frontend\src\App.jsx frontend\src\components\TenantRoute.jsx frontend\src\components\Login.jsx frontend\src\contexts\AuthContext.jsx frontend\src\lib\api.js frontend\src\components\YourFrameworks.jsx frontend\src\components\FrameworkCard.jsx frontend\src\components\FrameworkEditor.jsx frontend\src\components\CreateFramework.jsx frontend\src\components\AIMergeMode.jsx frontend\src\components\ManualMergeMode.jsx frontend\src\components\UpdateFrameworksButton.jsx
+```
+
+Result: no matches. `rg` exited `1`.
+
+### Round 2 Route/Auth/Core Identity Field Scan
+
+Command:
+
+```powershell
+rg -n "getFirebaseUserId|X-Tenant-ID|tenant_id|user_id|creator_id" frontend\src\App.jsx frontend\src\components\TenantRoute.jsx frontend\src\components\Login.jsx frontend\src\contexts\AuthContext.jsx frontend\src\lib\api.js frontend\src\components\YourFrameworks.jsx frontend\src\components\FrameworkCard.jsx frontend\src\components\FrameworkEditor.jsx frontend\src\components\CreateFramework.jsx frontend\src\components\AIMergeMode.jsx frontend\src\components\ManualMergeMode.jsx frontend\src\components\UpdateFrameworksButton.jsx
+```
+
+Result: no matches. `rg` exited `1`.
+
+This confirms exact frontend identity-field strings are absent from active Round 2 production files. Test files may contain these exact strings only as intentional negative assertions.
+
+### Route-Gate Repair Frontend Lint
+
+Command:
+
+```powershell
+cd frontend
+npm run lint
+```
+
+Result: passed with exit code `0`.
+
+```text
+> frontend@0.0.0 lint
+> eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0
+```
+
+### Route-Gate Repair Frontend Tests
+
+Command:
+
+```powershell
+cd frontend
+npm test
+```
+
+Result:
+
+```text
+src/lib/api.test.js (9 tests) passed
+src/components/TenantRoute.test.jsx (1 test) passed
+src/App.test.jsx (13 tests) passed
+src/App.route.test.jsx (1 test) passed
+src/components/Login.test.jsx (1 test) passed
+5 test files passed
+25 tests passed
+Duration 3.65s
+```
+
+Warning: `baseline-browser-mapping` data is over two months old.
+
+### Route-Gate Repair Frontend Build
+
+Command:
+
+```powershell
+cd frontend
+npm run build
+```
+
+Result:
+
+```text
+156 modules transformed.
+dist/index.html                 0.47 kB
+dist/assets/index-tNJY5lD5.css  42.01 kB
+dist/assets/index-_s8JDKqw.js   1,454.33 kB
+built in 12.19s
+```
+
+Warnings: `baseline-browser-mapping` and Browserslist/caniuse data are stale; one chunk is larger than 500 kB after minification. These are not Round 2 blockers.
+
+### Route-Gate Repair Git Diff Check
+
+Command:
+
+```powershell
+git diff --check
+```
+
+Result: passed with exit code `0` and no output.
+
+### Route-Gate Repair Post-Documentation Rerun
+
+After updating this checklist/report/verification package, the relevant source scans were rerun.
+
+Commands:
+
+```powershell
+rg -n "firebase/auth|firebase/firestore|firebase/|\\.\\./lib/firebase|\\./firebase" frontend\src\App.jsx frontend\src\components\TenantRoute.jsx frontend\src\components\Login.jsx frontend\src\contexts\AuthContext.jsx frontend\src\lib\api.js frontend\src\components\YourFrameworks.jsx frontend\src\components\FrameworkCard.jsx frontend\src\components\FrameworkEditor.jsx frontend\src\components\CreateFramework.jsx frontend\src\components\AIMergeMode.jsx frontend\src\components\ManualMergeMode.jsx frontend\src\components\UpdateFrameworksButton.jsx
+rg -n "localStorage\\.(getItem|setItem).*access_token|Authorization.*Bearer|getAuthToken|access_token" frontend\src\App.jsx frontend\src\components\TenantRoute.jsx frontend\src\components\Login.jsx frontend\src\contexts\AuthContext.jsx frontend\src\lib\api.js frontend\src\components\YourFrameworks.jsx frontend\src\components\FrameworkCard.jsx frontend\src\components\FrameworkEditor.jsx frontend\src\components\CreateFramework.jsx frontend\src\components\AIMergeMode.jsx frontend\src\components\ManualMergeMode.jsx frontend\src\components\UpdateFrameworksButton.jsx
+rg -n "getFirebaseUserId|X-Tenant-ID|tenant_id|user_id|creator_id" frontend\src\App.jsx frontend\src\components\TenantRoute.jsx frontend\src\components\Login.jsx frontend\src\contexts\AuthContext.jsx frontend\src\lib\api.js frontend\src\components\YourFrameworks.jsx frontend\src\components\FrameworkCard.jsx frontend\src\components\FrameworkEditor.jsx frontend\src\components\CreateFramework.jsx frontend\src\components\AIMergeMode.jsx frontend\src\components\ManualMergeMode.jsx frontend\src\components\UpdateFrameworksButton.jsx
+rg -n "TenantCreationModal|showTenantModal|handleTenantCreated|createTenant|setDoc" frontend\src\App.jsx frontend\src\components\Login.jsx frontend\src\components\TenantRoute.jsx
+```
+
+Result: all four commands returned no matches. `rg` exited `1` for each command.
+
+Command:
+
+```powershell
+git diff --check
+```
+
+Result: passed with exit code `0` and no output.
 
 ## Round 3 Verification - Library + Publish/Unpublish REST
 
@@ -525,6 +902,8 @@ Current result: not run for implementation.
 
 ## Browser Smoke Checklist
 
+No Round 2 browser smoke test was run during this repair pass. The checklist remains unchecked until an actual browser/manual smoke session is performed.
+
 - [ ] Login with a backend-created user.
 - [ ] Confirm login sets access and refresh cookies without storing frontend tokens.
 - [ ] Refresh page and remain logged in through cookie session.
@@ -561,6 +940,7 @@ The final Phase 6 handoff should include:
 
 ## Known Remaining Risks
 
+- Round 2 owner framework flows have code wiring, static scans, API payload unit tests, lint, full frontend tests, and build coverage, but no browser/manual smoke test was run.
 - Cookie-session backend readiness has been repaired and verified for Round 1, including strict access-vs-refresh token typing. Temporary backend Bearer compatibility remains a Phase 6 closeout blocker until later rounds remove transitional clients/tests from that path.
 - CSRF/cookie-auth unsafe-method protection is currently Origin/Referer based and verified for Round 1; SameSite=None remains clamped to Lax. If SameSite=None is later allowed, stronger protection such as a double-submit token must be added and tested.
 - Phase 5 closeout documentation has been corrected to record accepted final review, committed/pushed package, and Phase 6 planning may proceed; Phase 6 should not reopen Phase 5 implementation.

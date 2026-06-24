@@ -11,6 +11,7 @@ import { useAuth } from '../contexts/AuthContext'
 function TenantRoute({ children }) {
   const { user, loading } = useAuth()
   const { tenantId } = useParams()
+  const routeTenant = user?.tenantId || 'personal'
 
   if (loading) {
     return (
@@ -31,8 +32,7 @@ function TenantRoute({ children }) {
   }
 
   if (!user.tenantId) {
-    console.warn('User has no tenantId, redirecting to root...')
-    return <Navigate to="/" replace />
+    return children
   }
 
   // Access control: Users can access their own tenant or the organization they have joined.
@@ -75,7 +75,7 @@ function TenantRoute({ children }) {
           </p>
 
           <Link
-            to={`/${user.tenantId}/frameworks`}
+            to={`/${routeTenant}/frameworks`}
             className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors inline-block"
           >
             Go to Me

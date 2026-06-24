@@ -1,6 +1,6 @@
 # Phase 06 Checklist - Frontend de-Firebase
 
-Round 0/1 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, and current Round 0/1 review repairs are implemented and verified. Do not mark Phase 6 complete from this document; Rounds 2-6 remain open.
+Round 0/1/2 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 0/1 review repairs, Round 2 core framework REST wiring, and Round 2 review repairs are implemented with static scan, lint, unit-test, and build verification. No Round 2 browser smoke test has been run. Do not mark Phase 6 complete from this document; Rounds 3-6 remain open.
 
 ## Required Context
 
@@ -105,22 +105,30 @@ Acceptance criteria:
 
 ## Round 2 - Core Framework REST Wiring
 
-- [ ] Remove Firebase imports from `frontend/src/lib/api.js`.
-- [ ] Remove `getFirebaseUserId`, frontend `user_id` parameters, frontend `tenant_id` parameters, and `X-Tenant-ID` headers from active API calls.
-- [ ] Wire framework create/list/detail/update/delete flows to Phase 5 backend REST endpoints.
-- [ ] Wire generation flows to backend REST without identity fields in JSON bodies, query strings, or forms.
-- [ ] Rewire `YourFrameworks.jsx` to backend list endpoints.
-- [ ] Rewire `FrameworkCard.jsx` update/delete/unpublish behavior to backend REST.
-- [ ] Rewire `FrameworkEditor.jsx` load/save/regenerate/export flows to backend REST.
-- [ ] Rewire `AIMergeMode.jsx` and `ManualMergeMode.jsx` away from Firestore.
-- [ ] Rewire or isolate `UpdateFrameworksButton.jsx` so it does not call Firebase or obsolete vector-sync paths as active production behavior.
+- [x] Remove Firebase imports from `frontend/src/lib/api.js`.
+- [x] Remove `getFirebaseUserId`, frontend `user_id` parameters, frontend `tenant_id` parameters, and `X-Tenant-ID` headers from active API calls.
+- [x] Wire framework create/list/detail/update/delete flows to Phase 5 backend REST endpoints.
+- [x] Wire generation flows to backend REST without identity fields in JSON bodies, query strings, or forms.
+- [x] Keep create payload defaults separate from update patch payloads so partial owner autosave/save requests do not default missing `family`, `confidence`, or `_raw`.
+- [x] Omit empty `_raw` objects from update payloads so editor autosave/save cannot clear backend raw framework JSON.
+- [x] Rewire `YourFrameworks.jsx` to backend list endpoints.
+- [x] Rewire `FrameworkCard.jsx` update/delete/unpublish behavior to backend REST.
+- [x] Rewire `FrameworkEditor.jsx` load/save/regenerate/export flows to backend REST.
+- [x] Rewire `AIMergeMode.jsx` and `ManualMergeMode.jsx` away from Firestore.
+- [x] Rewire or isolate `UpdateFrameworksButton.jsx` so it does not call Firebase or obsolete vector-sync paths as active production behavior.
+- [x] Route authenticated backend-cookie users without a real `tenantId` to the legacy `/personal/frameworks` UI shim after login and from `/`.
+- [x] Keep `AuthContext` backend users at `tenantId: null`; do not synthesize a real tenant/workspace identity.
+- [x] Remove `TenantCreationModal` from the active post-login route path so normal backend-cookie login does not create Firestore tenant documents.
+- [x] Allow authenticated users without `user.tenantId` through the core framework `TenantRoute` shell.
 
 Acceptance criteria:
 
-- [ ] Owner framework list/detail/update/delete flows work through backend REST after login.
-- [ ] Generation requests do not include frontend-supplied user or tenant identity.
-- [ ] No core framework component imports `frontend/src/lib/firebase.js` or `firebase/firestore`.
-- [ ] The UI handles Phase 9-deferred indexing paths without pretending vector sync succeeded.
+- [x] Owner framework list/detail/update/delete code paths are wired to backend REST helpers.
+- [ ] Browser smoke confirms owner framework list/detail/update/delete flows after login.
+- [x] Generation requests do not include frontend-supplied user or tenant identity.
+- [x] No core framework component imports `frontend/src/lib/firebase.js` or `firebase/firestore`.
+- [x] The UI handles Phase 9-deferred indexing paths without pretending vector sync succeeded.
+- [x] Legacy tenant route params are treated only as temporary UI route shims and are not sent as backend framework API identity.
 
 ## Round 3 - Library + Publish/Unpublish REST
 
@@ -241,11 +249,14 @@ This gate blocks Phase 6 closeout.
 - [x] Backend auth/session tests cover login cookies, `/api/users/me` cookie auth, `/api/users/refresh`, logout cookie clearing/session expiry, disabled-user protected access, and disabled-user refresh rejection.
 - [x] Backend auth/session tests cover strict access-vs-refresh JWT type separation for access cookies, temporary Bearer compatibility, and refresh cookies.
 - [x] Shared frontend API client tests cover one-shot refresh retry, refresh-endpoint retry guard, no refresh on `403`, and failed-refresh stop behavior.
+- [x] Shared frontend API payload tests cover create/update separation, update patch semantics, empty `_raw` omission, create/regenerate payload validity, and omission of frontend identity fields.
 - [x] Backend CSRF/Origin tests cover allowed same-origin unsafe request, missing/invalid Origin/Referer rejection where policy requires, disallowed Origin rejection, safe methods not incorrectly blocked, and SameSite=None stronger-token behavior if applicable.
 - [ ] Focused REST UI tests cover owner frameworks, public library, publish/unpublish, admin users, and artefacts.
+- [x] Focused route-shell tests cover backend-cookie no-tenant login destination, root route modal suppression, and `TenantRoute` core shell pass-through.
 - [ ] Forbidden Firebase scan passes.
 - [x] Forbidden bearer/localStorage auth scan passes for the active Round 1 auth surface and all `frontend/src`.
-- [x] Forbidden frontend identity propagation scan passes for exact `user_id`, `creator_id`, `tenant_id`, `X-Tenant-ID`, and `getFirebaseUserId` patterns in `frontend/src`.
+- [x] Forbidden frontend identity propagation scan passes for exact `user_id`, `creator_id`, `tenant_id`, `X-Tenant-ID`, and `getFirebaseUserId` patterns in active Round 2 production files.
+- [x] Test files may contain exact identity-field strings only as intentional negative assertions.
 - [x] Backend auth/session tests are run when Round 1 verifies or repairs cookie-session behavior.
 
 ## Reviewer Handoff Criteria

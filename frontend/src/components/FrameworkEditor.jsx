@@ -1,13 +1,17 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-// import { getFramework, saveFramework } from '../lib/api'
 import LoadingDialog from './LoadingDialog' //Update: Use LoadingDialog instead of RegenerateDialog.
-import { getFramework, updateFramework } from '../lib/firebase'
 import { useAuth } from '../contexts/AuthContext'
 import MergeModeDialog from './MergeModeDialog'
 import ManualMergeMode from './ManualMergeMode'
 import AIMergeMode from './AIMergeMode'
-import API_ENDPOINTS, { apiFetch } from '../lib/api'
+import API_ENDPOINTS, {
+  apiFetch,
+  getFramework,
+  getCurrentTenantId,
+  regenerateFramework,
+  updateFramework,
+} from '../lib/api'
 import ArtefactEditor from './ArtefactEditor'
 import './ArtefactEditor.css'
 
@@ -15,6 +19,7 @@ function FrameworkEditor() {
   const navigate = useNavigate()
   const { user } = useAuth()
   const { id } = useParams()
+  const tenantShim = user?.tenantId || getCurrentTenantId() || 'personal'
 
   // UI state management
   const [activeSection, setActiveSection] = useState('metadata')
@@ -94,7 +99,6 @@ function FrameworkEditor() {
     if (!isSaved && frameworkData && id) {
       const timer = setTimeout(async () => {
         try {
-          // Save to Firestore
           await updateFramework(id, {
             metadata: frameworkData.metadata,
             steps: frameworkData.steps,
@@ -110,7 +114,7 @@ function FrameworkEditor() {
             JSON.stringify(frameworkData)
           )
 
-          console.log('✅ Auto-saved to Firestore and localStorage')
+          console.log('Auto-saved to backend and local draft backup')
           setIsSaved(true)
         } catch (error) {
           console.error('❌ Auto-save failed:', error)
@@ -184,16 +188,14 @@ function FrameworkEditor() {
   }, [id, navigate]);
   */
 
-  //Load Framework from Firestore
+  // Load framework through the backend owner REST endpoint.
   useEffect(() => {
     if (!id) return
 
     const loadFramework = async () => {
       try {
         setIsLoading(true)
-        console.log('📥 Loading framework from Firestore:', id)
-
-        // Load from Firestore
+        console.log('Loading framework:', id)
         const data = await getFramework(id)
         console.log('✅ Framework loaded:', data)
 
@@ -241,14 +243,14 @@ function FrameworkEditor() {
           setIsSaved(false)
         } else {
           alert('Failed to load framework. It may have been deleted.')
-          navigate('/frameworks')
+          navigate(`/${tenantShim}/frameworks`)
         }
         setIsLoading(false)
       }
     }
 
     loadFramework()
-  }, [id, navigate])
+  }, [id, navigate, tenantShim])
 
   // Warn user before leaving page with unsaved changes
   useEffect(() => {
@@ -490,7 +492,7 @@ function FrameworkEditor() {
   // Event handlers for top-level actions
   const handleDiscardChanges = () => {
     if (window.confirm('Are you sure you want to discard all changes?')) {
-      navigate(`/${user.tenantId}/frameworks`)
+      navigate(`/${tenantShim}/frameworks`)
     }
   }
 
@@ -545,22 +547,7 @@ function FrameworkEditor() {
     try {
       console.log('🔄 Starting regeneration...')
 
-      const response = await apiFetch(API_ENDPOINTS.REGENERATE, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          framework: frameworkData,
-          use_local: false, // By default, cloud processing is used.
-        }),
-      })
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-
-      const result = await response.json()
+      const result = await regenerateFramework(frameworkData, false)
 
       if (result.success) {
         console.log('✅ Framework regenerated:', result.framework)
@@ -614,7 +601,6 @@ function FrameworkEditor() {
           'items'
         )
 
-        // save to Firestore
         try {
           await updateFramework(id, {
             metadata: updatedData.metadata,
@@ -625,9 +611,9 @@ function FrameworkEditor() {
             confidence: updatedData.confidence,
             _raw: updatedData._raw,
           })
-          console.log('✅ Saved regenerated framework to Firestore')
+          console.log('Saved regenerated framework')
         } catch (saveError) {
-          console.error('❌ Failed to save to Firestore:', saveError)
+          console.error('Failed to save regenerated framework:', saveError)
         }
 
         setFrameworkData(updatedData)
@@ -657,7 +643,6 @@ function FrameworkEditor() {
         },
       }
 
-      // Save to Firestore
       await updateFramework(id, {
         metadata: updatedData.metadata,
         steps: updatedData.steps,

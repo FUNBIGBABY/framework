@@ -1,25 +1,35 @@
-import { useState, useRef, useEffect } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore'
-import { db } from '../lib/firebase'
 import { useAuth } from '../contexts/AuthContext'
-import PublishModal from './PublishModal'
-import API_ENDPOINTS, { apiFetch } from '../lib/api'
+import API_ENDPOINTS, {
+  apiFetch,
+  deleteFramework,
+  getCurrentTenantId,
+  unpublishFramework,
+} from '../lib/api'
 
 function FrameworkCard({ framework, showCreator = false }) {
   const navigate = useNavigate()
   const { user } = useAuth()
 
   const [showDropdown, setShowDropdown] = useState(false)
-  const [showPublishModal, setShowPublishModal] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isDeleted, setIsDeleted] = useState(false)
+  const [isPublic, setIsPublic] = useState(Boolean(framework.isPublic))
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
   const buttonRef = useRef(null)
   const dropdownRef = useRef(null)
+  const tenantShim = user?.tenantId || getCurrentTenantId() || 'personal'
+  const canManage = framework.canManage !== false && !showCreator
+  const isShared = Boolean(framework.publishedToOrganization)
+
+  useEffect(() => {
+    setIsPublic(Boolean(framework.isPublic))
+  }, [framework.isPublic])
 
   const handleEdit = () => {
-    navigate(`/${user.tenantId}/editor/${framework.id}`)
+    navigate(`/${tenantShim}/editor/${framework.id}`)
   }
 
   const handleDownload = async () => {
@@ -45,8 +55,6 @@ function FrameworkCard({ framework, showCreator = false }) {
       a.click()
       document.body.removeChild(a)
       window.URL.revokeObjectURL(url)
-
-      console.log('✅ Word document downloaded successfully')
     } catch (error) {
       console.error('Download failed:', error)
       alert('Failed to download framework')
@@ -54,7 +62,9 @@ function FrameworkCard({ framework, showCreator = false }) {
   }
 
   const formatDate = dateString => {
-    const date = new Date(dateString)
+    const date = dateString ? new Date(dateString) : null
+    if (!date || Number.isNaN(date.getTime())) return 'unknown date'
+
     return date.toLocaleDateString('en-US', {
       year: 'numeric',
       month: 'short',
@@ -63,7 +73,7 @@ function FrameworkCard({ framework, showCreator = false }) {
   }
 
   const handlePublish = () => {
-    setShowPublishModal(true)
+    alert('Publishing is handled in a later migration round.')
     setShowDropdown(false)
   }
 
@@ -75,113 +85,23 @@ function FrameworkCard({ framework, showCreator = false }) {
     if (!confirmed) return
 
     try {
-      const frameworkRef = doc(db, 'frameworks', framework.id)
-      await updateDoc(frameworkRef, {
-        isPublic: false,
-        updatedAt: serverTimestamp(),
-      })
-      console.log('✅ Framework unpublished from Library')
+      await unpublishFramework(framework.id)
+      setIsPublic(false)
       setShowDropdown(false)
     } catch (error) {
-      console.error('❌ Error unpublishing framework:', error)
+      console.error('Error unpublishing framework:', error)
       alert('Failed to unpublish framework')
     }
   }
 
-  // ===== ✅ Fix: Publish to Organization =====
-  const handlePublishToOrg = async () => {
-    const confirmed = window.confirm(
-      'Publish this framework to your organization? All members will be able to view it.'
-    )
-
-    if (!confirmed) return
-
-    try {
-      // ✅ Determine which organization to publish to.
-      // - If a user joins an organization, they will be posted to that organization.
-      // - Otherwise, publish to the user's own tenant.
-      const targetOrganization = user.joinedOrganization || user.tenantId
-
-      console.log(
-        `📤 Publishing framework to organization: ${targetOrganization}`
-      )
-
-      const frameworkRef = doc(db, 'frameworks', framework.id)
-      await updateDoc(frameworkRef, {
-        organization: targetOrganization, // ✅ Core fix: Setting the organization field
-        publishedToOrganization: true,
-        publishedAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      })
-
-      console.log('✅ Framework published to Organization')
-      console.log(`   - Framework ID: ${framework.id}`)
-      console.log(`   - Organization: ${targetOrganization}`)
-
-      // ========== NEW Push to Vector Store ==========
-      try {
-        const pushResponse = await apiFetch(API_ENDPOINTS.PUSH_FRAMEWORK, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            framework: {
-              ...framework,
-              organization: targetOrganization,
-              publishedToOrganization: true,
-              tenantId: framework.tenantId,
-            },
-          }),
-        })
-
-        if (pushResponse.ok) {
-          console.log('✅ Framework pushed to Vector Store successfully')
-        } else {
-          console.error(
-            '⚠️ Vector Store push failed (non-blocking):',
-            pushResponse.statusText
-          )
-        }
-      } catch (vectorError) {
-        console.error('⚠️ Vector Store push error (non-blocking):', vectorError)
-      }
-
-      setShowDropdown(false)
-    } catch (error) {
-      console.error('❌ Error publishing to organization:', error)
-      alert('Failed to publish to organization')
-    }
+  const handlePublishToOrg = () => {
+    alert('Organization sharing is not available in this migration round.')
+    setShowDropdown(false)
   }
 
-  // ===== ✅ Fix: Unpublish from Organization =====
-  const handleUnpublishFromOrg = async () => {
-    const confirmed = window.confirm(
-      'Remove this framework from your organization? Members will no longer see it in shared frameworks.'
-    )
-
-    if (!confirmed) return
-
-    try {
-      console.log(`📥 Unpublishing framework from organization`)
-
-      const frameworkRef = doc(db, 'frameworks', framework.id)
-      await updateDoc(frameworkRef, {
-        organization: user.tenantId, // ✅ Restore to the user's own tenant
-        publishedToOrganization: false,
-        unpublishedAt: serverTimestamp(),
-        updatedAt: serverTimestamp(),
-      })
-
-      console.log('✅ Framework unpublished from Organization')
-      console.log(`   - Framework ID: ${framework.id}`)
-      console.log(`   - Restored to: ${user.tenantId}`)
-
-      setShowDropdown(false)
-    } catch (error) {
-      console.error('❌ Error unpublishing from organization:', error)
-      alert('Failed to unpublish from organization')
-    }
+  const handleUnpublishFromOrg = () => {
+    alert('Organization sharing is not available in this migration round.')
+    setShowDropdown(false)
   }
 
   const handleDelete = async () => {
@@ -194,10 +114,10 @@ function FrameworkCard({ framework, showCreator = false }) {
     setIsDeleting(true)
 
     try {
-      await deleteDoc(doc(db, 'frameworks', framework.id))
-      console.log('✅ Framework deleted:', framework.id)
+      await deleteFramework(framework.id)
+      setIsDeleted(true)
     } catch (error) {
-      console.error('❌ Error deleting framework:', error)
+      console.error('Error deleting framework:', error)
       alert('Failed to delete framework')
       setIsDeleting(false)
     }
@@ -259,10 +179,11 @@ function FrameworkCard({ framework, showCreator = false }) {
     return () => document.removeEventListener('mousedown', handleClickOutside)
   }, [showDropdown])
 
+  if (isDeleted) return null
+
   return (
     <>
       <div className="bg-white rounded-lg border border-gray-200 hover:shadow-lg transition-shadow duration-200 p-6">
-        {/* Header: Title + Confidence */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-gray-900 mb-1">
@@ -272,21 +193,21 @@ function FrameworkCard({ framework, showCreator = false }) {
               <span className="px-2 py-0.5 bg-blue-100 text-blue-800 rounded text-xs font-medium">
                 {framework.family}
               </span>
-              <span>•</span>
+              <span>-</span>
               <span>v{framework.version}</span>
 
-              {framework.isPublic && (
+              {isPublic && (
                 <>
-                  <span>•</span>
+                  <span>-</span>
                   <span className="px-2 py-0.5 bg-green-100 text-green-800 rounded text-xs font-medium">
                     Published
                   </span>
                 </>
               )}
 
-              {framework.publishedToOrganization && (
+              {isShared && (
                 <>
-                  <span>•</span>
+                  <span>-</span>
                   <span className="px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-medium">
                     Shared
                   </span>
@@ -294,7 +215,7 @@ function FrameworkCard({ framework, showCreator = false }) {
               )}
             </div>
 
-            {showCreator && framework.creatorId !== user?.uid && (
+            {showCreator && (
               <p className="text-xs text-gray-500 mt-1">
                 by{' '}
                 {framework.creatorEmail ||
@@ -304,7 +225,6 @@ function FrameworkCard({ framework, showCreator = false }) {
             )}
           </div>
 
-          {/* Confidence Score */}
           <div className="ml-4 flex-shrink-0">
             <div className="flex items-center space-x-2">
               <span className="text-2xl font-bold text-green-600">
@@ -315,7 +235,6 @@ function FrameworkCard({ framework, showCreator = false }) {
           </div>
         </div>
 
-        {/* Artefacts Preview */}
         <div className="mb-4">
           <h4 className="text-sm font-medium text-gray-700 mb-3">
             Key Artefacts
@@ -361,18 +280,16 @@ function FrameworkCard({ framework, showCreator = false }) {
           </div>
         </div>
 
-        {/* Footer: Date + Actions */}
         <div className="flex items-center justify-between pt-4 border-t border-gray-100">
           <div className="text-xs text-gray-500">
             <span>Created {formatDate(framework.created_at)}</span>
           </div>
 
           <div className="flex items-center space-x-2">
-            {/* Download Button */}
             <button
               onClick={handleDownload}
               className="px-3 py-1.5 text-sm border border-gray-300 text-gray-700 rounded hover:bg-gray-50 transition-colors flex items-center space-x-1"
-              title="Download as Markdown"
+              title="Download as Word document"
             >
               <svg
                 className="w-4 h-4"
@@ -390,8 +307,7 @@ function FrameworkCard({ framework, showCreator = false }) {
               <span>Download</span>
             </button>
 
-            {/* Edit Button */}
-            {framework.creatorId === user?.uid && (
+            {canManage && (
               <button
                 onClick={handleEdit}
                 className="px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center space-x-1"
@@ -413,8 +329,7 @@ function FrameworkCard({ framework, showCreator = false }) {
               </button>
             )}
 
-            {/* More Button */}
-            {framework.creatorId === user?.uid && (
+            {canManage && (
               <button
                 ref={buttonRef}
                 onClick={toggleDropdown}
@@ -434,7 +349,6 @@ function FrameworkCard({ framework, showCreator = false }) {
         </div>
       </div>
 
-      {/* Portal Dropdown */}
       {showDropdown &&
         createPortal(
           <div
@@ -447,25 +361,11 @@ function FrameworkCard({ framework, showCreator = false }) {
               zIndex: 9999,
             }}
           >
-            {/* Publish/Unpublish to Library */}
-            {framework.isPublic ? (
+            {isPublic ? (
               <button
                 onClick={handleUnpublish}
                 className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
               >
-                <svg
-                  className="w-4 h-4 flex-shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
-                  />
-                </svg>
                 <span>Unpublish from Marketplace</span>
               </button>
             ) : (
@@ -473,42 +373,15 @@ function FrameworkCard({ framework, showCreator = false }) {
                 onClick={handlePublish}
                 className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
               >
-                <svg
-                  className="w-4 h-4 flex-shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M8 7v8a2 2 0 002 2h6M8 7V5a2 2 0 012-2h4.586a1 1 0 01.707.293l4.414 4.414a1 1 0 01.293.707V15a2 2 0 01-2 2h-2M8 7H6a2 2 0 00-2 2v10a2 2 0 002 2h8a2 2 0 002-2v-2"
-                  />
-                </svg>
                 <span>Publish to Marketplace</span>
               </button>
             )}
 
-            {/* Publish/Unpublish to Organization */}
-            {framework.publishedToOrganization ? (
+            {isShared ? (
               <button
                 onClick={handleUnpublishFromOrg}
                 className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
               >
-                <svg
-                  className="w-4 h-4 flex-shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                  />
-                </svg>
                 <span>Unpublish from Organization</span>
               </button>
             ) : (
@@ -516,82 +389,29 @@ function FrameworkCard({ framework, showCreator = false }) {
                 onClick={handlePublishToOrg}
                 className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
               >
-                <svg
-                  className="w-4 h-4 flex-shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                  />
-                </svg>
                 <span>Publish to Organization</span>
               </button>
             )}
 
-            {/* Duplicate */}
             <button
               onClick={handleDuplicate}
               className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
             >
-              <svg
-                className="w-4 h-4 flex-shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
-                />
-              </svg>
               <span>Duplicate</span>
             </button>
 
-            {/* Divider */}
             <div className="border-t border-gray-100 my-1"></div>
 
-            {/* Delete */}
             <button
               onClick={handleDelete}
               disabled={isDeleting}
               className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <svg
-                className="w-4 h-4 flex-shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                />
-              </svg>
               <span>{isDeleting ? 'Deleting...' : 'Delete'}</span>
             </button>
           </div>,
           document.body
         )}
-
-      {/* Publish Modal */}
-      {showPublishModal && (
-        <PublishModal
-          framework={framework}
-          onClose={() => setShowPublishModal(false)}
-          onSuccess={() => {
-            console.log('Framework published successfully')
-          }}
-        />
-      )}
     </>
   )
 }

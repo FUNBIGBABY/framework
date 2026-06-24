@@ -1,10 +1,8 @@
-import { useState, useEffect } from 'react'
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
-  useNavigate,
 } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import PrivateRoute from './components/PrivateRoute'
@@ -17,15 +15,15 @@ import FrameworkEditor from './components/FrameworkEditor'
 import Library from './components/Library'
 import MigrationTool from './components/MigrationTool'
 import TenantSettings from './components/TenantSettings'
-import TenantCreationModal from './components/TenantCreationModal'
 import InviteAccept from './components/InviteAccept'
 import YourOrganization from './components/YourOrganization'
 import AdminPanel from './components/AdminPanel'
-import LandingPage from './components/LandingPage'
+
+const PERSONAL_ROUTE_TENANT = 'personal'
 
 /**
- * RootRedirect - Root path redirection component
- * Switch to path mode：expert.valorie.ai/{tenantId}/frameworks
+ * RootRedirect - root path redirection component.
+ * The tenant path segment is a legacy UI routing shim during Phase 6.
  */
 function RootRedirect() {
   const { user, loading } = useAuth()
@@ -41,60 +39,20 @@ function RootRedirect() {
     )
   }
 
-  // Not logged in - Redirect to login page
   if (!user) {
     return <Navigate to="/login" replace />
   }
 
-  // Logged in but no tenantId - waiting to be created
-  if (!user.tenantId) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="mt-4 text-gray-600">Setting up your workspace...</p>
-        </div>
-      </div>
-    )
-  }
-
-  // Logged in and have a tenantId - Redirect to workspace (path mode)
-  return <Navigate to={`/${user.tenantId}/frameworks`} replace />
+  const routeTenant = user.tenantId || PERSONAL_ROUTE_TENANT
+  return <Navigate to={`/${routeTenant}/frameworks`} replace />
 }
 
-/**
- * AppContent - Content component inside the Router
- */
 function AppContent() {
-  const { user, loading } = useAuth()
-  const navigate = useNavigate()
-  const [showTenantModal, setShowTenantModal] = useState(false)
-
-  useEffect(() => {
-    if (!loading && user && !user.tenantId) {
-      setShowTenantModal(true)
-    } else {
-      setShowTenantModal(false)
-    }
-  }, [user, loading])
-
-  // Callback after successful Tenant creation - using path pattern
-  const handleTenantCreated = tenantId => {
-    setShowTenantModal(false)
-    console.log('✅ Tenant created, redirecting to frameworks...')
-    navigate(`/${tenantId}/frameworks`)
-  }
-
   return (
     <>
       <Navbar />
 
-      {showTenantModal && (
-        <TenantCreationModal onSuccess={handleTenantCreated} />
-      )}
-
       <Routes>
-        {/* ========== Public Routing ========== */}
         <Route path="/login" element={<Login />} />
         <Route path="/admin" element={<AdminPanel />} />
         <Route
@@ -108,7 +66,6 @@ function AppContent() {
         <Route path="/migrate" element={<MigrationTool />} />
         <Route path="/invite/:token" element={<InviteAccept />} />
 
-        {/* ========== Tenant routing (path pattern: /{tenantId}/...)========== */}
         <Route
           path="/:tenantId/frameworks"
           element={
@@ -150,8 +107,7 @@ function AppContent() {
           }
         />
 
-        {/* ========== Root path and 404 ========== */}
-        <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={<RootRedirect />} />
         <Route
           path="*"
           element={
@@ -178,9 +134,6 @@ function AppContent() {
   )
 }
 
-/**
- * App - Main Application Component
- */
 function App() {
   return (
     <AuthProvider>

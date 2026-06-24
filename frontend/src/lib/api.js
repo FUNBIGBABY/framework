@@ -95,6 +95,245 @@ async function readJson(response) {
   }
 }
 
+function isPlainObject(value) {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
+function parseJsonIfNeeded(value, fallback) {
+  if (value === undefined || value === null || value === '') return fallback
+  if (typeof value !== 'string') return value
+
+  try {
+    return JSON.parse(value)
+  } catch {
+    return fallback
+  }
+}
+
+function normalizeArtefacts(artefacts) {
+  if (!isPlainObject(artefacts)) {
+    return {
+      default: {
+        type: 'Framework Document',
+        description: '',
+      },
+      additional: [],
+    }
+  }
+
+  return {
+    ...artefacts,
+    default: {
+      type: String(artefacts.default?.type || 'Framework Document'),
+      description: String(artefacts.default?.description || ''),
+    },
+    additional: Array.isArray(artefacts.additional)
+      ? artefacts.additional.map((artefact, index) => {
+          if (isPlainObject(artefact)) {
+            return {
+              id: artefact.id || `art-${index + 1}`,
+              name: String(artefact.name || ''),
+              description: String(artefact.description || ''),
+              selected: Boolean(artefact.selected),
+            }
+          }
+
+          return {
+            id: `art-${index + 1}`,
+            name: String(artefact || 'Unknown Artefact'),
+            description: '',
+            selected: false,
+          }
+        })
+      : [],
+  }
+}
+
+function normalizePreviewArtefacts(artefacts) {
+  if (!Array.isArray(artefacts)) return []
+
+  return artefacts.slice(0, 3).map(artefact => {
+    if (isPlainObject(artefact)) {
+      return {
+        name: String(artefact.name || ''),
+        description: String(artefact.description || '').substring(0, 100),
+      }
+    }
+
+    return {
+      name: String(artefact || 'Unknown Artefact'),
+      description: '',
+    }
+  })
+}
+
+function getRawFramework(data) {
+  return parseJsonIfNeeded(data?._raw ?? data?.rawFramework, undefined)
+}
+
+function hasOwn(value, key) {
+  return Object.prototype.hasOwnProperty.call(value, key)
+}
+
+function hasMeaningfulRawFramework(rawFramework) {
+  if (rawFramework === undefined || rawFramework === null || rawFramework === '') {
+    return false
+  }
+
+  if (isPlainObject(rawFramework)) {
+    return Object.keys(rawFramework).length > 0
+  }
+
+  if (Array.isArray(rawFramework)) {
+    return rawFramework.length > 0
+  }
+
+  return true
+}
+
+function getExplicitRawFramework(frameworkData = {}) {
+  if (hasOwn(frameworkData, '_raw')) {
+    return parseJsonIfNeeded(frameworkData._raw, undefined)
+  }
+
+  if (hasOwn(frameworkData, 'rawFramework')) {
+    return parseJsonIfNeeded(frameworkData.rawFramework, undefined)
+  }
+
+  return undefined
+}
+
+function addRawFrameworkIfPresent(payload, frameworkData) {
+  const rawFramework = getExplicitRawFramework(frameworkData)
+  if (hasMeaningfulRawFramework(rawFramework)) {
+    payload._raw = rawFramework
+  }
+}
+
+function buildFrameworkCreatePayload(frameworkData = {}) {
+  const metadata = isPlainObject(frameworkData.metadata)
+    ? frameworkData.metadata
+    : {}
+
+  const payload = {
+    title: metadata.title || frameworkData.title || 'Untitled Framework',
+    version: metadata.version || frameworkData.version || '1.0.0',
+    family: frameworkData.family || 'Other',
+    confidence: Number(frameworkData.confidence || 0),
+    metadata,
+    steps: Array.isArray(frameworkData.steps) ? frameworkData.steps : [],
+    artefacts: isPlainObject(frameworkData.artefacts)
+      ? frameworkData.artefacts
+      : {},
+    risks: Array.isArray(frameworkData.risks) ? frameworkData.risks : [],
+    escalation: Array.isArray(frameworkData.escalation)
+      ? frameworkData.escalation
+      : [],
+  }
+
+  addRawFrameworkIfPresent(payload, frameworkData)
+
+  if (frameworkData.pov) {
+    payload.pov = frameworkData.pov
+  }
+
+  return payload
+}
+
+function setIfProvided(payload, frameworkData, field) {
+  if (hasOwn(frameworkData, field) && frameworkData[field] !== undefined) {
+    payload[field] = frameworkData[field]
+  }
+}
+
+function buildFrameworkUpdatePayload(frameworkData = {}) {
+  const payload = {}
+
+  setIfProvided(payload, frameworkData, 'title')
+  setIfProvided(payload, frameworkData, 'version')
+  setIfProvided(payload, frameworkData, 'family')
+  setIfProvided(payload, frameworkData, 'pov')
+
+  if (hasOwn(frameworkData, 'confidence')) {
+    const confidence = frameworkData.confidence
+    if (confidence === null) {
+      payload.confidence = null
+    } else if (confidence !== undefined && confidence !== '') {
+      const numericConfidence = Number(confidence)
+      payload.confidence = Number.isFinite(numericConfidence)
+        ? numericConfidence
+        : confidence
+    }
+  }
+
+  if (hasOwn(frameworkData, 'metadata') && frameworkData.metadata !== undefined) {
+    payload.metadata = frameworkData.metadata
+  }
+  if (hasOwn(frameworkData, 'steps') && frameworkData.steps !== undefined) {
+    payload.steps = frameworkData.steps
+  }
+  if (hasOwn(frameworkData, 'artefacts') && frameworkData.artefacts !== undefined) {
+    payload.artefacts = frameworkData.artefacts
+  }
+  if (hasOwn(frameworkData, 'risks') && frameworkData.risks !== undefined) {
+    payload.risks = frameworkData.risks
+  }
+  if (hasOwn(frameworkData, 'escalation') && frameworkData.escalation !== undefined) {
+    payload.escalation = frameworkData.escalation
+  }
+
+  addRawFrameworkIfPresent(payload, frameworkData)
+
+  return payload
+}
+
+export function normalizeFrameworkSummary(framework = {}) {
+  const createdAt = framework.created_at || framework.createdAt
+  const updatedAt = framework.updated_at || framework.updatedAt || createdAt
+
+  return {
+    id: framework.id,
+    title: framework.title || 'Untitled Framework',
+    version: framework.version || '1.0.0',
+    family: framework.family || 'Other',
+    confidence: Number(framework.confidence || 0),
+    created_at: createdAt,
+    updated_at: updatedAt,
+    preview_artefacts: normalizePreviewArtefacts(framework.preview_artefacts),
+    isPublic: Boolean(framework.isPublic),
+    publishedToOrganization: Boolean(framework.publishedToOrganization),
+    canManage: true,
+  }
+}
+
+export function normalizeFrameworkForEditor(framework = {}) {
+  const metadata = isPlainObject(framework.metadata) ? framework.metadata : {}
+  const updatedAt = framework.updated_at || framework.updatedAt
+
+  return {
+    id: framework.id,
+    title: framework.title || metadata.title || 'New Framework',
+    version: framework.version || metadata.version || '1.0.0',
+    family: framework.family || 'Other',
+    confidence: Number(framework.confidence || 0),
+    metadata: {
+      ...metadata,
+      title: metadata.title || framework.title || 'New Framework',
+      version: metadata.version || framework.version || '1.0.0',
+      tags: metadata.tags || '',
+      lastUpdated:
+        metadata.lastUpdated || metadata.last_updated || updatedAt || '',
+    },
+    steps: Array.isArray(framework.steps) ? framework.steps : [],
+    artefacts: normalizeArtefacts(framework.artefacts),
+    risks: Array.isArray(framework.risks) ? framework.risks : [],
+    escalation: Array.isArray(framework.escalation)
+      ? framework.escalation
+      : [],
+    _raw: getRawFramework(framework),
+  }
+}
+
 async function apiFetch(url, options = {}) {
   const {
     headers,
@@ -293,7 +532,10 @@ export async function generateFrameworkFromFiles(
 }
 
 export async function getMyFrameworks() {
-  return await apiRequest('/api/frameworks/my-frameworks')
+  const frameworks = await apiRequest('/api/frameworks/my-frameworks')
+  return Array.isArray(frameworks)
+    ? frameworks.map(normalizeFrameworkSummary)
+    : []
 }
 
 export async function getMyFrameworksByFamily() {
@@ -301,14 +543,27 @@ export async function getMyFrameworksByFamily() {
 }
 
 export async function getFrameworkById(frameworkId) {
-  return await apiRequest(`/api/frameworks/${frameworkId}`)
+  const framework = await apiRequest(`/api/frameworks/${frameworkId}`)
+  return normalizeFrameworkForEditor(framework)
+}
+
+export async function getFrameworkBinding(frameworkId) {
+  return await apiRequest(`/api/frameworks/${frameworkId}/binding`)
+}
+
+export async function createFramework(frameworkData) {
+  return await apiRequest('/api/frameworks', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(buildFrameworkCreatePayload(frameworkData)),
+  })
 }
 
 export async function updateFramework(frameworkId, frameworkData) {
   return await apiRequest(`/api/frameworks/${frameworkId}`, {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(frameworkData),
+    body: JSON.stringify(buildFrameworkUpdatePayload(frameworkData)),
   })
 }
 
@@ -324,6 +579,31 @@ export async function saveFramework(frameworkId, frameworkData) {
 
 export async function getFramework(frameworkId) {
   return await getFrameworkById(frameworkId)
+}
+
+export async function regenerateFramework(frameworkData, useLocal = false) {
+  return await apiRequest('/api/frameworks/regenerate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      framework: buildFrameworkCreatePayload(frameworkData),
+      use_local: Boolean(useLocal),
+    }),
+  })
+}
+
+export async function mergeFrameworksWithAI(frameworks) {
+  return await apiRequest('/api/frameworks/ai-merge', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ frameworks }),
+  })
+}
+
+export async function unpublishFramework(frameworkId) {
+  return await apiRequest(`/api/frameworks/${frameworkId}/unpublish`, {
+    method: 'POST',
+  })
 }
 
 export async function checkHealth() {

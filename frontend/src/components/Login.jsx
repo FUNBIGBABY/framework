@@ -5,6 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
+  const personalRouteTenant = 'personal'
 
   const [formData, setFormData] = useState({
     email: '',
@@ -33,14 +34,8 @@ function Login() {
       if (result.success) {
         console.log('✅ Login successful')
 
-        const tenantId = result.user?.tenantId
-
-        if (tenantId) {
-          console.log(`Redirecting to /${tenantId}/frameworks`)
-          navigate(`/${tenantId}/frameworks`)
-        } else {
-          navigate('/')
-        }
+        const routeTenant = result.user?.tenantId || personalRouteTenant
+        navigate(`/${routeTenant}/frameworks`)
       } else {
         setError(result.error || 'Login failed. Please try again.')
         setIsLoading(false)
