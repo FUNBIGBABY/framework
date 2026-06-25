@@ -6,14 +6,67 @@ import MergeModeDialog from './MergeModeDialog'
 import ManualMergeMode from './ManualMergeMode'
 import AIMergeMode from './AIMergeMode'
 import API_ENDPOINTS, {
+  APIError,
   apiFetch,
+  createFrameworkArtefact,
+  deleteFrameworkArtefact,
   getFramework,
   getCurrentTenantId,
+  listFrameworkArtefacts,
   regenerateFramework,
   updateFramework,
+  updateFrameworkArtefact,
 } from '../lib/api'
 import ArtefactEditor from './ArtefactEditor'
 import './ArtefactEditor.css'
+
+function getRawFrameworkData(raw) {
+  if (!raw) return {}
+  if (typeof raw === 'string') {
+    try {
+      return JSON.parse(raw)
+    } catch {
+      return {}
+    }
+  }
+  return raw
+}
+
+function getLegacyArtefactVariants(raw) {
+  const rawData = getRawFrameworkData(raw)
+  const framework = rawData.framework || rawData
+  return Array.isArray(framework?.artefact_variants)
+    ? framework.artefact_variants
+    : []
+}
+
+function getDraftSafeArtefacts(artefacts) {
+  return artefacts.map(artefact => ({
+    id: artefact.id,
+    name: artefact.name,
+    artefact_type: artefact.artefact_type,
+    ord: artefact.ord,
+    summary: artefact.summary,
+    when_to_use: artefact.when_to_use,
+    sections: artefact.sections,
+    _htmlContent: artefact._htmlContent,
+    metadata_json: artefact.metadata_json,
+  }))
+}
+
+function writeFrameworkDraftBackup(frameworkId, frameworkData, artefacts = []) {
+  if (!frameworkId) return
+  const draftFrameworkData = { ...frameworkData }
+  delete draftFrameworkData.artefactResources
+
+  localStorage.setItem(
+    `framework-draft-${frameworkId}`,
+    JSON.stringify({
+      ...draftFrameworkData,
+      artefactResources: getDraftSafeArtefacts(artefacts),
+    })
+  )
+}
 
 function FrameworkEditor() {
   const navigate = useNavigate()
@@ -31,6 +84,10 @@ function FrameworkEditor() {
   // Update: Only retain the isRegenerating state.
   const [isRegenerating, setIsRegenerating] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [artefactResources, setArtefactResources] = useState([])
+  const [dirtyArtefactIds, setDirtyArtefactIds] = useState([])
+  const [isLoadingArtefacts, setIsLoadingArtefacts] = useState(false)
+  const [artefactError, setArtefactError] = useState('')
 
   // Framework data structure with mock initial values
   const [frameworkData, setFrameworkData] = useState({
@@ -102,33 +159,58 @@ function FrameworkEditor() {
           await updateFramework(id, {
             metadata: frameworkData.metadata,
             steps: frameworkData.steps,
-            artefacts: frameworkData.artefacts,
             risks: frameworkData.risks,
             escalation: frameworkData.escalation,
             _raw: frameworkData._raw,
           })
 
-          // Also save to localStorage (backup).
-          localStorage.setItem(
-            `framework-draft-${id}`,
-            JSON.stringify(frameworkData)
-          )
+          writeFrameworkDraftBackup(id, frameworkData, artefactResources)
 
           console.log('Auto-saved to backend and local draft backup')
           setIsSaved(true)
         } catch (error) {
           console.error('❌ Auto-save failed:', error)
           // In case of failure, only save to localStorage
-          localStorage.setItem(
-            `framework-draft-${id}`,
-            JSON.stringify(frameworkData)
-          )
+          writeFrameworkDraftBackup(id, frameworkData, artefactResources)
         }
       }, 2000) // A 2-second delay is used to avoid frequent saving.
 
       return () => clearTimeout(timer)
     }
-  }, [frameworkData, isSaved, id])
+  }, [frameworkData, isSaved, id, artefactResources])
+
+  useEffect(() => {
+    if (!id || dirtyArtefactIds.length === 0) return
+
+    const timer = setTimeout(async () => {
+      const dirtyIds = [...dirtyArtefactIds]
+      const dirtyArtefacts = artefactResources.filter(artefact =>
+        dirtyIds.includes(artefact.id)
+      )
+
+      try {
+        await Promise.all(
+          dirtyArtefacts.map(artefact =>
+            updateFrameworkArtefact(id, artefact.id, artefact)
+          )
+        )
+        setDirtyArtefactIds(current =>
+          current.filter(artefactId => !dirtyIds.includes(artefactId))
+        )
+        writeFrameworkDraftBackup(id, frameworkData, artefactResources)
+        setArtefactError('')
+        setIsSaved(true)
+      } catch (error) {
+        console.error('Failed to save artefact changes:', error)
+        setArtefactError(
+          'Artefact changes could not be saved. Your local draft backup was updated.'
+        )
+        writeFrameworkDraftBackup(id, frameworkData, artefactResources)
+      }
+    }, 800)
+
+    return () => clearTimeout(timer)
+  }, [id, dirtyArtefactIds, artefactResources, frameworkData])
 
   // Load framework from backend when component mounts
   // COMMENTED OUT: Temporarily disabled until backend API is ready
@@ -195,11 +277,13 @@ function FrameworkEditor() {
     const loadFramework = async () => {
       try {
         setIsLoading(true)
+        setIsLoadingArtefacts(true)
+        setArtefactError('')
         console.log('Loading framework:', id)
         const data = await getFramework(id)
         console.log('✅ Framework loaded:', data)
 
-        setFrameworkData({
+        const loadedFramework = {
           id: data.id,
           metadata: data.metadata || {
             title: 'New Framework',
@@ -223,11 +307,30 @@ function FrameworkEditor() {
           risks: data.risks || [],
           escalation: data.escalation || [],
           confidence: data.confidence || 0,
-          _raw:
-            typeof data._raw === 'string'
-              ? JSON.parse(data._raw)
-              : data._raw || {},
-        })
+          _raw: getRawFrameworkData(data._raw),
+        }
+
+        setFrameworkData(loadedFramework)
+
+        try {
+          const artefacts = await listFrameworkArtefacts(id)
+          setArtefactResources(artefacts)
+          setDirtyArtefactIds([])
+        } catch (error) {
+          console.error('Error loading framework artefacts:', error)
+          if (error instanceof APIError && error.status === 403) {
+            setArtefactError(
+              'The backend denied access to this framework artefact list.'
+            )
+          } else if (error instanceof APIError && error.status === 404) {
+            setArtefactError('The backend could not find this artefact list.')
+          } else {
+            setArtefactError('Unable to load artefacts from the backend.')
+          }
+          setArtefactResources([])
+        } finally {
+          setIsLoadingArtefacts(false)
+        }
 
         setIsSaved(true)
         setIsLoading(false)
@@ -240,12 +343,14 @@ function FrameworkEditor() {
           console.log('⚠️ Loading from localStorage as fallback')
           const parsedData = JSON.parse(localDraft)
           setFrameworkData(parsedData)
+          setArtefactResources(parsedData.artefactResources || [])
           setIsSaved(false)
         } else {
           alert('Failed to load framework. It may have been deleted.')
           navigate(`/${tenantShim}/frameworks`)
         }
         setIsLoading(false)
+        setIsLoadingArtefacts(false)
       }
     }
 
@@ -358,6 +463,83 @@ function FrameworkEditor() {
     })
     setIsSaved(false)
   }
+
+  const markArtefactDirty = artefactId => {
+    setDirtyArtefactIds(current =>
+      current.includes(artefactId) ? current : [...current, artefactId]
+    )
+  }
+
+  const handleCreateArtefact = async () => {
+    if (!id) return
+
+    try {
+      setIsLoadingArtefacts(true)
+      const createdArtefact = await createFrameworkArtefact(id, {
+        name: 'New Artefact',
+        artefact_type: frameworkData.artefacts.default.type || 'custom',
+        summary: frameworkData.artefacts.default.description || '',
+        when_to_use: [],
+        sections: [],
+        ord: artefactResources.length,
+      })
+
+      const nextArtefacts = [...artefactResources, createdArtefact]
+      setArtefactResources(nextArtefacts)
+      writeFrameworkDraftBackup(id, frameworkData, nextArtefacts)
+      setArtefactError('')
+      setIsSaved(true)
+    } catch (error) {
+      console.error('Failed to create artefact:', error)
+      setArtefactError(
+        error instanceof APIError && (error.status === 403 || error.status === 404)
+          ? error.message
+          : 'Unable to create an artefact from the backend.'
+      )
+    } finally {
+      setIsLoadingArtefacts(false)
+    }
+  }
+
+  const handleVariantUpdate = (index, updatedVariant) => {
+    const currentArtefact = artefactResources[index]
+    if (!currentArtefact?.id) return
+
+    setArtefactResources(current =>
+      current.map((artefact, artefactIndex) =>
+        artefactIndex === index ? { ...artefact, ...updatedVariant } : artefact
+      )
+    )
+    markArtefactDirty(currentArtefact.id)
+    setIsSaved(false)
+  }
+
+  const handleVariantDelete = async index => {
+    const currentArtefact = artefactResources[index]
+    if (!id || !currentArtefact?.id) return
+
+    try {
+      await deleteFrameworkArtefact(id, currentArtefact.id)
+      const nextArtefacts = artefactResources.filter(
+        (_, artefactIndex) => artefactIndex !== index
+      )
+      setArtefactResources(nextArtefacts)
+      setDirtyArtefactIds(current =>
+        current.filter(artefactId => artefactId !== currentArtefact.id)
+      )
+      writeFrameworkDraftBackup(id, frameworkData, nextArtefacts)
+      setArtefactError('')
+      setIsSaved(true)
+    } catch (error) {
+      console.error('Failed to delete artefact:', error)
+      setArtefactError(
+        error instanceof APIError && (error.status === 403 || error.status === 404)
+          ? error.message
+          : 'Unable to delete this artefact from the backend.'
+      )
+    }
+  }
+
   // eslint-disable-next-line no-unused-vars
   const toggleArtefactSelection = artefactId => {
     setFrameworkData({
@@ -605,7 +787,6 @@ function FrameworkEditor() {
           await updateFramework(id, {
             metadata: updatedData.metadata,
             steps: updatedData.steps,
-            artefacts: updatedData.artefacts,
             risks: updatedData.risks,
             escalation: updatedData.escalation,
             confidence: updatedData.confidence,
@@ -646,14 +827,13 @@ function FrameworkEditor() {
       await updateFramework(id, {
         metadata: updatedData.metadata,
         steps: updatedData.steps,
-        artefacts: updatedData.artefacts,
         risks: updatedData.risks,
         escalation: updatedData.escalation,
         _raw: updatedData._raw,
       })
 
       // Also saved to localStorage
-      localStorage.setItem(`framework-draft-${id}`, JSON.stringify(updatedData))
+      writeFrameworkDraftBackup(id, updatedData, artefactResources)
 
       setFrameworkData(updatedData)
       setIsSaved(true)
@@ -1158,64 +1338,9 @@ function FrameworkEditor() {
         )
 
       case 'artefacts': {
-        // Read artefact_variants from _raw
-        const rawData = frameworkData._raw || {}
-        const fw = rawData.framework || rawData
-        const artefactVariants = Array.isArray(fw?.artefact_variants)
-          ? fw.artefact_variants
-          : []
-
-        // Update a variant when editor content changes
-        const handleVariantUpdate = (index, updatedVariant) => {
-          setFrameworkData(prev => {
-            const prevRaw = prev._raw || {}
-            const prevFw = prevRaw.framework || prevRaw
-            const prevVariants = Array.isArray(prevFw.artefact_variants)
-              ? prevFw.artefact_variants
-              : []
-
-            const newVariants = prevVariants.map((v, i) =>
-              i === index ? { ...v, ...updatedVariant } : v
-            )
-
-            const newFramework = { ...prevFw, artefact_variants: newVariants }
-            let newRaw
-
-            if (Object.prototype.hasOwnProperty.call(prevRaw, 'framework')) {
-              newRaw = { ...prevRaw, framework: newFramework }
-            } else {
-              newRaw = { ...prevRaw, ...newFramework }
-            }
-
-            return { ...prev, _raw: newRaw }
-          })
-          setIsSaved(false)
-        }
-
-        // Delete a variant
-        const handleVariantDelete = index => {
-          setFrameworkData(prev => {
-            const prevRaw = prev._raw || {}
-            const prevFw = prevRaw.framework || prevRaw
-            const prevVariants = Array.isArray(prevFw.artefact_variants)
-              ? prevFw.artefact_variants
-              : []
-
-            const newVariants = prevVariants.filter((_, i) => i !== index)
-
-            const newFramework = { ...prevFw, artefact_variants: newVariants }
-            let newRaw
-
-            if (Object.prototype.hasOwnProperty.call(prevRaw, 'framework')) {
-              newRaw = { ...prevRaw, framework: newFramework }
-            } else {
-              newRaw = { ...prevRaw, ...newFramework }
-            }
-
-            return { ...prev, _raw: newRaw }
-          })
-          setIsSaved(false)
-        }
+        const legacyArtefactVariants = getLegacyArtefactVariants(
+          frameworkData._raw
+        )
 
         return (
           <div>
@@ -1295,32 +1420,72 @@ function FrameworkEditor() {
                 </div>
               </div>
 
-              {/* Artefact Outlines - Rich Text Editor */}
-              {artefactVariants.length > 0 ? (
-                <div className="space-y-6">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="text-lg font-medium text-gray-900">
-                        Artefact Outlines
-                      </h3>
-                      <p className="text-gray-600 text-sm mt-1">
-                        Edit the content directly using the rich text editor
-                        below. Use the toolbar to add tables, format text, and
-                        more.
-                      </p>
-                    </div>
-                  </div>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900">
+                    Artefact Outlines
+                  </h3>
+                  <p className="text-gray-600 text-sm mt-1">
+                    Draft outputs for this framework.
+                  </p>
+                </div>
+                <button
+                  onClick={handleCreateArtefact}
+                  disabled={isLoadingArtefacts}
+                  className="px-4 py-2 bg-blue-600 text-white rounded font-medium hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  New Artefact
+                </button>
+              </div>
 
-                  {artefactVariants.map((variant, index) => (
+              {artefactError && (
+                <div className="border border-red-200 bg-red-50 text-red-700 rounded p-4">
+                  {artefactError}
+                </div>
+              )}
+
+              {isLoadingArtefacts ? (
+                <div className="border border-gray-200 rounded-lg p-6 bg-white text-gray-600">
+                  Loading artefacts...
+                </div>
+              ) : artefactResources.length > 0 ? (
+                <div className="space-y-6">
+                  {artefactResources.map((variant, index) => (
                     <ArtefactEditor
                       key={variant.id || index}
                       variant={variant}
                       index={index}
                       onUpdate={handleVariantUpdate}
                       onDelete={handleVariantDelete}
-                      canDelete={artefactVariants.length > 1}
+                      canDelete={artefactResources.length > 1}
                     />
                   ))}
+                </div>
+              ) : legacyArtefactVariants.length > 0 ? (
+                <div className="border border-yellow-200 bg-yellow-50 rounded-lg p-6">
+                  <h3 className="text-lg font-medium text-gray-900 mb-3">
+                    Read-only Artefacts
+                  </h3>
+                  <p className="text-sm text-yellow-800 mb-4">
+                    These older artefacts are available for reference.
+                  </p>
+                  <div className="space-y-3">
+                    {legacyArtefactVariants.map((variant, index) => (
+                      <div
+                        key={variant.id || variant.name || index}
+                        className="border border-yellow-200 rounded bg-white p-4"
+                      >
+                        <h4 className="font-medium text-gray-900">
+                          {variant.name || `Legacy artefact ${index + 1}`}
+                        </h4>
+                        {variant.summary && (
+                          <p className="text-sm text-gray-600 mt-1">
+                            {variant.summary}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               ) : (
                 <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
@@ -1341,11 +1506,7 @@ function FrameworkEditor() {
                     No artefact outlines yet
                   </p>
                   <p className="text-gray-500 text-sm">
-                    Click{' '}
-                    <span className="font-semibold text-purple-600">
-                      "Re-generate"
-                    </span>{' '}
-                    below to generate artefact outlines using AI.
+                    Create an artefact to start editing.
                   </p>
                 </div>
               )}

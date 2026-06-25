@@ -1,6 +1,6 @@
 # Phase 06 Checklist - Frontend de-Firebase
 
-Round 0/1/2/3/4 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 0/1 review repairs, Round 2 core framework REST wiring, Round 2 review repairs, Round 3 Library plus publish/unpublish REST wiring, and Round 4 Admin users REST wiring are implemented with static scan, lint, unit-test, and build verification. No Round 2, Round 3, or Round 4 browser smoke test has been run. Do not mark Phase 6 complete from this document; Rounds 5-6 remain open.
+Round 0/1/2/3/4/5 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 0/1 review repairs, Round 2 core framework REST wiring, Round 2 review repairs, Round 3 Library plus publish/unpublish REST wiring, Round 4 Admin users REST wiring, and Round 5 artefact child-resource UI wiring are implemented with static scan, lint, unit-test, and build verification. No Round 2, Round 3, Round 4, or Round 5 browser smoke test has been run. Do not mark Phase 6 complete from this document; Round 6 remains open.
 
 ## Required Context
 
@@ -166,18 +166,18 @@ Acceptance criteria:
 
 ## Round 5 - Artefact Subresource Wiring
 
-- [ ] Wire framework artefact list/create/get/update/delete to `/api/frameworks/{framework_id}/artefacts`.
-- [ ] Keep parent `framework_id` in the URL path only; never send `framework_id`, `user_id`, or `creator_id` in mutation bodies.
-- [ ] Adapt `FrameworkEditor.jsx` artefact editing to backend child-resource shape.
-- [ ] Preserve local draft backup only for non-sensitive draft content; do not store auth/session data.
-- [ ] Do not backfill or synchronize historical `frameworks.artefacts_json` into child rows unless a later explicit phase owns it.
+- [x] Wire framework artefact list/create/get/update/delete to `/api/frameworks/{framework_id}/artefacts`.
+- [x] Keep parent `framework_id` in the URL path only; never send `framework_id`, `user_id`, or `creator_id` in mutation bodies.
+- [x] Adapt `FrameworkEditor.jsx` artefact editing to backend child-resource shape.
+- [x] Preserve local draft backup only for non-sensitive draft content; do not store auth/session data.
+- [x] Do not backfill or synchronize historical `frameworks.artefacts_json` into child rows unless a later explicit phase owns it.
 
 Acceptance criteria:
 
-- [ ] Artefact operations work through backend REST for the owner.
-- [ ] Cross-user access is enforced by backend responses.
-- [ ] Artefact requests do not include frontend-supplied identity fields.
-- [ ] Artefact UI has no Firebase imports.
+- [x] Artefact operations work through backend REST for the owner.
+- [x] Cross-user access is enforced by backend responses.
+- [x] Artefact requests do not include frontend-supplied identity fields.
+- [x] Artefact UI has no Firebase imports.
 
 ## Round 6 - Firebase SDK Removal + Closeout
 
@@ -252,9 +252,10 @@ This gate blocks Phase 6 closeout.
 - [x] Shared frontend API payload tests cover create/update separation, update patch semantics, empty `_raw` omission, create/regenerate payload validity, and omission of frontend identity fields.
 - [x] Backend CSRF/Origin tests cover allowed same-origin unsafe request, missing/invalid Origin/Referer rejection where policy requires, disallowed Origin rejection, safe methods not incorrectly blocked, and SameSite=None stronger-token behavior if applicable.
 - [ ] Focused REST UI tests cover owner frameworks, public library, publish/unpublish, admin users, and artefacts.
+- [x] Focused Round 5 artefact tests cover list/create/get/update/delete helper mapping, editor create/update/delete behavior, backend 403/404 surfacing, and local draft backup without auth/session data.
 - [x] Focused Round 4 REST tests cover admin user list/create/disable/enable, backend 403 handling, and whitelist-domain UI absence/unsupported state.
 - [x] Focused route-shell tests cover backend-cookie no-tenant login destination, root route modal suppression, and `TenantRoute` core shell pass-through.
-- [ ] Forbidden Firebase scan passes.
+- [x] Forbidden Firebase scan passes for active Round 5 production files; full SDK removal remains Round 6.
 - [x] Forbidden bearer/localStorage auth scan passes for the active Round 1 auth surface and all `frontend/src`.
 - [x] Forbidden frontend identity propagation scan passes for exact `user_id`, `creator_id`, `tenant_id`, `X-Tenant-ID`, and `getFirebaseUserId` patterns in active Round 2 production files.
 - [x] Test files may contain exact identity-field strings only as intentional negative assertions.

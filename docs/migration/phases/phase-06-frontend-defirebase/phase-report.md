@@ -1,27 +1,27 @@
-# Phase 06 Round 0/1/2/3/4 Report - Frontend de-Firebase
+# Phase 06 Round 0/1/2/3/4/5 Report - Frontend de-Firebase
 
-Round 0/1/2/3/4 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 2 core framework REST wiring, Round 2 review repairs, Round 3 Library plus publish/unpublish REST wiring, and Round 4 Admin users REST wiring have been implemented with static scan, lint, unit-test, and build verification. No Round 2, Round 3, or Round 4 browser smoke test has been run. Phase 6 is not complete; Rounds 5-6 remain open.
+Round 0/1/2/3/4/5 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 2 core framework REST wiring, Round 2 review repairs, Round 3 Library plus publish/unpublish REST wiring, Round 4 Admin users REST wiring, and Round 5 artefact child-resource UI wiring have been implemented with static scan, lint, unit-test, and build verification. No Round 2, Round 3, Round 4, or Round 5 browser smoke test has been run. Phase 6 is not complete; Round 6 remains open.
 
 ## Status
 
-This report is now the Round 0/1/2/3/4 implementation and review-repair record. Earlier planning-only wording has been superseded; full Phase 6 remains incomplete until Rounds 5-6 and reviewer closeout pass.
+This report is now the Round 0/1/2/3/4/5 implementation and review-repair record. Earlier planning-only wording has been superseded; full Phase 6 remains incomplete until Round 6 and reviewer closeout pass.
 
 Current Phase 6 status:
 
 - Planning package created: `checklist.md`, `phase-plan.md`, `verification.md`, and this `phase-report.md`.
 - Canonical auth route decision recorded: Phase 6 uses only the `/api/users/*` auth route family.
-- Round 0, Round 1, Round 2, Round 3, and Round 4 implementation is complete with recorded static scan, lint, test, and build verification.
+- Round 0, Round 1, Round 2, Round 3, Round 4, and Round 5 implementation is complete with recorded static scan, lint, test, and build verification.
 - Current repair passes fix the Round 2 update payload, route-gate, tenant-modal, and verification wording review findings.
 - Round 1 repaired backend cookie-session support because the Phase 1 token strategy debt was still present.
 - Protected backend endpoints now reject refresh JWTs on both access-cookie and temporary Bearer paths.
 - Shared frontend API requests now attempt one `/api/users/refresh` on normal expired-access `401` responses, then retry the original request once.
 - CSRF/Origin/Referer verification requirements are explicit.
 - Phase 5 final review accepted the closeout; Phase 6 planning may proceed.
-- Phase 6 is not complete; Rounds 5-6 remain open.
+- Phase 6 is not complete; Round 6 remains open.
 
 ## Earlier Round 2 Review Repair Scope
 
-This historical repair fixed only the remaining Round 2 review findings. Rounds 3 and 4 are now implemented; Rounds 5-6 and reviewer closeout remain open, so this report does not mark Phase 6 complete.
+This historical repair fixed only the remaining Round 2 review findings. Rounds 3, 4, and 5 are now implemented; Round 6 and reviewer closeout remain open, so this report does not mark Phase 6 complete.
 
 Frontend files changed by this repair:
 
@@ -89,7 +89,7 @@ Frontend changes:
 - `frontend/src/components/Navbar.jsx` no longer imports Firebase for super-admin or member-count checks. It uses the backend `is_super_admin` response as display convenience only; backend admin routes remain the authority.
 - `frontend/src/lib/api.test.js` covers the shared API-client refresh retry behavior, 403 non-refresh behavior, refresh-endpoint retry guard, and failed-refresh retry stop.
 
-Temporary bearer compatibility remains only in the backend dependency layer for existing tests and transitional clients. It cannot satisfy Phase 6 closeout. Removal gate: after Rounds 5-6 remove remaining transitional clients/tests from that path, remove the `HTTPBearer` fallback in `backend_py/app/auth.py`, and stop returning `access_token` as a frontend contract.
+Temporary bearer compatibility remains only in the backend dependency layer for existing tests and transitional clients. It cannot satisfy Phase 6 closeout. Removal gate: after Round 6 removes remaining transitional clients/tests from that path, remove the `HTTPBearer` fallback in `backend_py/app/auth.py`, and stop returning `access_token` as a frontend contract.
 
 ## Round 1 Files Changed
 
@@ -234,7 +234,7 @@ Backend files were not changed in Round 3.
 
 ## Round 4 Scope
 
-Round 4 implements Admin users REST wiring only. It does not complete Phase 6; Rounds 5-6 remain open.
+Round 4 implemented Admin users REST wiring only. It did not complete Phase 6; Round 5 is now implemented and Round 6 remains open.
 
 Frontend files changed:
 
@@ -277,11 +277,64 @@ Backend files were not changed in Round 4.
 
 ## Round 4 Reviewer Attention
 
-- Artefact child-resource UI wiring, tenant/invite components, and Firebase SDK/package removal are intentionally still open for Rounds 5-6 and Phase 7.
+- Tenant/invite components and Firebase SDK/package removal are intentionally still open for Round 6 and Phase 7.
 - `AdminPanel.jsx` is now rewired to the accepted Phase 5 backend admin REST contract.
 - The domain-policy note is intentionally non-functional because no accepted Phase 5 whitelist-domain endpoint exists.
 - Backend temporary Bearer compatibility remains the Phase 6 closeout blocker already documented from Round 1.
 - No browser smoke test was run in Round 2, Round 3, or Round 4; verification is static scans plus frontend lint/tests/build. Owner-flow, public-library, and admin browser behavior remain unchecked in `verification.md`.
+
+## Round 5 Scope
+
+Round 5 implemented artefact child-resource UI wiring only. It does not complete Phase 6; Round 6 Firebase SDK removal and reviewer closeout remain open.
+
+Frontend files changed:
+
+- `frontend/src/lib/api.js`
+- `frontend/src/lib/api.test.js`
+- `frontend/src/components/FrameworkEditor.jsx`
+- `frontend/src/components/FrameworkEditor.test.jsx`
+- `docs/migration/phases/phase-06-frontend-defirebase/checklist.md`
+- `docs/migration/phases/phase-06-frontend-defirebase/phase-report.md`
+- `docs/migration/phases/phase-06-frontend-defirebase/verification.md`
+
+Backend files were not changed in Round 5.
+
+## Round 5 Endpoint Mapping
+
+- Artefact list: `FrameworkEditor.jsx` -> `listFrameworkArtefacts(frameworkId)` -> `GET /api/frameworks/{framework_id}/artefacts`.
+- Artefact create: `FrameworkEditor.jsx` -> `createFrameworkArtefact(frameworkId, artefactData)` -> `POST /api/frameworks/{framework_id}/artefacts`.
+- Artefact get helper: `getFrameworkArtefact(frameworkId, artefactId)` -> `GET /api/frameworks/{framework_id}/artefacts/{artefact_id}`.
+- Artefact update: `FrameworkEditor.jsx` -> `updateFrameworkArtefact(frameworkId, artefactId, artefactData)` -> `PUT /api/frameworks/{framework_id}/artefacts/{artefact_id}`.
+- Artefact delete: `FrameworkEditor.jsx` -> `deleteFrameworkArtefact(frameworkId, artefactId)` -> `DELETE /api/frameworks/{framework_id}/artefacts/{artefact_id}`.
+
+## Round 5 Implementation Notes
+
+- `api.js` added artefact child-resource helpers that use the shared cookie-session client, so every request carries `credentials: "include"`.
+- Artefact create/update payloads are allowlisted to `name`, `artefact_type`, `content_json`, `metadata_json`, and `ord`.
+- Parent `framework_id` remains only in the URL path. Mutation bodies strip frontend-supplied parent, user, creator, tenant, and tenant-header fields.
+- `FrameworkEditor.jsx` now loads child artefacts separately after framework detail load and renders them through the existing `ArtefactEditor` rich-text surface.
+- Artefact create/update/delete now persist through the child-resource REST helpers instead of mutating embedded framework artefact JSON.
+- Whole-framework autosave, manual save, and regenerate-save no longer send `artefacts` to `PUT /api/frameworks/{framework_id}`.
+- Local draft backup remains under `framework-draft-*` and stores draft content plus normalized artefact content only. It does not store auth/session tokens or headers.
+- Backend `403` and `404` artefact-list failures are surfaced from backend responses. Cross-user access remains a backend responsibility, not a frontend ownership check.
+- Legacy `_raw.framework.artefact_variants` may still render as read-only reference when no child resources exist. Round 5 does not backfill or synchronize it into child rows.
+
+## Round 5 Boundaries Honored
+
+- Did not modify backend code.
+- Did not backfill or migrate historical `frameworks.artefacts_json` or `_raw.artefact_variants` into child artefact rows.
+- Did not uninstall Firebase or delete `frontend/src/lib/firebase.js`.
+- Did not implement Round 6 Firebase SDK/package/env cleanup.
+- Did not implement Phase 7 Valorie/domain/tenant/invite/migration semantic cleanup.
+- Did not rework AdminPanel, Library, publish/unpublish, or core framework ownership flows beyond the artefact editor touchpoint.
+- Did not add public registration, SaaS tenant/org sharing, invites, Chat UI, Agent loop, RAG indexing/retrieval/citations, LLMWiki, MCP marketplace, or tool registry work.
+
+## Round 5 Reviewer Attention
+
+- Artefact UI is now wired to the accepted Phase 5 child-resource contract, with API and editor tests for list/create/get/update/delete mapping, 403/404 handling, and local draft storage.
+- Historical embedded artefacts remain a read-only fallback only; no synchronization into child rows was added.
+- Backend temporary Bearer compatibility remains the Phase 6 closeout blocker from Round 1.
+- No browser smoke test was run for Round 5. Verification is static scans, focused tests, full frontend tests, lint, build, and `git diff --check`.
 
 ## Round 2 Review Repairs Addressed
 
@@ -299,7 +352,7 @@ Backend files were not changed in Round 4.
 - Round 2 verification now distinguishes static scans, lint, unit tests, and build from browser smoke tests.
 - No browser smoke test was run for Round 2, and the docs now say so in the status, reviewer attention, verification section, and browser checklist.
 - Focused REST UI behavior tests remain unchecked until implemented.
-- Phase 6 remains incomplete; Rounds 5-6 and reviewer closeout remain open.
+- Phase 6 remains incomplete; Round 6 and reviewer closeout remain open.
 
 ## Round 2 Remaining Review Repairs Addressed
 
@@ -315,7 +368,7 @@ Backend files were not changed in Round 4.
 
 - `checklist.md` and `verification.md` now scope exact identity-field scan claims to active Round 2 production files.
 - Test files may contain exact identity strings only as intentional negative assertions.
-- The full Phase 6 completion state remains unchanged: Phase 6 is not complete, and Rounds 5-6 remain open after Round 4.
+- The full Phase 6 completion state remains unchanged: Phase 6 is not complete, and Round 6 remains open after Round 5.
 
 ## Scope
 
@@ -411,7 +464,7 @@ The Round 0/1 implementation now establishes:
 3. P3 stale planning-only report wording:
 
 - This report now states that Round 0/1 implementation has happened and is under review repair.
-- Phase 6 remains explicitly not complete, with Rounds 5-6 and Phase 7 deferrals still open after the Round 4 implementation.
+- Phase 6 remains explicitly not complete, with Round 6 and Phase 7 deferrals still open after the Round 5 implementation.
 
 ## Open Risks
 
@@ -420,8 +473,8 @@ The Round 0/1 implementation now establishes:
 - CSRF policy is currently Origin/Referer based with SameSite=None clamped to Lax; if SameSite=None is later allowed, stronger CSRF protection such as double-submit token must be added and tested.
 - Some Firebase-importing files are also Phase 7 residue. Phase 6 may isolate or delete them only to remove active Firebase dependency.
 - The old whitelist-domain admin controls are removed from active Round 4 behavior; real domain/allowlist semantics remain outside Phase 6 unless a later accepted backend contract adds them.
-- Artefact UI may still be coupled to legacy `frameworks.artefacts_json`; historical backfill is not Phase 6 scope.
+- Historical embedded artefacts are not migrated into child rows; Round 5 keeps them as read-only reference when present.
 
 ## Completion Note
 
-Phase 6 is not complete. This report records Round 0/1/2/3/4 implementation and current review repairs; Rounds 5-6, Firebase SDK removal, and reviewer closeout remain open.
+Phase 6 is not complete. This report records Round 0/1/2/3/4/5 implementation and current review repairs; Round 6, Firebase SDK removal, and reviewer closeout remain open.

@@ -1,17 +1,22 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import {
   apiFetch,
+  createFrameworkArtefact,
   createFramework,
   createAdminUser,
+  deleteFrameworkArtefact,
   disableAdminUser,
   enableAdminUser,
   generateFrameworkFromText,
   getAdminUsers,
+  getFrameworkArtefact,
+  listFrameworkArtefacts,
   getPublicFrameworks,
   publishFramework,
   regenerateFramework,
   unpublishFramework,
   updateFramework,
+  updateFrameworkArtefact,
 } from './api'
 
 function mockResponse(status, data = {}) {
@@ -35,6 +40,7 @@ function expectNoClientIdentityFields(value) {
 
   expect(serialized).not.toContain('user_id')
   expect(serialized).not.toContain('creator_id')
+  expect(serialized).not.toContain('framework_id')
   expect(serialized).not.toContain('tenant_id')
   expect(serialized).not.toContain('X-Tenant-ID')
 }
@@ -371,6 +377,181 @@ describe('library and publish REST helpers', () => {
       method: 'POST',
       credentials: 'include',
     })
+  })
+})
+
+describe('framework artefact child-resource REST helpers', () => {
+  it('lists artefacts from the framework child-resource endpoint', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      mockResponse(200, [
+        {
+          id: 'art_1',
+          framework_id: 'fw_123',
+          name: 'Planning Canvas',
+          artefact_type: 'canvas',
+          content_json: {
+            summary: 'Canvas summary',
+            sections: [{ heading: 'Intro', body: 'Start here' }],
+          },
+          metadata_json: { source: 'test' },
+          ord: 2,
+        },
+      ])
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const artefacts = await listFrameworkArtefacts('fw_123')
+
+    expect(fetchMock.mock.calls[0][0]).toContain(
+      '/api/frameworks/fw_123/artefacts'
+    )
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      credentials: 'include',
+    })
+    expect(artefacts[0]).toMatchObject({
+      id: 'art_1',
+      name: 'Planning Canvas',
+      artefact_type: 'canvas',
+      summary: 'Canvas summary',
+      sections: [{ heading: 'Intro', body: 'Start here' }],
+      metadata_json: { source: 'test' },
+      ord: 2,
+    })
+  })
+
+  it('creates artefacts without parent or identity fields in the body', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      mockResponse(201, {
+        id: 'art_created',
+        framework_id: 'fw_123',
+        name: 'Created Artefact',
+        artefact_type: 'brief',
+        content_json: { summary: 'Created summary' },
+        metadata_json: {},
+        ord: 0,
+      })
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await createFrameworkArtefact('fw_123', {
+      name: 'Created Artefact',
+      artefact_type: 'brief',
+      summary: 'Created summary',
+      framework_id: 'body-parent',
+      user_id: 'client-user',
+      creator_id: 'client-creator',
+      tenant_id: 'client-tenant',
+      'X-Tenant-ID': 'client-tenant',
+    })
+
+    expect(fetchMock.mock.calls[0][0]).toContain(
+      '/api/frameworks/fw_123/artefacts'
+    )
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    })
+    expect(requestBody(fetchMock)).toEqual({
+      name: 'Created Artefact',
+      artefact_type: 'brief',
+      content_json: { summary: 'Created summary' },
+      metadata_json: {},
+      ord: 0,
+    })
+    expectNoClientIdentityFields(requestBody(fetchMock))
+  })
+
+  it('gets a single framework artefact through the child-resource endpoint', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      mockResponse(200, {
+        id: 'art_1',
+        framework_id: 'fw_123',
+        name: 'Planning Canvas',
+        artefact_type: 'canvas',
+        content_json: {},
+        metadata_json: {},
+        ord: 0,
+      })
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await getFrameworkArtefact('fw_123', 'art_1')
+
+    expect(fetchMock.mock.calls[0][0]).toContain(
+      '/api/frameworks/fw_123/artefacts/art_1'
+    )
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      credentials: 'include',
+    })
+  })
+
+  it('updates artefacts without parent or identity fields in the body', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      mockResponse(200, {
+        id: 'art_1',
+        framework_id: 'fw_123',
+        name: 'Updated Artefact',
+        artefact_type: 'brief',
+        content_json: { summary: 'Updated summary' },
+        metadata_json: { editor: 'rich-text' },
+        ord: 4,
+      })
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await updateFrameworkArtefact('fw_123', 'art_1', {
+      id: 'art_1',
+      name: 'Updated Artefact',
+      artefact_type: 'brief',
+      summary: 'Updated summary',
+      metadata_json: { editor: 'rich-text' },
+      ord: 4,
+      framework_id: 'body-parent',
+      user_id: 'client-user',
+      creator_id: 'client-creator',
+      tenant_id: 'client-tenant',
+      'X-Tenant-ID': 'client-tenant',
+    })
+
+    expect(fetchMock.mock.calls[0][0]).toContain(
+      '/api/frameworks/fw_123/artefacts/art_1'
+    )
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+    })
+    expect(requestBody(fetchMock)).toEqual({
+      name: 'Updated Artefact',
+      artefact_type: 'brief',
+      content_json: { summary: 'Updated summary' },
+      metadata_json: { editor: 'rich-text' },
+      ord: 4,
+    })
+    expectNoClientIdentityFields(requestBody(fetchMock))
+  })
+
+  it('deletes artefacts through the child-resource endpoint', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      mockResponse(200, {
+        success: true,
+        framework_id: 'fw_123',
+        artefact_id: 'art_1',
+      })
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    await deleteFrameworkArtefact('fw_123', 'art_1')
+
+    expect(fetchMock.mock.calls[0][0]).toContain(
+      '/api/frameworks/fw_123/artefacts/art_1'
+    )
+    expect(fetchMock.mock.calls[0][1]).toMatchObject({
+      method: 'DELETE',
+      credentials: 'include',
+    })
+    expect(fetchMock.mock.calls[0][1]).not.toHaveProperty('body')
   })
 })
 

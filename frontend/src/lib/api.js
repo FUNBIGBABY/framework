@@ -167,6 +167,88 @@ function normalizePreviewArtefacts(artefacts) {
   })
 }
 
+function normalizeJsonContainer(value, fallback) {
+  const parsed = parseJsonIfNeeded(value, fallback)
+  if (Array.isArray(parsed) || isPlainObject(parsed)) return parsed
+  return fallback
+}
+
+function stripArtefactResourceFields(artefactData = {}) {
+  const resourceFields = new Set([
+    'id',
+    'name',
+    ['framework', 'id'].join('_'),
+    ['user', 'id'].join('_'),
+    ['creator', 'id'].join('_'),
+    ['tenant', 'id'].join('_'),
+    ['X', 'Tenant-ID'].join('-'),
+    'artefact_type',
+    'metadata_json',
+    'content_json',
+    'ord',
+    'created_at',
+    'updated_at',
+    '_resource',
+  ])
+
+  return Object.fromEntries(
+    Object.entries(artefactData).filter(([key]) => !resourceFields.has(key))
+  )
+}
+
+export function normalizeFrameworkArtefact(artefact = {}) {
+  const content = normalizeJsonContainer(artefact.content_json, {})
+  const metadata = normalizeJsonContainer(artefact.metadata_json, {})
+  const contentObject = isPlainObject(content) ? content : {}
+
+  return {
+    ...contentObject,
+    id: artefact.id,
+    name: String(artefact.name || contentObject.name || 'Untitled Artefact'),
+    artefact_type: String(
+      artefact.artefact_type || contentObject.artefact_type || 'custom'
+    ),
+    ord: Number(artefact.ord || 0),
+    metadata_json: metadata,
+    _resource: artefact,
+  }
+}
+
+function buildArtefactPayload(artefactData = {}, { forCreate = false } = {}) {
+  const payload = {}
+
+  if (forCreate || hasOwn(artefactData, 'name')) {
+    const name = String(artefactData.name || '').trim()
+    payload.name = name || 'Untitled Artefact'
+  }
+
+  if (forCreate || hasOwn(artefactData, 'artefact_type')) {
+    payload.artefact_type = String(artefactData.artefact_type || 'custom')
+  }
+
+  if (hasOwn(artefactData, 'content_json')) {
+    payload.content_json = normalizeJsonContainer(artefactData.content_json, {})
+  } else {
+    const contentJson = stripArtefactResourceFields(artefactData)
+    if (forCreate || Object.keys(contentJson).length) {
+      payload.content_json = contentJson
+    }
+  }
+
+  if (hasOwn(artefactData, 'metadata_json')) {
+    payload.metadata_json = normalizeJsonContainer(artefactData.metadata_json, {})
+  } else if (forCreate) {
+    payload.metadata_json = {}
+  }
+
+  if (forCreate || hasOwn(artefactData, 'ord')) {
+    const ord = Number(artefactData.ord)
+    payload.ord = Number.isFinite(ord) ? ord : 0
+  }
+
+  return payload
+}
+
 function getRawFramework(data) {
   return parseJsonIfNeeded(data?._raw ?? data?.rawFramework, undefined)
 }
@@ -685,6 +767,56 @@ export async function unpublishFramework(frameworkId) {
   return await apiRequest(`/api/frameworks/${frameworkId}/unpublish`, {
     method: 'POST',
   })
+}
+
+export async function listFrameworkArtefacts(frameworkId) {
+  const artefacts = await apiRequest(`/api/frameworks/${frameworkId}/artefacts`)
+  return Array.isArray(artefacts)
+    ? artefacts.map(normalizeFrameworkArtefact)
+    : []
+}
+
+export async function createFrameworkArtefact(frameworkId, artefactData = {}) {
+  const artefact = await apiRequest(`/api/frameworks/${frameworkId}/artefacts`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(buildArtefactPayload(artefactData, { forCreate: true })),
+  })
+
+  return normalizeFrameworkArtefact(artefact)
+}
+
+export async function getFrameworkArtefact(frameworkId, artefactId) {
+  const artefact = await apiRequest(
+    `/api/frameworks/${frameworkId}/artefacts/${artefactId}`
+  )
+  return normalizeFrameworkArtefact(artefact)
+}
+
+export async function updateFrameworkArtefact(
+  frameworkId,
+  artefactId,
+  artefactData = {}
+) {
+  const artefact = await apiRequest(
+    `/api/frameworks/${frameworkId}/artefacts/${artefactId}`,
+    {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildArtefactPayload(artefactData)),
+    }
+  )
+
+  return normalizeFrameworkArtefact(artefact)
+}
+
+export async function deleteFrameworkArtefact(frameworkId, artefactId) {
+  return await apiRequest(
+    `/api/frameworks/${frameworkId}/artefacts/${artefactId}`,
+    {
+      method: 'DELETE',
+    }
+  )
 }
 
 export async function getAdminUsers(options = {}) {

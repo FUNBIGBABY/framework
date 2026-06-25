@@ -1,6 +1,6 @@
 # Phase 06 Verification - Frontend de-Firebase
 
-Round 0/1/2/3/4 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 0/1 reviewer repairs, Round 2 core framework REST wiring, Round 2 review repairs, Round 3 Library plus publish/unpublish REST wiring, and Round 4 Admin users REST wiring have static scan, lint, unit-test, and build verification. No Round 2, Round 3, or Round 4 browser smoke test has been run. Phase 6 is not complete; Rounds 5-6 remain open.
+Round 0/1/2/3/4/5 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 0/1 reviewer repairs, Round 2 core framework REST wiring, Round 2 review repairs, Round 3 Library plus publish/unpublish REST wiring, Round 4 Admin users REST wiring, and Round 5 artefact child-resource UI wiring have static scan, lint, unit-test, and build verification. No Round 2, Round 3, Round 4, or Round 5 browser smoke test has been run. Phase 6 is not complete; Round 6 remains open.
 
 ## Verification Principles
 
@@ -1296,20 +1296,186 @@ Result: passed with exit code `0` and no output.
 
 ## Round 5 Verification - Artefact Subresource Wiring
 
-Planned commands:
+Implemented in Round 5. Evidence below covers artefact child-resource API helper mapping, editor create/update/delete behavior, backend 403/404 surfacing, local draft storage, static scans, lint, focused tests, full frontend tests, production build, and diff whitespace check.
+
+Backend tests were not run because Round 5 did not change backend code.
+
+### Round 5 Firebase Import Scan
 
 ```powershell
-rg -n "firebase/firestore|../lib/firebase|./firebase|framework_id|user_id|creator_id" frontend/src/components/FrameworkEditor.jsx frontend/src/components/ArtefactEditor.jsx frontend/src/lib/api.js
+rg -n 'firebase/firestore|from [''\"]firebase|firebase/|\.\./lib/firebase|\./firebase' frontend\src\lib\api.js frontend\src\components\FrameworkEditor.jsx frontend\src\components\ArtefactEditor.jsx
 ```
 
-Planned behavior checks:
+Result: no matches. `rg` exited `1`.
 
-- Owner can list artefacts for a framework.
-- Owner can create, update, and delete an artefact.
-- Request bodies do not include `framework_id`, `user_id`, or `creator_id`.
-- Cross-user rejection is handled through backend responses.
+### Round 5 Embedded Artefact Sync/Backfill Scan
 
-Current result: not run for implementation.
+Initial scan command used `sync.*artefact|artefact.*sync` and matched `async function createFrameworkArtefact`, a false positive because `async` contains `sync`.
+
+Final command:
+
+```powershell
+rg -n 'artefacts_json|backfill|synchroni[sz]e|\bsync\b|\bsyncing\b|\bsynced\b' frontend\src\lib\api.js frontend\src\components\FrameworkEditor.jsx frontend\src\components\ArtefactEditor.jsx
+```
+
+Result: no matches. `rg` exited `1`.
+
+This confirms Round 5 did not add frontend backfill or synchronization behavior from legacy embedded artefact JSON into child rows.
+
+### Round 5 Production Identity Field Scan
+
+Command:
+
+```powershell
+rg -n 'framework_id|user_id|creator_id|tenant_id|X-Tenant-ID' frontend\src\lib\api.js frontend\src\components\FrameworkEditor.jsx frontend\src\components\ArtefactEditor.jsx
+```
+
+Result: no matches. `rg` exited `1`.
+
+Test files intentionally contain these exact strings as negative assertions and mocked backend response fields:
+
+```powershell
+rg -n 'framework_id|user_id|creator_id|tenant_id|X-Tenant-ID' frontend\src\lib\api.test.js frontend\src\components\FrameworkEditor.test.jsx
+```
+
+Result: matches are limited to `frontend/src/lib/api.test.js`, where they are used as negative assertions or backend response shape fixtures.
+
+### Round 5 Bearer And Token Storage Scan
+
+Command:
+
+```powershell
+rg -n 'Authorization:\s*Bearer|Authorization.*Bearer|access_token|localStorage\.(getItem|setItem).*access_token|getAuthToken' frontend\src\lib\api.js frontend\src\components\FrameworkEditor.jsx frontend\src\components\ArtefactEditor.jsx
+```
+
+Result: no matches. `rg` exited `1`.
+
+### Round 5 Local Draft Storage Scan
+
+Command:
+
+```powershell
+rg -n 'localStorage\.(getItem|setItem)|framework-draft|artefactResources' frontend\src\components\FrameworkEditor.jsx frontend\src\components\FrameworkEditor.test.jsx
+```
+
+Result: matches are limited to the existing `framework-draft-*` local draft backup path, the Round 5 `artefactResources` draft content, and test assertions proving the draft does not contain `access_token`, `Authorization`, or `Bearer`.
+
+### Round 5 Focused Tests
+
+Command:
+
+```powershell
+cd frontend
+npm test -- src/lib/api.test.js src/components/FrameworkEditor.test.jsx
+```
+
+Result:
+
+```text
+src/lib/api.test.js (20 tests) passed
+src/components/FrameworkEditor.test.jsx (4 tests) passed
+2 test files passed
+24 tests passed
+Duration 7.02s
+```
+
+Warnings: `baseline-browser-mapping` data is over two months old; Browserslist/caniuse data is 8 months old.
+
+Coverage added:
+
+- `listFrameworkArtefacts()` calls `GET /api/frameworks/{framework_id}/artefacts` with cookie credentials.
+- `createFrameworkArtefact()` calls `POST /api/frameworks/{framework_id}/artefacts` and omits parent/identity fields from the body.
+- `getFrameworkArtefact()` calls `GET /api/frameworks/{framework_id}/artefacts/{artefact_id}`.
+- `updateFrameworkArtefact()` calls `PUT /api/frameworks/{framework_id}/artefacts/{artefact_id}` and omits parent/identity fields from the body.
+- `deleteFrameworkArtefact()` calls `DELETE /api/frameworks/{framework_id}/artefacts/{artefact_id}` without a body.
+- `FrameworkEditor.jsx` loads child artefacts, creates artefacts, updates artefacts through a debounced child-resource save, deletes artefacts, surfaces backend `403`/`404` artefact-list failures, and writes local draft backup without auth/session strings.
+
+### Round 5 Frontend Lint
+
+Command:
+
+```powershell
+cd frontend
+npm run lint
+```
+
+Result: passed with exit code `0`.
+
+```text
+> frontend@0.0.0 lint
+> eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0
+```
+
+### Round 5 Full Frontend Tests
+
+Command:
+
+```powershell
+cd frontend
+npm test
+```
+
+Result:
+
+```text
+src/App.test.jsx (13 tests) passed
+src/lib/api.test.js (20 tests) passed
+src/components/TenantRoute.test.jsx (1 test) passed
+src/components/Library.test.jsx (2 tests) passed
+src/App.route.test.jsx (1 test) passed
+src/components/FrameworkCard.test.jsx (1 test) passed
+src/components/PublishModal.test.jsx (1 test) passed
+src/components/Login.test.jsx (1 test) passed
+src/components/AdminPanel.test.jsx (5 tests) passed
+src/components/FrameworkEditor.test.jsx (4 tests) passed
+10 test files passed
+49 tests passed
+Duration 8.62s
+```
+
+Warnings/output: existing test stdout from `PublishModal.test.jsx` and `Login.test.jsx`; `baseline-browser-mapping` data is over two months old; Browserslist/caniuse data is 8 months old.
+
+### Round 5 Frontend Build
+
+Command:
+
+```powershell
+cd frontend
+npm run build
+```
+
+Result:
+
+```text
+vite v7.1.9 building for production...
+157 modules transformed.
+dist/index.html                 0.47 kB | gzip:   0.30 kB
+dist/assets/index-D8WztRV1.css  42.57 kB | gzip:   7.53 kB
+dist/assets/index-DgV5FGLw.js   1,462.27 kB | gzip: 403.17 kB
+built in 12.22s
+```
+
+Warnings: `baseline-browser-mapping` data is over two months old; Browserslist/caniuse data is 8 months old; one chunk is larger than 500 kB after minification. These are not Round 5 blockers.
+
+### Round 5 Git Diff Check
+
+Command:
+
+```powershell
+git diff --check
+```
+
+Result: passed with exit code `0` and no output.
+
+### Round 5 Static And Test Coverage
+
+- Artefact child resources are listed, created, read, updated, and deleted through the accepted Phase 5 backend REST endpoints.
+- Request bodies do not include frontend-supplied parent, user, creator, tenant, or tenant-header fields.
+- Cross-user access remains enforced by backend `403`/`404` responses, which the editor surfaces.
+- Local draft backup stores draft content only and no auth/session strings.
+- Active Round 5 production files have no Firebase imports, no bearer/localStorage token behavior, and no embedded artefact sync/backfill behavior.
+
+Current result: Round 5 code wiring is implemented and covered by focused static scans, API/helper tests, editor tests, frontend lint, full frontend tests, production build, and `git diff --check`. No browser/manual smoke test was run in Round 5.
 
 ## Round 6 Verification - Firebase SDK Removal + Closeout
 
@@ -1350,7 +1516,7 @@ Current result: not run for implementation.
 
 ## Browser Smoke Checklist
 
-No Round 2, Round 3, or Round 4 browser smoke test was run during these implementation passes. The checklist remains unchecked until an actual browser/manual smoke session is performed.
+No Round 2, Round 3, Round 4, or Round 5 browser smoke test was run during these implementation passes. The checklist remains unchecked until an actual browser/manual smoke session is performed.
 
 - [ ] Login with a backend-created user.
 - [ ] Confirm login sets access and refresh cookies without storing frontend tokens.
@@ -1390,9 +1556,10 @@ The final Phase 6 handoff should include:
 
 - Round 2 owner framework flows have code wiring, static scans, API payload unit tests, lint, full frontend tests, and build coverage, but no browser/manual smoke test was run.
 - Round 3 Library and publish/unpublish flows have code wiring, static scans, API/helper/component tests, lint, full frontend tests, and build coverage, but no browser/manual smoke test was run.
+- Round 5 artefact child-resource flows have code wiring, static scans, API/helper/component tests, lint, full frontend tests, and build coverage, but no browser/manual smoke test was run.
 - Cookie-session backend readiness has been repaired and verified for Round 1, including strict access-vs-refresh token typing. Temporary backend Bearer compatibility remains a Phase 6 closeout blocker until later rounds remove transitional clients/tests from that path.
 - CSRF/cookie-auth unsafe-method protection is currently Origin/Referer based and verified for Round 1; SameSite=None remains clamped to Lax. If SameSite=None is later allowed, stronger protection such as a double-submit token must be added and tested.
 - Phase 5 closeout documentation has been corrected to record accepted final review, committed/pushed package, and Phase 6 planning may proceed; Phase 6 should not reopen Phase 5 implementation.
 - Some Firebase-importing files are also tenant/invite/migration residue. Phase 6 may remove or isolate them only to uninstall Firebase; broader semantic cleanup remains Phase 7.
 - Round 4 removed active whitelist-domain admin controls and left only an unsupported domain-policy note because no Phase 5 backend endpoint exists for whitelist-domain management.
-- Artefact UI may still be coupled to legacy `frameworks.artefacts_json`; Round 5 must avoid claiming historical backfill unless a later explicit phase owns it.
+- Historical embedded artefacts are not backfilled or synchronized into child rows; any migration of old `frameworks.artefacts_json` data remains outside Phase 6 Round 5.
