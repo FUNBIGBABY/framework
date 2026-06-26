@@ -1,6 +1,6 @@
 # Phase 06 Verification - Frontend de-Firebase
 
-Round 0/1/2/3/4/5 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 0/1 reviewer repairs, Round 2 core framework REST wiring, Round 2 review repairs, Round 3 Library plus publish/unpublish REST wiring, Round 4 Admin users REST wiring, and Round 5 artefact child-resource UI wiring have static scan, lint, unit-test, and build verification. No Round 2, Round 3, Round 4, or Round 5 browser smoke test has been run. Phase 6 is not complete; Round 6 remains open.
+Round 0/1/2/3/4/5/6 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 0/1 reviewer repairs, Round 2 core framework REST wiring, Round 2 review repairs, Round 3 Library plus publish/unpublish REST wiring, Round 4 Admin users REST wiring, Round 5 artefact child-resource UI wiring, and Round 6 Firebase SDK removal/Bearer closeout have static scan, lint, unit-test, backend-test, and build verification. Browser smoke could not run because the local Docker/Postgres service is unavailable. Phase 6 is not complete; Round 6 is implemented, pending Migration Reviewer closeout acceptance.
 
 ## Verification Principles
 
@@ -1479,44 +1479,293 @@ Current result: Round 5 code wiring is implemented and covered by focused static
 
 ## Round 6 Verification - Firebase SDK Removal + Closeout
 
-Required static scans:
+Status: Round 6 implemented, pending Migration Reviewer closeout acceptance. Browser smoke could not run because the local Docker/Postgres service is unavailable; do not claim Phase 6 closeout-ready from browser evidence.
+
+### Round 6 Package Removal
+
+Command:
+
+```powershell
+cd frontend
+npm uninstall firebase --ignore-scripts --no-audit --fund=false
+```
+
+Result:
+
+```text
+removed 84 packages in 9s
+```
+
+Root package cleanup:
+
+```powershell
+npm uninstall firebase --ignore-scripts --no-audit --fund=false
+```
+
+Result: failed because npm attempted a network fetch for unrelated `redux` while network access was blocked.
+
+```text
+npm error FetchError: request to https://registry.npmjs.org/redux/-/redux-4.2.1.tgz failed
+```
+
+Offline root lockfile cleanup commands:
+
+```powershell
+npm pkg delete dependencies.firebase
+npm install --package-lock-only --ignore-scripts --no-audit --fund=false --offline
+```
+
+Result:
+
+```text
+up to date in 1s
+```
+
+### Round 6 Static Scans
+
+Command:
 
 ```powershell
 rg -n "from ['\"]firebase|firebase/" frontend/src
-rg -n "frontend/src/lib/firebase|../lib/firebase|./firebase" frontend/src
-rg -n "VITE_FIREBASE|FIREBASE_" frontend
-rg -n "\"firebase\"|node_modules/firebase" frontend/package.json frontend/package-lock.json
-rg -n "localStorage\\.(getItem|setItem).*access_token|Authorization.*Bearer|getAuthToken" frontend/src
-rg -n "user_id|creator_id|tenant_id|X-Tenant-ID|getFirebaseUserId" frontend/src
-rg -n "Authorization.*Bearer|localStorage\\.(getItem|setItem).*access_token" frontend/src
 ```
 
-Required frontend commands:
+Result: no matches. `rg` exited `1`.
+
+Command:
+
+```powershell
+rg -n "frontend/src/lib/firebase|../lib/firebase|./firebase" frontend/src
+```
+
+Result: no matches. `rg` exited `1`.
+
+Command:
+
+```powershell
+rg -n "firebase/auth|firebase/firestore|onSnapshot|collection\\(|doc\\(|getDocs|setDoc|updateDoc|deleteDoc|addDoc" frontend/src
+```
+
+Result: no matches. `rg` exited `1`.
+
+Command:
+
+```powershell
+rg -n "VITE_FIREBASE|FIREBASE_" frontend
+```
+
+Result: no matches. `rg` exited `1`.
+
+Command:
+
+```powershell
+rg -n "\"firebase\"|node_modules/firebase" frontend/package.json frontend/package-lock.json
+```
+
+Result: no matches. `rg` exited `1`.
+
+Additional root/container package and env scan:
+
+```powershell
+rg -n '"firebase"|node_modules/firebase' package.json package-lock.json frontend/package.json frontend/package-lock.json
+rg -n "VITE_FIREBASE|FIREBASE_" frontend Dockerfile docker-compose.yml .env.example backend_py/.env.example
+```
+
+Result: both commands returned no matches. `rg` exited `1`.
+
+Command:
+
+```powershell
+rg -n "Authorization: Bearer|access_token|getAuthToken|localStorage\\.(getItem|setItem).*access_token" frontend/src
+```
+
+Result: no matches. `rg` exited `1`.
+
+Focused backend Bearer compatibility scan:
+
+```powershell
+rg -n "HTTPBearer|HTTPAuthorizationCredentials|Authorization|Bearer" backend_py/app/auth.py backend_py/app/api/users.py
+```
+
+Result: no matches. `rg` exited `1`.
+
+Build output scan:
+
+```powershell
+Get-ChildItem -Recurse -File frontend\dist | Select-Object -ExpandProperty FullName
+rg -n "firebase|@firebase|Firebase" frontend/dist
+```
+
+Result:
+
+```text
+C:\Users\micha\Desktop\project\framework\frontend\dist\index.html
+C:\Users\micha\Desktop\project\framework\frontend\dist\vite.svg
+C:\Users\micha\Desktop\project\framework\frontend\dist\assets\index-BnompmXA.css
+C:\Users\micha\Desktop\project\framework\frontend\dist\assets\index-Cf938kuo.js
+```
+
+The Firebase build-output scan returned no matches. `rg` exited `1`.
+
+### Round 6 Frontend Lint
+
+Command:
 
 ```powershell
 cd frontend
 npm run lint
+```
+
+Result: passed with exit code `0`.
+
+```text
+> frontend@0.0.0 lint
+> eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0
+```
+
+### Round 6 Frontend Tests
+
+Initial sandboxed command:
+
+```powershell
+cd frontend
 npm test
+```
+
+Initial result: failed before tests ran because Vite/Vitest/esbuild could not read config paths in the sandbox:
+
+```text
+Cannot read directory "../../../..": Access is denied.
+Could not resolve "C:\Users\micha\Desktop\project\framework\frontend\vitest.config.js"
+```
+
+Escalated rerun command:
+
+```powershell
+cd frontend
+npm test
+```
+
+Escalated rerun result:
+
+```text
+10 test files passed
+49 tests passed
+Duration 9.92s
+```
+
+Warnings/output: existing test stdout from `PublishModal.test.jsx` and `Login.test.jsx`; `baseline-browser-mapping` data is over two months old; Browserslist/caniuse data is 8 months old.
+
+### Round 6 Frontend Build
+
+Initial sandboxed command:
+
+```powershell
+cd frontend
 npm run build
 ```
 
-Expected evidence:
+Initial result: failed before build compilation because Vite/esbuild could not read config paths in the sandbox:
 
-- No active frontend Firebase SDK imports.
-- No Firebase package dependency in `package.json` or lockfile.
-- No active Firebase env references.
-- No bearer/localStorage auth compatibility.
-- No frontend-supplied identity authority.
-- Backend cookie-session contract has been verified, including refresh and disabled-user rejection.
-- CSRF/Origin/Referer positive and negative backend tests have passed.
-- Phase 5 accepted-closeout evidence has been confirmed before merge.
-- Build output contains no Firebase chunk.
+```text
+Cannot read directory "../../../..": Access is denied.
+Could not resolve "C:\Users\micha\Desktop\project\framework\frontend\vite.config.js"
+```
 
-Current result: not run for implementation.
+Escalated rerun command:
+
+```powershell
+cd frontend
+npm run build
+```
+
+Escalated rerun result:
+
+```text
+vite v7.1.9 building for production...
+140 modules transformed.
+dist/index.html                 0.47 kB | gzip:   0.30 kB
+dist/assets/index-BnompmXA.css 39.06 kB | gzip:   7.09 kB
+dist/assets/index-Cf938kuo.js  858.35 kB | gzip: 258.59 kB
+built in 8.43s
+```
+
+Warnings: `baseline-browser-mapping` data is over two months old; Browserslist/caniuse data is 8 months old; one chunk is larger than 500 kB after minification.
+
+### Round 6 Backend Syntax And Tests
+
+Command:
+
+```powershell
+cd backend_py
+.\.venv\Scripts\python.exe -m compileall -q app
+```
+
+Result: passed with exit code `0` and no output.
+
+Focused backend auth/session/REST command:
+
+```powershell
+cd backend_py
+.\.venv\Scripts\python.exe -m pytest tests\test_cookie_sessions.py tests\test_auth_hardening.py tests\test_admin_users.py tests\test_framework_owner_crud.py tests\test_framework_publish_public.py tests\test_framework_artefacts.py tests\test_generation_persistence.py -q
+```
+
+Result:
+
+```text
+73 passed, 197 warnings in 24.55s
+```
+
+Full backend command:
+
+```powershell
+cd backend_py
+.\.venv\Scripts\python.exe -m pytest -q
+```
+
+Result:
+
+```text
+117 passed, 199 warnings in 19.21s
+```
+
+Warnings are existing Pydantic v2 deprecations and `datetime.utcnow()` deprecations in auth/admin/framework paths.
+
+### Round 6 Post-Documentation Rerun
+
+After updating the Phase 6 checklist/report/verification package, the required source/package/backend scans and whitespace check were rerun.
+
+Commands:
+
+```powershell
+rg -n "from ['\"]firebase|firebase/" frontend/src
+rg -n "frontend/src/lib/firebase|../lib/firebase|./firebase" frontend/src
+rg -n "firebase/auth|firebase/firestore|onSnapshot|collection\\(|doc\\(|getDocs|setDoc|updateDoc|deleteDoc|addDoc" frontend/src
+rg -n "VITE_FIREBASE|FIREBASE_" frontend Dockerfile docker-compose.yml .env.example backend_py/.env.example
+rg -n "\"firebase\"|node_modules/firebase" package.json package-lock.json frontend/package.json frontend/package-lock.json
+rg -n "Authorization: Bearer|access_token|getAuthToken|localStorage\\.(getItem|setItem).*access_token" frontend/src
+rg -n "HTTPBearer|HTTPAuthorizationCredentials|Authorization|Bearer" backend_py/app/auth.py backend_py/app/api/users.py
+git diff --check
+```
+
+Result: all seven `rg` commands returned no matches with exit code `1`. `git diff --check` passed with exit code `0` and no output.
 
 ## Browser Smoke Checklist
 
-No Round 2, Round 3, Round 4, or Round 5 browser smoke test was run during these implementation passes. The checklist remains unchecked until an actual browser/manual smoke session is performed.
+No Round 2, Round 3, Round 4, Round 5, or Round 6 browser smoke test was run during these implementation passes. Round 6 attempted a local environment feasibility check and found a blocking DB/server constraint.
+
+Command:
+
+```powershell
+docker compose ps
+```
+
+Result:
+
+```text
+failed to connect to the docker API at npipe:////./pipe/dockerDesktopLinuxEngine; check if the path is correct and if the daemon is running: open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file specified.
+```
+
+Additional blocker: `backend_py/app/db.py` requires `DATABASE_URL` at import time. The app models and migrations use PostgreSQL JSONB and pgvector types, so SQLite is not a faithful browser-smoke fallback. No live Postgres service and seeded admin credentials were available in this environment.
 
 - [ ] Login with a backend-created user.
 - [ ] Confirm login sets access and refresh cookies without storing frontend tokens.
@@ -1557,9 +1806,10 @@ The final Phase 6 handoff should include:
 - Round 2 owner framework flows have code wiring, static scans, API payload unit tests, lint, full frontend tests, and build coverage, but no browser/manual smoke test was run.
 - Round 3 Library and publish/unpublish flows have code wiring, static scans, API/helper/component tests, lint, full frontend tests, and build coverage, but no browser/manual smoke test was run.
 - Round 5 artefact child-resource flows have code wiring, static scans, API/helper/component tests, lint, full frontend tests, and build coverage, but no browser/manual smoke test was run.
-- Cookie-session backend readiness has been repaired and verified for Round 1, including strict access-vs-refresh token typing. Temporary backend Bearer compatibility remains a Phase 6 closeout blocker until later rounds remove transitional clients/tests from that path.
+- Round 6 Firebase SDK removal, package cleanup, backend Bearer removal, frontend lint/tests/build, and backend tests are verified, but browser smoke could not run because the local Docker/Postgres service is unavailable.
+- Cookie-session backend readiness has been repaired and verified, including strict access-vs-refresh token typing. Round 6 removed temporary backend Bearer compatibility; Bearer credentials are now rejected.
 - CSRF/cookie-auth unsafe-method protection is currently Origin/Referer based and verified for Round 1; SameSite=None remains clamped to Lax. If SameSite=None is later allowed, stronger protection such as a double-submit token must be added and tested.
 - Phase 5 closeout documentation has been corrected to record accepted final review, committed/pushed package, and Phase 6 planning may proceed; Phase 6 should not reopen Phase 5 implementation.
-- Some Firebase-importing files are also tenant/invite/migration residue. Phase 6 may remove or isolate them only to uninstall Firebase; broader semantic cleanup remains Phase 7.
+- Some Firebase-importing files were also tenant/invite/migration residue. Round 6 isolated them only to uninstall Firebase; broader semantic cleanup remains Phase 7.
 - Round 4 removed active whitelist-domain admin controls and left only an unsupported domain-policy note because no Phase 5 backend endpoint exists for whitelist-domain management.
 - Historical embedded artefacts are not backfilled or synchronized into child rows; any migration of old `frameworks.artefacts_json` data remains outside Phase 6 Round 5.

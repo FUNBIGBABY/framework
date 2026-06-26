@@ -163,7 +163,7 @@ async def test_login_sets_http_only_access_and_refresh_cookies(app):
 
     assert response.status_code == 200
     body = response.json()
-    assert body["access_token"]
+    assert "access_token" not in body
     assert body["user"]["id"] == "user_cookie"
 
     set_cookie = _set_cookie_headers(response)
@@ -244,7 +244,7 @@ async def test_refresh_token_cannot_authenticate_protected_endpoint_access_cooki
 
 
 @pytest.mark.asyncio
-async def test_refresh_token_cannot_authenticate_protected_endpoint_bearer_path(app):
+async def test_bearer_refresh_token_does_not_authenticate_protected_endpoint(app):
     refresh_token = _refresh_token()
 
     transport = httpx.ASGITransport(app=app)
@@ -260,7 +260,7 @@ async def test_refresh_token_cannot_authenticate_protected_endpoint_bearer_path(
 
 
 @pytest.mark.asyncio
-async def test_access_token_still_authenticates_protected_endpoints(app):
+async def test_access_cookie_authenticates_and_bearer_is_rejected(app):
     access_token = _access_token()
 
     transport = httpx.ASGITransport(app=app)
@@ -278,8 +278,7 @@ async def test_access_token_still_authenticates_protected_endpoints(app):
 
     assert cookie_response.status_code == 200
     assert cookie_response.json()["id"] == "user_cookie"
-    assert bearer_response.status_code == 200
-    assert bearer_response.json()["id"] == "user_cookie"
+    assert bearer_response.status_code == 401
 
 
 @pytest.mark.asyncio

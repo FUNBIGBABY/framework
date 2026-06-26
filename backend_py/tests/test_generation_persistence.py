@@ -6,7 +6,7 @@ from fastapi import FastAPI, HTTPException
 
 from app.api import frameworks_shared
 from app.api.frameworks import router as frameworks_router
-from app.auth import create_access_token
+from app.auth import ACCESS_COOKIE_NAME, create_access_token
 from app.db import get_db
 from app.models import User
 
@@ -80,7 +80,7 @@ def app(fake_db):
 
 def auth_headers(user_id: str) -> dict[str, str]:
     token = create_access_token({"sub": user_id})
-    return {"Authorization": f"Bearer {token}"}
+    return {"Cookie": f"{ACCESS_COOKIE_NAME}={token}"}
 
 
 def framework_payload(title: str, *, family: str = "Technology") -> dict:

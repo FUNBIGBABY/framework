@@ -1,6 +1,6 @@
 # Phase 06 Checklist - Frontend de-Firebase
 
-Round 0/1/2/3/4/5 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 0/1 review repairs, Round 2 core framework REST wiring, Round 2 review repairs, Round 3 Library plus publish/unpublish REST wiring, Round 4 Admin users REST wiring, and Round 5 artefact child-resource UI wiring are implemented with static scan, lint, unit-test, and build verification. No Round 2, Round 3, Round 4, or Round 5 browser smoke test has been run. Do not mark Phase 6 complete from this document; Round 6 remains open.
+Round 0/1/2/3/4/5/6 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 0/1 review repairs, Round 2 core framework REST wiring, Round 2 review repairs, Round 3 Library plus publish/unpublish REST wiring, Round 4 Admin users REST wiring, Round 5 artefact child-resource UI wiring, and Round 6 Firebase SDK removal/Bearer closeout are implemented with static scan, lint, unit-test, backend-test, and build verification. Browser smoke could not run because the local Docker/Postgres service is unavailable. Do not mark Phase 6 complete from this document; Round 6 is implemented, pending Migration Reviewer closeout acceptance.
 
 ## Required Context
 
@@ -181,24 +181,24 @@ Acceptance criteria:
 
 ## Round 6 - Firebase SDK Removal + Closeout
 
-- [ ] Remove or isolate every active frontend file that imports `firebase/*` or `frontend/src/lib/firebase.js`.
-- [ ] Delete `frontend/src/lib/firebase.js` once no active imports remain.
-- [ ] Remove `firebase` from `frontend/package.json`.
-- [ ] Update `frontend/package-lock.json` by running package manager uninstall/install workflow.
-- [ ] Remove `VITE_FIREBASE_*` references from active frontend runtime configuration.
-- [ ] Ensure Firebase-importing Phase 7 residue is deleted or isolated only as needed to uninstall the SDK, with semantic cleanup deferred.
-- [ ] Run frontend lint, tests, and production build.
-- [ ] Run forbidden Firebase and bearer/localStorage scans.
-- [ ] Update Phase 6 report and verification evidence after implementation.
+- [x] Remove or isolate every active frontend file that imports `firebase/*` or `frontend/src/lib/firebase.js`.
+- [x] Delete `frontend/src/lib/firebase.js` once no active imports remain.
+- [x] Remove `firebase` from `frontend/package.json`.
+- [x] Update `frontend/package-lock.json` by running package manager uninstall/install workflow.
+- [x] Remove `VITE_FIREBASE_*` references from active frontend runtime configuration.
+- [x] Ensure Firebase-importing Phase 7 residue is deleted or isolated only as needed to uninstall the SDK, with semantic cleanup deferred.
+- [x] Run frontend lint, tests, and production build.
+- [x] Run forbidden Firebase and bearer/localStorage scans.
+- [x] Update Phase 6 report and verification evidence after implementation.
 
 Acceptance criteria:
 
-- [ ] `rg -n "from ['\"]firebase|firebase/" frontend/src` has no active-source matches.
-- [ ] `rg -n "frontend/src/lib/firebase|../lib/firebase|./firebase" frontend/src` has no active-source matches.
-- [ ] `rg -n "\"firebase\"|node_modules/firebase" frontend/package.json frontend/package-lock.json` has no dependency matches.
-- [ ] `rg -n "VITE_FIREBASE|FIREBASE_" frontend` has no active runtime matches.
-- [ ] Frontend build output contains no Firebase chunk.
-- [ ] Phase 6 remains not marked complete until reviewer acceptance.
+- [x] `rg -n "from ['\"]firebase|firebase/" frontend/src` has no active-source matches.
+- [x] `rg -n "frontend/src/lib/firebase|../lib/firebase|./firebase" frontend/src` has no active-source matches.
+- [x] `rg -n "\"firebase\"|node_modules/firebase" frontend/package.json frontend/package-lock.json` has no dependency matches.
+- [x] `rg -n "VITE_FIREBASE|FIREBASE_" frontend` has no active runtime matches.
+- [x] Frontend build output contains no Firebase chunk.
+- [x] Phase 6 remains not marked complete until reviewer acceptance.
 
 ## Explicit Non-Goals
 
@@ -213,7 +213,7 @@ Acceptance criteria:
 ## Security Requirements
 
 - [x] Backend JWT cookie is the only session trust source for frontend requests.
-- [x] Protected endpoint auth rejects refresh JWTs, including through the temporary Bearer compatibility path.
+- [x] Protected endpoint auth reads access cookies only; refresh JWTs cannot authenticate protected endpoints and `Authorization: Bearer` is rejected.
 - [x] Cookies must be sent with `credentials: "include"`.
 - [x] `localStorage` and `sessionStorage` must not store auth tokens or durable session user objects.
 - [x] Frontend must not send `Authorization: Bearer` after the removal gate.
@@ -229,7 +229,7 @@ Acceptance criteria:
 
 ## Bearer/localStorage Compatibility Removal Gate
 
-This gate blocks Phase 6 closeout.
+This gate no longer blocks Round 6 implementation. Migration Reviewer closeout acceptance is still required before Phase 6 is marked complete.
 
 - [x] `/api/users/login` establishes the browser session without requiring frontend token persistence.
 - [x] `/api/users/me` restores the current user from the cookie on page refresh.
@@ -239,6 +239,8 @@ This gate blocks Phase 6 closeout.
 - [x] `frontend/src/lib/api.js` no longer adds `Authorization: Bearer`.
 - [x] `AuthContext` no longer writes `access_token` or session user objects to `localStorage`.
 - [x] A repository scan confirms no active frontend auth-token storage remains.
+- [x] Backend protected auth dependencies no longer accept `Authorization: Bearer`.
+- [x] `/api/users/login` and `/api/users/refresh` no longer return bearer token fields in the response body.
 
 ## Tests And Verification Checklist
 
@@ -247,7 +249,7 @@ This gate blocks Phase 6 closeout.
 - [x] `npm run build` from `frontend/`.
 - [ ] Focused auth UI tests cover login, refresh restore, logout, 401/403 handling, and disabled-user login failure.
 - [x] Backend auth/session tests cover login cookies, `/api/users/me` cookie auth, `/api/users/refresh`, logout cookie clearing/session expiry, disabled-user protected access, and disabled-user refresh rejection.
-- [x] Backend auth/session tests cover strict access-vs-refresh JWT type separation for access cookies, temporary Bearer compatibility, and refresh cookies.
+- [x] Backend auth/session tests cover strict access-vs-refresh JWT type separation for access cookies, Bearer rejection, and refresh cookies.
 - [x] Shared frontend API client tests cover one-shot refresh retry, refresh-endpoint retry guard, no refresh on `403`, and failed-refresh stop behavior.
 - [x] Shared frontend API payload tests cover create/update separation, update patch semantics, empty `_raw` omission, create/regenerate payload validity, and omission of frontend identity fields.
 - [x] Backend CSRF/Origin tests cover allowed same-origin unsafe request, missing/invalid Origin/Referer rejection where policy requires, disallowed Origin rejection, safe methods not incorrectly blocked, and SameSite=None stronger-token behavior if applicable.
@@ -263,10 +265,11 @@ This gate blocks Phase 6 closeout.
 
 ## Reviewer Handoff Criteria
 
-- [ ] Phase 6 implementation report lists every frontend file changed, removed, or isolated.
-- [ ] Phase 6 verification records exact commands and outputs.
-- [ ] The reviewer receives static scan evidence for Firebase removal, bearer/localStorage removal, and identity propagation removal.
-- [ ] The reviewer receives frontend lint/test/build output.
+- [x] Phase 6 implementation report lists every frontend file changed, removed, or isolated.
+- [x] Phase 6 verification records exact commands and outputs.
+- [x] The reviewer receives static scan evidence for Firebase removal, bearer/localStorage removal, and identity propagation removal.
+- [x] The reviewer receives frontend lint/test/build output.
+- [x] The reviewer receives browser smoke blocker evidence.
 - [x] The reviewer receives Phase 5 accepted-closeout evidence.
 - [x] The reviewer receives backend auth/session and CSRF/Origin test evidence from Round 1.
 - [x] Any Phase 7 residue intentionally left behind is listed as a deferral, not hidden as Phase 6 completion.

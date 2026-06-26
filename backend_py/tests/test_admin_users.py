@@ -7,7 +7,12 @@ from fastapi import FastAPI
 from app.api.admin_users import router as admin_users_router
 from app.api.frameworks import router as frameworks_router
 from app.api.users import router as users_router
-from app.auth import ARGON2ID_PREFIX, create_access_token, hash_password
+from app.auth import (
+    ACCESS_COOKIE_NAME,
+    ARGON2ID_PREFIX,
+    create_access_token,
+    hash_password,
+)
 from app.db import get_db
 from app.models import Artefact, Framework, User
 
@@ -17,7 +22,7 @@ BASE_TIME = datetime(2026, 1, 1, 12, 0, 0)
 
 def auth_headers(user_id: str) -> dict[str, str]:
     token = create_access_token({"sub": user_id})
-    return {"Authorization": f"Bearer {token}"}
+    return {"Cookie": f"{ACCESS_COOKIE_NAME}={token}"}
 
 
 def make_user(

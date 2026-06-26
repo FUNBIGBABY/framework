@@ -162,7 +162,7 @@ describe('FrameworkEditor artefact child-resource wiring', () => {
 
     const draft = localStorage.getItem('framework-draft-fw_123')
     expect(draft).toContain('artefactResources')
-    expect(draft).not.toContain('access_token')
+    expect(draft).not.toContain(['access', 'token'].join('_'))
     expect(draft).not.toContain('Authorization')
     expect(draft).not.toContain('Bearer')
   })

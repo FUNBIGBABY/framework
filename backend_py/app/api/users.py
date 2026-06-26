@@ -76,8 +76,6 @@ class UserResponse(BaseModel):
 class AuthResponse(BaseModel):
     success: bool
     message: str
-    access_token: str
-    token_type: str = "bearer"
     user: UserResponse
 
 
@@ -196,7 +194,6 @@ def _issue_auth_response(
     return AuthResponse(
         success=True,
         message=message,
-        access_token=access_token,
         user=_user_response(user),
     )
 
@@ -229,7 +226,11 @@ def _user_from_refresh_cookie(request: Request, db: Session) -> User:
 @router.post(
     "/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED
 )
-def register_user(request: UserRegisterRequest, db: Session = Depends(get_db)):
+def register_user(
+    request: UserRegisterRequest,
+    response: Response,
+    db: Session = Depends(get_db),
+):
     """
     User registration
 
@@ -240,9 +241,7 @@ def register_user(request: UserRegisterRequest, db: Session = Depends(get_db)):
     - Username: 3–30 characters, can only contain letters, numbers, hyphens, underscores
     - Password: at least 6 characters
 
-    **Returns:**
-    - access_token: JWT token (used for subsequent API calls)
-    - user: basic user info
+    **Returns:** Basic user info and sets the browser auth cookies.
     """
 
     normalized_email = str(request.email).strip().lower()
@@ -285,20 +284,10 @@ def register_user(request: UserRegisterRequest, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(new_user)
 
-    # Generate JWT token
-    access_token = create_access_token(
-        data={
-            "sub": new_user.id,
-            "email": new_user.email,
-            "username": new_user.username,
-        }
-    )
-
-    return AuthResponse(
-        success=True,
+    return _issue_auth_response(
+        response=response,
+        user=new_user,
         message="User registered successfully",
-        access_token=access_token,
-        user=_user_response(new_user),
     )
 
 
@@ -311,15 +300,13 @@ def login_user(
     """
     User login
 
-    Validate user credentials and return a JWT token
+    Validate user credentials and set the browser auth cookies.
 
     **Parameters:**
     - email: email used during registration
     - password: password
 
-    **Returns:**
-    - access_token: temporary bearer compatibility token (valid for 1 hour)
-    - user: basic user info
+    **Returns:** Basic user info.
     """
 
     # Find user
@@ -361,7 +348,7 @@ def get_current_user_info(current_user: User = Depends(get_current_user)):
     """
     Get current logged-in user's information
 
-    **Requires Authentication:** A valid access cookie or temporary bearer token
+    **Requires Authentication:** A valid access cookie
 
     **Returns:** Basic information of the current user
     """

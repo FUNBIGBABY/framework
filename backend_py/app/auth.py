@@ -16,7 +16,6 @@ from argon2 import PasswordHasher
 from argon2.exceptions import InvalidHashError, VerificationError, VerifyMismatchError
 from argon2.low_level import Type
 from fastapi import Depends, HTTPException, Request, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 
@@ -36,10 +35,6 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 REFRESH_TOKEN_EXPIRE_DAYS = 30
 ACCESS_COOKIE_NAME = "access_token"
 REFRESH_COOKIE_NAME = "refresh_token"
-
-# Temporary HTTP Bearer compatibility remains for Phase 6 transition tests.
-# Frontend Phase 6 closeout is blocked until active bearer/localStorage paths are gone.
-security = HTTPBearer(auto_error=False)
 
 # Argon2id password hashing
 password_hasher = PasswordHasher(type=Type.ID)
@@ -161,7 +156,6 @@ def _decode_token_payload(token: str) -> dict:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
-            headers={"WWW-Authenticate": "Bearer"},
         )
 
 
@@ -176,7 +170,6 @@ def decode_access_token(token: str) -> dict:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid access token",
-            headers={"WWW-Authenticate": "Bearer"},
         )
     return payload
 
@@ -188,7 +181,6 @@ def decode_refresh_token(token: str) -> dict:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid refresh token",
-            headers={"WWW-Authenticate": "Bearer"},
         )
     return payload
 
@@ -196,21 +188,14 @@ def decode_refresh_token(token: str) -> dict:
 # ============= Dependency Injection - Get Current User =============
 
 
-def _extract_access_token(
-    request: Request,
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
-) -> str:
+def _extract_access_token(request: Request) -> str:
     cookie_token = request.cookies.get(ACCESS_COOKIE_NAME)
     if cookie_token:
         return cookie_token
 
-    if credentials and credentials.credentials:
-        return credentials.credentials
-
     raise HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Not authenticated",
-        headers={"WWW-Authenticate": "Bearer"},
     )
 
 
@@ -283,27 +268,17 @@ def get_current_user(
 # ============= Optional Authentication (for mixed public/private endpoints) =============
 
 
-def get_optional_user_id(
-    request: Request,
-    credentials: Optional[HTTPAuthorizationCredentials] = Depends(
-        HTTPBearer(auto_error=False)
-    ),
-) -> Optional[str]:
+def get_optional_user_id(request: Request) -> Optional[str]:
     """
     Optional user authentication
 
-    If a valid token is provided, return user ID; otherwise return None.
+    If a valid access cookie is provided, return user ID; otherwise return None.
     Used for endpoints that support both public and private access.
-
-    Args:
-        credentials: optional HTTP Bearer token
 
     Returns:
         User ID or None
     """
     token = request.cookies.get(ACCESS_COOKIE_NAME)
-    if not token and credentials:
-        token = credentials.credentials
 
     if not token:
         return None

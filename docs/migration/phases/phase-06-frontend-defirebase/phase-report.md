@@ -1,27 +1,27 @@
-# Phase 06 Round 0/1/2/3/4/5 Report - Frontend de-Firebase
+# Phase 06 Round 0/1/2/3/4/5/6 Report - Frontend de-Firebase
 
-Round 0/1/2/3/4/5 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 2 core framework REST wiring, Round 2 review repairs, Round 3 Library plus publish/unpublish REST wiring, Round 4 Admin users REST wiring, and Round 5 artefact child-resource UI wiring have been implemented with static scan, lint, unit-test, and build verification. No Round 2, Round 3, Round 4, or Round 5 browser smoke test has been run. Phase 6 is not complete; Round 6 remains open.
+Round 0/1/2/3/4/5/6 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 2 core framework REST wiring, Round 2 review repairs, Round 3 Library plus publish/unpublish REST wiring, Round 4 Admin users REST wiring, Round 5 artefact child-resource UI wiring, and Round 6 Firebase SDK removal/Bearer closeout have been implemented with static scan, lint, unit-test, backend-test, and build verification. Browser smoke could not run because the local Docker/Postgres service is unavailable. Phase 6 is not marked complete; Round 6 is implemented, pending Migration Reviewer closeout acceptance.
 
 ## Status
 
-This report is now the Round 0/1/2/3/4/5 implementation and review-repair record. Earlier planning-only wording has been superseded; full Phase 6 remains incomplete until Round 6 and reviewer closeout pass.
+This report is now the Round 0/1/2/3/4/5/6 implementation and review-repair record. Earlier planning-only wording has been superseded; full Phase 6 remains incomplete until Migration Reviewer closeout acceptance.
 
 Current Phase 6 status:
 
 - Planning package created: `checklist.md`, `phase-plan.md`, `verification.md`, and this `phase-report.md`.
 - Canonical auth route decision recorded: Phase 6 uses only the `/api/users/*` auth route family.
-- Round 0, Round 1, Round 2, Round 3, Round 4, and Round 5 implementation is complete with recorded static scan, lint, test, and build verification.
+- Round 0, Round 1, Round 2, Round 3, Round 4, Round 5, and Round 6 implementation is complete with recorded static scan, lint, test, backend-test, and build verification.
 - Current repair passes fix the Round 2 update payload, route-gate, tenant-modal, and verification wording review findings.
 - Round 1 repaired backend cookie-session support because the Phase 1 token strategy debt was still present.
-- Protected backend endpoints now reject refresh JWTs on both access-cookie and temporary Bearer paths.
+- Protected backend endpoints now read only the access cookie; Bearer compatibility has been removed and Bearer credentials are rejected.
 - Shared frontend API requests now attempt one `/api/users/refresh` on normal expired-access `401` responses, then retry the original request once.
 - CSRF/Origin/Referer verification requirements are explicit.
 - Phase 5 final review accepted the closeout; Phase 6 planning may proceed.
-- Phase 6 is not complete; Round 6 remains open.
+- Phase 6 is not complete; Round 6 is implemented, pending Migration Reviewer closeout acceptance.
 
 ## Earlier Round 2 Review Repair Scope
 
-This historical repair fixed only the remaining Round 2 review findings. Rounds 3, 4, and 5 are now implemented; Round 6 and reviewer closeout remain open, so this report does not mark Phase 6 complete.
+This historical repair fixed only the remaining Round 2 review findings. Rounds 3, 4, 5, and 6 are now implemented; reviewer closeout remains open, so this report does not mark Phase 6 complete.
 
 Frontend files changed by this repair:
 
@@ -65,7 +65,7 @@ Firebase-importing frontend files remain outside the Round 1 auth shell and are 
 - Remove or isolate in Round 6 only after active imports are gone: `frontend/src/lib/firebase.js`.
 - Phase 7 semantic residue, to remove or isolate only as needed for SDK uninstall: `frontend/src/migrate-data.js`, `frontend/src/utils/cleanupData.js`, `frontend/src/utils/updateFrameworkTenants.js`, `frontend/src/components/InviteAccept.jsx`, `frontend/src/components/TenantCreationModal.jsx`, `frontend/src/components/TenantSettings.jsx`, `frontend/src/components/YourOrganization.jsx`.
 
-Package inventory: `frontend/package.json` and `frontend/package-lock.json` still include `firebase`. This is intentionally deferred to Round 6 because Rounds 2-5 still own active Firebase import rewrites.
+Round 0 package inventory: `frontend/package.json` and `frontend/package-lock.json` still included `firebase`. That package removal was intentionally deferred until Round 6 because Rounds 2-5 still owned active Firebase import rewrites.
 
 Post-change exact identity-token scans for `frontend/src` found no `access_token`, `Authorization: Bearer`, `getAuthToken`, `user_id`, `creator_id`, `tenant_id`, `X-Tenant-ID`, or `getFirebaseUserId` matches. Camel-case tenant/domain route residue such as `tenantId`, invite, migration, and Valorie wording remains a Phase 7 deferral unless Round 6 must isolate it to remove the SDK.
 
@@ -75,7 +75,7 @@ Round 1 implemented the cookie-session strategy and active auth foundation only.
 
 Backend changes:
 
-- `backend_py/app/auth.py` now creates 1-hour access tokens by default, creates 30-day refresh tokens, requires `typ: "access"` for protected endpoint auth, requires `typ: "refresh"` for refresh-token decoding, and reads the access token from the `access_token` httpOnly cookie before falling back to temporary bearer compatibility.
+- `backend_py/app/auth.py` now creates 1-hour access tokens by default, creates 30-day refresh tokens, requires `typ: "access"` for protected endpoint auth, requires `typ: "refresh"` for refresh-token decoding, and reads the access token from the `access_token` httpOnly cookie. Round 6 removed the temporary Bearer fallback.
 - `backend_py/app/api/users.py` now sets `access_token` and `refresh_token` httpOnly cookies on login/refresh, uses `SameSite=Lax`, uses `Secure` when `ENV`/`APP_ENV` is production or `AUTH_COOKIE_SECURE=true`, exposes `POST /api/users/refresh`, and clears cookies on `POST /api/users/logout`.
 - `backend_py/app/models.py` and Alembic revision `0004_phase6_refresh_session_version` add `users.refresh_token_version`, allowing logout to revoke already-issued refresh cookies by version.
 - `backend_py/main.py` adds `CookieCSRFMiddleware`, which enforces Origin/Referer checks on unsafe methods when auth cookies are present.
@@ -89,7 +89,7 @@ Frontend changes:
 - `frontend/src/components/Navbar.jsx` no longer imports Firebase for super-admin or member-count checks. It uses the backend `is_super_admin` response as display convenience only; backend admin routes remain the authority.
 - `frontend/src/lib/api.test.js` covers the shared API-client refresh retry behavior, 403 non-refresh behavior, refresh-endpoint retry guard, and failed-refresh retry stop.
 
-Temporary bearer compatibility remains only in the backend dependency layer for existing tests and transitional clients. It cannot satisfy Phase 6 closeout. Removal gate: after Round 6 removes remaining transitional clients/tests from that path, remove the `HTTPBearer` fallback in `backend_py/app/auth.py`, and stop returning `access_token` as a frontend contract.
+Temporary bearer compatibility remained only in the backend dependency layer after Round 1. Round 6 removed the `HTTPBearer` fallback in `backend_py/app/auth.py` and stopped returning `access_token` as a frontend contract.
 
 ## Round 1 Files Changed
 
@@ -121,7 +121,7 @@ Temporary bearer compatibility remains only in the backend dependency layer for 
 
 ## Round 2 Scope
 
-Round 2 implements core owner framework and generation REST wiring only. It does not complete Phase 6; Rounds 3-6 remain open.
+Round 2 implemented core owner framework and generation REST wiring only. At that time it did not complete Phase 6, and Rounds 3-6 remained open.
 
 Frontend files changed:
 
@@ -234,7 +234,7 @@ Backend files were not changed in Round 3.
 
 ## Round 4 Scope
 
-Round 4 implemented Admin users REST wiring only. It did not complete Phase 6; Round 5 is now implemented and Round 6 remains open.
+Round 4 implemented Admin users REST wiring only. At that time it did not complete Phase 6; Round 5 and Round 6 were still pending.
 
 Frontend files changed:
 
@@ -277,10 +277,10 @@ Backend files were not changed in Round 4.
 
 ## Round 4 Reviewer Attention
 
-- Tenant/invite components and Firebase SDK/package removal are intentionally still open for Round 6 and Phase 7.
+- Tenant/invite components and Firebase SDK/package removal were intentionally left for Round 6 and Phase 7; Round 6 isolated the SDK-dependent residue while leaving semantics to Phase 7.
 - `AdminPanel.jsx` is now rewired to the accepted Phase 5 backend admin REST contract.
 - The domain-policy note is intentionally non-functional because no accepted Phase 5 whitelist-domain endpoint exists.
-- Backend temporary Bearer compatibility remains the Phase 6 closeout blocker already documented from Round 1.
+- Backend temporary Bearer compatibility was the Phase 6 closeout blocker documented from Round 1 and was removed in Round 6.
 - No browser smoke test was run in Round 2, Round 3, or Round 4; verification is static scans plus frontend lint/tests/build. Owner-flow, public-library, and admin browser behavior remain unchecked in `verification.md`.
 
 ## Round 5 Scope
@@ -333,8 +333,86 @@ Backend files were not changed in Round 5.
 
 - Artefact UI is now wired to the accepted Phase 5 child-resource contract, with API and editor tests for list/create/get/update/delete mapping, 403/404 handling, and local draft storage.
 - Historical embedded artefacts remain a read-only fallback only; no synchronization into child rows was added.
-- Backend temporary Bearer compatibility remains the Phase 6 closeout blocker from Round 1.
+- Backend temporary Bearer compatibility remained the Phase 6 closeout blocker from Round 1 and was removed in Round 6.
 - No browser smoke test was run for Round 5. Verification is static scans, focused tests, full frontend tests, lint, build, and `git diff --check`.
+
+## Round 6 Scope
+
+Round 6 removed the frontend Firebase SDK runtime dependency, isolated remaining Firebase-dependent Phase 7 residue, removed frontend/container Firebase env hooks, and closed the backend Bearer compatibility gate. It does not mark Phase 6 complete; status is: Round 6 implemented, pending Migration Reviewer closeout acceptance.
+
+Frontend files removed:
+
+- `frontend/src/lib/firebase.js`
+
+Frontend files isolated as technical Phase 6 SDK-removal placeholders:
+
+- `frontend/src/migrate-data.js`
+- `frontend/src/utils/cleanupData.js`
+- `frontend/src/utils/updateFrameworkTenants.js`
+- `frontend/src/utils/DataCleanupButton.jsx`
+- `frontend/src/components/MigrationTool.jsx`
+- `frontend/src/components/InviteAccept.jsx`
+- `frontend/src/components/TenantCreationModal.jsx`
+- `frontend/src/components/TenantSettings.jsx`
+- `frontend/src/components/YourOrganization.jsx`
+
+These files were isolated only because they imported the Firebase SDK or depended on Firebase-backed helper modules. Their tenant, invite, organization, domain, and historical migration semantics remain Phase 7 or later deferrals.
+
+Frontend/package/container cleanup:
+
+- Removed `firebase` from `frontend/package.json` with `npm uninstall firebase --ignore-scripts --no-audit --fund=false`.
+- Updated `frontend/package-lock.json` through the same uninstall workflow.
+- Removed the stray root `firebase` dependency from `package.json` with `npm pkg delete dependencies.firebase`.
+- Updated root `package-lock.json` with `npm install --package-lock-only --ignore-scripts --no-audit --fund=false --offline` after a normal root uninstall attempted a blocked registry fetch for unrelated `redux`.
+- Removed frontend Firebase build args/env injection from `Dockerfile` and `docker-compose.yml`.
+
+Backend Bearer closeout:
+
+- `backend_py/app/auth.py` no longer imports or depends on `HTTPBearer` / `HTTPAuthorizationCredentials`.
+- Protected endpoint auth now extracts the access JWT only from the `access_token` cookie.
+- Optional auth now reads only the access cookie.
+- `backend_py/app/api/users.py` no longer returns `access_token` or `token_type` fields from login, refresh, or enabled registration responses.
+- Backend tests now authenticate protected test traffic through the access cookie and include negative Bearer checks in `test_cookie_sessions.py`.
+
+Round 6 backend test files changed:
+
+- `backend_py/tests/test_cookie_sessions.py`
+- `backend_py/tests/test_admin_users.py`
+- `backend_py/tests/test_auth_hardening.py`
+- `backend_py/tests/test_framework_artefacts.py`
+- `backend_py/tests/test_framework_owner_crud.py`
+- `backend_py/tests/test_framework_publish_public.py`
+- `backend_py/tests/test_generation_persistence.py`
+
+Round 6 verification:
+
+- Required Firebase SDK, Firebase helper, Firestore API, Firebase env, package dependency, and frontend bearer/localStorage scans returned no matches.
+- Frontend lint passed.
+- Frontend tests passed on escalated rerun after the sandboxed Vitest config-read failure: 10 files, 49 tests.
+- Frontend production build passed on escalated rerun after the sandboxed Vite config-read failure; build output has no Firebase string matches.
+- Backend compileall passed.
+- Focused backend auth/session/REST tests passed: 73 tests.
+- Full backend tests passed: 117 tests.
+
+Browser smoke:
+
+- Browser smoke was not run. `docker compose ps` failed because Docker Desktop's Linux engine pipe was unavailable: `open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file specified`.
+- The backend requires `DATABASE_URL` at import time, and the app models/Alembic migrations use PostgreSQL JSONB and pgvector types, so SQLite is not a faithful local fallback.
+- No live Postgres service and seeded admin credentials were available in this environment. Do not claim Phase 6 closeout-ready on browser evidence until a local DB/server smoke session is run.
+
+## Round 6 Boundaries Honored
+
+- Did not perform Phase 7 semantic cleanup of tenant, organization, invite, domain, migration, or Valorie residue.
+- Did not redesign tenants, organizations, workspaces, invites, or sharing.
+- Did not add public registration, anonymous library access, Firebase ID token compatibility, Firebase Auth, Firestore, or a new Firebase project.
+- Did not add Chat UI, Agent loop, RAG, LLMWiki, MCP marketplace, tool registry, or embedding work.
+- Did not perform historical artefact backfill or embedded artefact synchronization.
+
+## Round 6 Reviewer Attention
+
+- Round 6 implementation is complete, but Phase 6 is not accepted until Migration Reviewer closeout acceptance.
+- Browser smoke remains the main reviewer attention point because it was blocked by local Docker/Postgres unavailability, not by a known app assertion failure.
+- Phase 7 should own semantic removal or redesign of the isolated tenant/invite/organization/migration route shells.
 
 ## Round 2 Review Repairs Addressed
 
@@ -352,7 +430,7 @@ Backend files were not changed in Round 5.
 - Round 2 verification now distinguishes static scans, lint, unit tests, and build from browser smoke tests.
 - No browser smoke test was run for Round 2, and the docs now say so in the status, reviewer attention, verification section, and browser checklist.
 - Focused REST UI behavior tests remain unchecked until implemented.
-- Phase 6 remains incomplete; Round 6 and reviewer closeout remain open.
+- Phase 6 remains incomplete until Migration Reviewer closeout acceptance.
 
 ## Round 2 Remaining Review Repairs Addressed
 
@@ -368,7 +446,7 @@ Backend files were not changed in Round 5.
 
 - `checklist.md` and `verification.md` now scope exact identity-field scan claims to active Round 2 production files.
 - Test files may contain exact identity strings only as intentional negative assertions.
-- The full Phase 6 completion state remains unchanged: Phase 6 is not complete, and Round 6 remains open after Round 5.
+- The full Phase 6 completion state remains unchanged: Phase 6 is not complete until Migration Reviewer closeout acceptance.
 
 ## Scope
 
@@ -419,8 +497,8 @@ The Round 0/1 implementation now establishes:
 - The frontend restore flow uses `/api/users/me` from cookie auth.
 - Expired access uses `POST /api/users/refresh`, including normal shared API-client `401` retry.
 - Logout uses `POST /api/users/logout`.
-- Temporary Bearer compatibility, if retained during transition, must have a documented removal gate and cannot satisfy Phase 6 closeout.
-- Temporary Bearer compatibility cannot accept refresh JWTs as protected endpoint credentials.
+- Temporary Bearer compatibility had a documented removal gate and could not satisfy Phase 6 closeout.
+- Round 6 removed Bearer compatibility; protected endpoint credentials now come only from the access cookie.
 - Unsafe cookie-authenticated methods require explicit CSRF/Origin/Referer protection and tests.
 - Phase 6 implementation can proceed from the accepted Phase 5 REST surfaces without reopening Phase 5 implementation.
 
@@ -452,7 +530,7 @@ The Round 0/1 implementation now establishes:
 
 - Protected endpoint auth now accepts only JWTs with `typ: "access"`.
 - `decode_refresh_token` continues to require `typ: "refresh"`.
-- Backend tests prove refresh tokens fail through both access-cookie and temporary Bearer protected endpoint paths, access tokens still work, and `/api/users/refresh` accepts only refresh tokens.
+- Backend tests prove refresh tokens fail through the access-cookie protected endpoint path, Bearer credentials are rejected, access cookies still work, and `/api/users/refresh` accepts only refresh tokens.
 
 2. P2 frontend refresh only worked during initial session restore:
 
@@ -464,12 +542,12 @@ The Round 0/1 implementation now establishes:
 3. P3 stale planning-only report wording:
 
 - This report now states that Round 0/1 implementation has happened and is under review repair.
-- Phase 6 remains explicitly not complete, with Round 6 and Phase 7 deferrals still open after the Round 5 implementation.
+- Phase 6 remains explicitly not complete until Migration Reviewer closeout acceptance; Phase 7 semantic deferrals remain open after Round 6.
 
 ## Open Risks
 
 - Phase 5 acceptance documentation has been corrected in the Phase 5 closeout docs; Phase 6 may proceed from the accepted Phase 5 REST surfaces without reopening Phase 5 implementation.
-- Temporary backend Bearer compatibility remains for transitional clients and tests; it is blocked from satisfying Phase 6 closeout and now rejects refresh JWTs.
+- Temporary backend Bearer compatibility has been removed; the remaining closeout risk is browser smoke coverage blocked by local Docker/Postgres unavailability.
 - CSRF policy is currently Origin/Referer based with SameSite=None clamped to Lax; if SameSite=None is later allowed, stronger CSRF protection such as double-submit token must be added and tested.
 - Some Firebase-importing files are also Phase 7 residue. Phase 6 may isolate or delete them only to remove active Firebase dependency.
 - The old whitelist-domain admin controls are removed from active Round 4 behavior; real domain/allowlist semantics remain outside Phase 6 unless a later accepted backend contract adds them.
@@ -477,4 +555,4 @@ The Round 0/1 implementation now establishes:
 
 ## Completion Note
 
-Phase 6 is not complete. This report records Round 0/1/2/3/4/5 implementation and current review repairs; Round 6, Firebase SDK removal, and reviewer closeout remain open.
+Phase 6 is not complete. This report records Round 0/1/2/3/4/5/6 implementation and current review repairs. Round 6 is implemented, pending Migration Reviewer closeout acceptance.

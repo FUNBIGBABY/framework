@@ -5,7 +5,7 @@ import pytest
 from fastapi import FastAPI
 
 from app.api.frameworks import router as frameworks_router
-from app.auth import create_access_token
+from app.auth import ACCESS_COOKIE_NAME, create_access_token
 from app.db import get_db
 from app.models import Framework, User
 
@@ -15,7 +15,7 @@ BASE_TIME = datetime(2026, 1, 1, 12, 0, 0)
 
 def auth_headers(user_id: str) -> dict[str, str]:
     token = create_access_token({"sub": user_id})
-    return {"Authorization": f"Bearer {token}"}
+    return {"Cookie": f"{ACCESS_COOKIE_NAME}={token}"}
 
 
 def make_framework(

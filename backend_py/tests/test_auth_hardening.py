@@ -6,7 +6,7 @@ import httpx
 import pytest
 from fastapi import FastAPI
 
-from app.auth import create_access_token
+from app.auth import ACCESS_COOKIE_NAME, create_access_token
 from app.api.frameworks import router as frameworks_router
 from app.api.materials import router as materials_router
 from app.api.users import router as users_router
@@ -69,7 +69,7 @@ def assert_auth_required(response):
 
 def auth_headers():
     token = create_access_token({"sub": "user_auth_hardening"})
-    return {"Authorization": f"Bearer {token}"}
+    return {"Cookie": f"{ACCESS_COOKIE_NAME}={token}"}
 
 
 MINIMAL_FRAMEWORK = {
