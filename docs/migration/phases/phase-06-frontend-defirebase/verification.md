@@ -1,13 +1,15 @@
 # Phase 06 Verification - Frontend de-Firebase
 
-Round 0/1/2/3/4/5/6 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 0/1 reviewer repairs, Round 2 core framework REST wiring, Round 2 review repairs, Round 3 Library plus publish/unpublish REST wiring, Round 4 Admin users REST wiring, Round 5 artefact child-resource UI wiring, and Round 6 Firebase SDK removal/Bearer closeout have static scan, lint, unit-test, backend-test, and build verification. Browser smoke could not run because the local Docker/Postgres service is unavailable. Phase 6 is not complete; Round 6 is implemented, pending Migration Reviewer closeout acceptance.
+Round 0/1/2/3/4/5/6 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 0/1 reviewer repairs, Round 2 core framework REST wiring, Round 2 review repairs, Round 3 Library plus publish/unpublish REST wiring, Round 4 Admin users REST wiring, Round 5 artefact child-resource UI wiring, and Round 6 Firebase SDK removal/Bearer closeout have static scan, lint, unit-test, backend-test, and build verification. Phase 6 closeout was accepted by Migration Reviewer with browser smoke deferred because Docker/Postgres/seeded local environment was unavailable. Round 6 closeout was committed and pushed as `27679f8 Complete Phase 6 frontend de-Firebase closeout`.
 
 ## Verification Principles
 
 - Record exact commands and outputs after each implementation round.
 - Keep evidence scoped to frontend de-Firebase work.
 - Do not use this document as code review.
-- Do not mark Phase 6 complete until Round 6 passes and a reviewer accepts it.
+- Phase 6 closeout acceptance is recorded after Migration Reviewer accepted Round 6.
+- Browser smoke remains deferred because Docker/Postgres/seeded local environment was unavailable; this verification record does not claim browser smoke was run.
+- Round 6 closeout commit: `27679f8 Complete Phase 6 frontend de-Firebase closeout`.
 - Round 1 owns the narrow backend cookie-session repair if support is absent or incomplete. Record backend commands/results separately and do not preserve Bearer/localStorage as the Phase 6 path.
 - Phase 6 uses only the `/api/users/*` auth route family: `POST /api/users/login`, `GET /api/users/me`, `POST /api/users/refresh`, and `POST /api/users/logout`.
 - Before Phase 6 implementation is merged, verification must record that Phase 5 final review accepted the closeout, the staged package was committed and pushed, and Phase 6 planning may proceed.
@@ -1479,7 +1481,7 @@ Current result: Round 5 code wiring is implemented and covered by focused static
 
 ## Round 6 Verification - Firebase SDK Removal + Closeout
 
-Status: Round 6 implemented, pending Migration Reviewer closeout acceptance. Browser smoke could not run because the local Docker/Postgres service is unavailable; do not claim Phase 6 closeout-ready from browser evidence.
+Status: Phase 6 closeout accepted by Migration Reviewer after Round 6. Browser smoke could not run because the local Docker/Postgres service is unavailable; do not claim browser-smoke coverage from this evidence.
 
 ### Round 6 Package Removal
 

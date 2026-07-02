@@ -1,6 +1,13 @@
 # Phase 06 Checklist - Frontend de-Firebase
 
-Round 0/1/2/3/4/5/6 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 0/1 review repairs, Round 2 core framework REST wiring, Round 2 review repairs, Round 3 Library plus publish/unpublish REST wiring, Round 4 Admin users REST wiring, Round 5 artefact child-resource UI wiring, and Round 6 Firebase SDK removal/Bearer closeout are implemented with static scan, lint, unit-test, backend-test, and build verification. Browser smoke could not run because the local Docker/Postgres service is unavailable. Do not mark Phase 6 complete from this document; Round 6 is implemented, pending Migration Reviewer closeout acceptance.
+Round 0/1/2/3/4/5/6 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 0/1 review repairs, Round 2 core framework REST wiring, Round 2 review repairs, Round 3 Library plus publish/unpublish REST wiring, Round 4 Admin users REST wiring, Round 5 artefact child-resource UI wiring, and Round 6 Firebase SDK removal/Bearer closeout are implemented with static scan, lint, unit-test, backend-test, and build verification. Phase 6 closeout was accepted by Migration Reviewer with browser smoke deferred because Docker/Postgres/seeded local environment was unavailable. Round 6 closeout was committed and pushed as `27679f8 Complete Phase 6 frontend de-Firebase closeout`.
+
+## Closeout Status
+
+- [x] Phase 6 closeout accepted by Migration Reviewer.
+- [x] Acceptance recorded with browser smoke deferred due to unavailable Docker/Postgres/seeded local environment.
+- [x] Round 6 closeout commit recorded: `27679f8 Complete Phase 6 frontend de-Firebase closeout`.
+- [x] Browser smoke is not claimed as run.
 
 ## Required Context
 
@@ -198,7 +205,7 @@ Acceptance criteria:
 - [x] `rg -n "\"firebase\"|node_modules/firebase" frontend/package.json frontend/package-lock.json` has no dependency matches.
 - [x] `rg -n "VITE_FIREBASE|FIREBASE_" frontend` has no active runtime matches.
 - [x] Frontend build output contains no Firebase chunk.
-- [x] Phase 6 remains not marked complete until reviewer acceptance.
+- [x] Phase 6 closeout acceptance is recorded only after Migration Reviewer accepted Round 6.
 
 ## Explicit Non-Goals
 
@@ -229,7 +236,7 @@ Acceptance criteria:
 
 ## Bearer/localStorage Compatibility Removal Gate
 
-This gate no longer blocks Round 6 implementation. Migration Reviewer closeout acceptance is still required before Phase 6 is marked complete.
+This gate no longer blocks Round 6 implementation. Migration Reviewer closeout acceptance has been recorded in this checklist after Round 6 closeout.
 
 - [x] `/api/users/login` establishes the browser session without requiring frontend token persistence.
 - [x] `/api/users/me` restores the current user from the cookie on page refresh.
@@ -273,4 +280,4 @@ This gate no longer blocks Round 6 implementation. Migration Reviewer closeout a
 - [x] The reviewer receives Phase 5 accepted-closeout evidence.
 - [x] The reviewer receives backend auth/session and CSRF/Origin test evidence from Round 1.
 - [x] Any Phase 7 residue intentionally left behind is listed as a deferral, not hidden as Phase 6 completion.
-- [x] Phase 6 is not marked complete until reviewer acceptance.
+- [x] Phase 6 closeout acceptance is recorded in the Phase 6 docs after reviewer acceptance.

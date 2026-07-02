@@ -411,7 +411,9 @@
 - `backend_py/tests/` 保留作为 pytest 目录，Phase 8 起逐步补真测试。
 
 ### 验收
-- `grep -rE "valorie\.ai|framework-builder-55896|webmaster@valorie|UNSW|ad\.unsw" .` 命中 0。
+- 活跃表面（runtime source、config、deploy scripts、当前 README/用户文档、active tests）对 `valorie\.ai|framework-builder-55896|webmaster@valorie|UNSW|ad\.unsw` 必须 0 命中；active tests 只有显式 allowlist 的安全/负向断言测试可以例外。
+- `docs/migration/phases/**` 下的历史迁移记录可以保留这些 legacy 字符串，但必须显式 allowlist，并记录在 Phase 7 `phase-report.md` 和 `verification.md`。
+- allowlist 不得掩盖 runtime source、config、deploy scripts、当前 README/用户文档或 active tests 中的残留。
 - `frontend/src/migrate-data.js` 不存在。
 - 前端构建产物中无 firebase chunk。
 
@@ -760,6 +762,5 @@
 7. 个人自用边界提到 Phase 0 就锁死（白名单 + 不开放注册），并在 Phase 13 收尾合规。
 8. 新增 LLMWiki：项目定位从普通 RAG Chat 升级为“个人 AI Agent + LLMWiki 知识编译层 + RAG 证据检索层”。
 9. 新增 Tool Registry / Skill Registry / MCP-compatible adapter：MVP 先做内部工具和技能编排，MCP 作为 read-only 可选兼容层。
-
 
 

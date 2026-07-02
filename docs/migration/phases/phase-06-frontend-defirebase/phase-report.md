@@ -1,27 +1,30 @@
 # Phase 06 Round 0/1/2/3/4/5/6 Report - Frontend de-Firebase
 
-Round 0/1/2/3/4/5/6 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 2 core framework REST wiring, Round 2 review repairs, Round 3 Library plus publish/unpublish REST wiring, Round 4 Admin users REST wiring, Round 5 artefact child-resource UI wiring, and Round 6 Firebase SDK removal/Bearer closeout have been implemented with static scan, lint, unit-test, backend-test, and build verification. Browser smoke could not run because the local Docker/Postgres service is unavailable. Phase 6 is not marked complete; Round 6 is implemented, pending Migration Reviewer closeout acceptance.
+Round 0/1/2/3/4/5/6 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 2 core framework REST wiring, Round 2 review repairs, Round 3 Library plus publish/unpublish REST wiring, Round 4 Admin users REST wiring, Round 5 artefact child-resource UI wiring, and Round 6 Firebase SDK removal/Bearer closeout have been implemented with static scan, lint, unit-test, backend-test, and build verification. Phase 6 closeout was accepted by Migration Reviewer with browser smoke deferred because Docker/Postgres/seeded local environment was unavailable. Round 6 closeout was committed and pushed as `27679f8 Complete Phase 6 frontend de-Firebase closeout`.
 
 ## Status
 
-This report is now the Round 0/1/2/3/4/5/6 implementation and review-repair record. Earlier planning-only wording has been superseded; full Phase 6 remains incomplete until Migration Reviewer closeout acceptance.
+This report is now the Round 0/1/2/3/4/5/6 implementation and review-repair record. Earlier planning-only wording has been superseded; Phase 6 closeout acceptance is recorded here after Migration Reviewer accepted Round 6.
 
 Current Phase 6 status:
 
 - Planning package created: `checklist.md`, `phase-plan.md`, `verification.md`, and this `phase-report.md`.
 - Canonical auth route decision recorded: Phase 6 uses only the `/api/users/*` auth route family.
 - Round 0, Round 1, Round 2, Round 3, Round 4, Round 5, and Round 6 implementation is complete with recorded static scan, lint, test, backend-test, and build verification.
+- Phase 6 closeout accepted by Migration Reviewer.
+- Browser smoke remains deferred because Docker/Postgres/seeded local environment was unavailable; this report does not claim browser smoke was run.
+- Round 6 closeout commit: `27679f8 Complete Phase 6 frontend de-Firebase closeout`.
 - Current repair passes fix the Round 2 update payload, route-gate, tenant-modal, and verification wording review findings.
 - Round 1 repaired backend cookie-session support because the Phase 1 token strategy debt was still present.
 - Protected backend endpoints now read only the access cookie; Bearer compatibility has been removed and Bearer credentials are rejected.
 - Shared frontend API requests now attempt one `/api/users/refresh` on normal expired-access `401` responses, then retry the original request once.
 - CSRF/Origin/Referer verification requirements are explicit.
 - Phase 5 final review accepted the closeout; Phase 6 planning may proceed.
-- Phase 6 is not complete; Round 6 is implemented, pending Migration Reviewer closeout acceptance.
+- Phase 7 may use the accepted Phase 6 closeout status recorded in this report, `checklist.md`, and `verification.md`.
 
 ## Earlier Round 2 Review Repair Scope
 
-This historical repair fixed only the remaining Round 2 review findings. Rounds 3, 4, 5, and 6 are now implemented; reviewer closeout remains open, so this report does not mark Phase 6 complete.
+This historical repair fixed only the remaining Round 2 review findings. Rounds 3, 4, 5, and 6 are now implemented, and Migration Reviewer accepted the Phase 6 closeout after Round 6.
 
 Frontend files changed by this repair:
 
@@ -338,7 +341,7 @@ Backend files were not changed in Round 5.
 
 ## Round 6 Scope
 
-Round 6 removed the frontend Firebase SDK runtime dependency, isolated remaining Firebase-dependent Phase 7 residue, removed frontend/container Firebase env hooks, and closed the backend Bearer compatibility gate. It does not mark Phase 6 complete; status is: Round 6 implemented, pending Migration Reviewer closeout acceptance.
+Round 6 removed the frontend Firebase SDK runtime dependency, isolated remaining Firebase-dependent Phase 7 residue, removed frontend/container Firebase env hooks, and closed the backend Bearer compatibility gate. Migration Reviewer accepted the Phase 6 closeout with browser smoke deferred because Docker/Postgres/seeded local environment was unavailable. Round 6 closeout commit: `27679f8 Complete Phase 6 frontend de-Firebase closeout`.
 
 Frontend files removed:
 
@@ -410,7 +413,7 @@ Browser smoke:
 
 ## Round 6 Reviewer Attention
 
-- Round 6 implementation is complete, but Phase 6 is not accepted until Migration Reviewer closeout acceptance.
+- Phase 6 closeout was accepted by Migration Reviewer after Round 6.
 - Browser smoke remains the main reviewer attention point because it was blocked by local Docker/Postgres unavailability, not by a known app assertion failure.
 - Phase 7 should own semantic removal or redesign of the isolated tenant/invite/organization/migration route shells.
 
@@ -430,7 +433,7 @@ Browser smoke:
 - Round 2 verification now distinguishes static scans, lint, unit tests, and build from browser smoke tests.
 - No browser smoke test was run for Round 2, and the docs now say so in the status, reviewer attention, verification section, and browser checklist.
 - Focused REST UI behavior tests remain unchecked until implemented.
-- Phase 6 remains incomplete until Migration Reviewer closeout acceptance.
+- Phase 6 closeout acceptance is now recorded in the Phase 6 docs.
 
 ## Round 2 Remaining Review Repairs Addressed
 
@@ -446,7 +449,7 @@ Browser smoke:
 
 - `checklist.md` and `verification.md` now scope exact identity-field scan claims to active Round 2 production files.
 - Test files may contain exact identity strings only as intentional negative assertions.
-- The full Phase 6 completion state remains unchanged: Phase 6 is not complete until Migration Reviewer closeout acceptance.
+- The full Phase 6 closeout state is now updated: Migration Reviewer accepted Phase 6 after Round 6, with browser smoke deferred for environment reasons.
 
 ## Scope
 
@@ -542,7 +545,7 @@ The Round 0/1 implementation now establishes:
 3. P3 stale planning-only report wording:
 
 - This report now states that Round 0/1 implementation has happened and is under review repair.
-- Phase 6 remains explicitly not complete until Migration Reviewer closeout acceptance; Phase 7 semantic deferrals remain open after Round 6.
+- Phase 6 closeout is accepted; Phase 7 semantic deferrals remain open after Round 6.
 
 ## Open Risks
 
@@ -555,4 +558,4 @@ The Round 0/1 implementation now establishes:
 
 ## Completion Note
 
-Phase 6 is not complete. This report records Round 0/1/2/3/4/5/6 implementation and current review repairs. Round 6 is implemented, pending Migration Reviewer closeout acceptance.
+Phase 6 closeout is accepted by Migration Reviewer. This report records Round 0/1/2/3/4/5/6 implementation and current review repairs. Browser smoke remains deferred because Docker/Postgres/seeded local environment was unavailable, and Round 6 closeout was committed and pushed as `27679f8 Complete Phase 6 frontend de-Firebase closeout`.
