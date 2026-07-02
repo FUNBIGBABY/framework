@@ -237,7 +237,7 @@ Backend files were not changed in Round 3.
 
 ## Round 4 Scope
 
-Round 4 implemented Admin users REST wiring only. At that time it did not complete Phase 6; Round 5 and Round 6 were still pending.
+Round 4 implemented Admin users REST wiring only. Historical Round 4 handoff did not complete Phase 6 because Round 5 and Round 6 had not run yet; the current Phase 6 closeout status is accepted by Migration Reviewer after Round 6, with browser smoke deferred because Docker/Postgres/seeded local environment was unavailable.
 
 Frontend files changed:
 
@@ -288,7 +288,7 @@ Backend files were not changed in Round 4.
 
 ## Round 5 Scope
 
-Round 5 implemented artefact child-resource UI wiring only. It does not complete Phase 6; Round 6 Firebase SDK removal and reviewer closeout remain open.
+Round 5 implemented artefact child-resource UI wiring only. Historical Round 5 handoff did not complete Phase 6 because Round 6 and Migration Reviewer acceptance had not happened yet; the current Phase 6 closeout status is accepted by Migration Reviewer after Round 6, with browser smoke deferred because Docker/Postgres/seeded local environment was unavailable.
 
 Frontend files changed:
 
@@ -401,7 +401,7 @@ Browser smoke:
 
 - Browser smoke was not run. `docker compose ps` failed because Docker Desktop's Linux engine pipe was unavailable: `open //./pipe/dockerDesktopLinuxEngine: The system cannot find the file specified`.
 - The backend requires `DATABASE_URL` at import time, and the app models/Alembic migrations use PostgreSQL JSONB and pgvector types, so SQLite is not a faithful local fallback.
-- No live Postgres service and seeded admin credentials were available in this environment. Do not claim Phase 6 closeout-ready on browser evidence until a local DB/server smoke session is run.
+- No live Postgres service and seeded admin credentials were available in this environment. Do not convert the deferred browser-smoke item into a run result until a local DB/server smoke session is actually run.
 
 ## Round 6 Boundaries Honored
 
@@ -545,7 +545,7 @@ The Round 0/1 implementation now establishes:
 3. P3 stale planning-only report wording:
 
 - This report now states that Round 0/1 implementation has happened and is under review repair.
-- Phase 6 closeout is accepted; Phase 7 semantic deferrals remain open after Round 6.
+- Phase 6 closeout is accepted; Phase 7 semantic deferrals continue after Round 6.
 
 ## Open Risks
 

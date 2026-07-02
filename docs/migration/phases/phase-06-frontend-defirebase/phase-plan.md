@@ -1,6 +1,6 @@
 # Phase 06 Plan - Frontend de-Firebase
 
-Planning status: documentation only. This plan does not implement backend or frontend code and does not mark Phase 6 complete.
+Historical planning status: documentation only. This plan did not implement backend or frontend code and did not mark Phase 6 complete when written; the current Phase 6 closeout status is accepted by Migration Reviewer after Round 6, with browser smoke deferred because Docker/Postgres/seeded local environment was unavailable.
 
 ## Recommended Plan
 

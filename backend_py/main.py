@@ -1,3 +1,4 @@
+import os
 import re
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -22,21 +23,66 @@ from app.api.frameworks import router as frameworks_router
 from app.api.users import router as users_router
 
 
-app = FastAPI(title="Valorie Framework Builder API")
+DEFAULT_APP_NAME = "Personal AI Framework Studio"
+APP_NAME = os.getenv("APP_NAME", DEFAULT_APP_NAME).strip() or DEFAULT_APP_NAME
 
-# ================= 🆕 Custom CORS configuration (multi-domain support) =================
-ALLOWED_ORIGINS = [
-    r"^https://expert\.valorie\.ai$",
-    r"^https://[\w-]+\.valorie\.ai$",
+app = FastAPI(title=f"{APP_NAME} API")
+
+# ================= Custom CORS configuration =================
+LOCAL_DEV_ORIGIN_PATTERNS = [
     r"^http://localhost:\d+$",
     r"^http://127\.0\.0\.1:\d+$",
 ]
 
 
+def _split_env_values(raw_value: str | None) -> list[str]:
+    if not raw_value:
+        return []
+    return [value.strip() for value in raw_value.split(",") if value.strip()]
+
+
+def _normalize_origin(raw_origin: str) -> str | None:
+    value = raw_origin.strip().rstrip("/")
+    if not value:
+        return None
+    if "://" not in value:
+        value = f"https://{value}"
+
+    try:
+        parsed = urlsplit(value)
+    except ValueError:
+        return None
+
+    if parsed.scheme not in {"http", "https"} or not parsed.netloc:
+        return None
+    return f"{parsed.scheme}://{parsed.netloc}"
+
+
+def _build_allowed_origin_patterns() -> list[str]:
+    exact_origins: set[str] = set()
+
+    for raw_origin in _split_env_values(os.getenv("FRONTEND_URL")):
+        origin = _normalize_origin(raw_origin)
+        if origin:
+            exact_origins.add(origin)
+
+    for raw_domain in _split_env_values(os.getenv("APP_BASE_DOMAIN")):
+        origin = _normalize_origin(raw_domain)
+        if origin:
+            exact_origins.add(origin)
+
+    patterns = list(LOCAL_DEV_ORIGIN_PATTERNS)
+    patterns.extend(rf"^{re.escape(origin)}$" for origin in sorted(exact_origins))
+    return patterns
+
+
+ALLOWED_ORIGIN_PATTERNS = _build_allowed_origin_patterns()
+
+
 def is_valid_origin(origin: str) -> bool:
     if not origin:
         return False
-    for pattern in ALLOWED_ORIGINS:
+    for pattern in ALLOWED_ORIGIN_PATTERNS:
         if re.match(pattern, origin):
             return True
     return False

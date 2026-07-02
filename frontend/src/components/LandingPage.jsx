@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import { useEffect } from 'react'
+import { APP_INITIAL, APP_NAME } from '../lib/appConfig'
 
 function LandingPage() {
   const navigate = useNavigate()
@@ -22,9 +23,13 @@ function LandingPage() {
             {/* Logo */}
             <div className="flex items-center space-x-3">
               <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                <span className="text-white font-bold text-xl">V</span>
+                <span className="text-white font-bold text-xl">
+                  {APP_INITIAL}
+                </span>
               </div>
-              <span className="text-xl font-bold text-gray-900">Valorie</span>
+              <span className="text-xl font-bold text-gray-900">
+                {APP_NAME}
+              </span>
             </div>
 
             {/* Right side buttons */}
@@ -58,8 +63,8 @@ function LandingPage() {
           {/* Subtitle */}
           <p className="text-xl text-gray-600 mb-10 max-w-3xl mx-auto">
             Transform your documents into structured, actionable frameworks.
-            Valorie helps you create, organize, and share professional
-            frameworks with ease.
+            Build, organize, and refine your private framework library with
+            ease.
           </p>
 
           {/* CTA Buttons */}
@@ -125,11 +130,11 @@ function LandingPage() {
               </svg>
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-3">
-              Team Collaboration
+              Personal Knowledge Library
             </h3>
             <p className="text-gray-600">
-              Create organizations, invite team members, and collaborate on
-              frameworks together. Share knowledge across your organization.
+              Keep generated frameworks organized for repeat use while
+              administrator-managed access keeps the workspace private.
             </p>
           </div>
 
@@ -154,8 +159,8 @@ function LandingPage() {
               Secure & Private
             </h3>
             <p className="text-gray-600">
-              Your frameworks are private by default. Control who can view and
-              edit your content with fine-grained permissions.
+              Your frameworks are private by default. Backend authentication
+              protects access instead of relying on hidden frontend controls.
             </p>
           </div>
         </div>
@@ -203,8 +208,8 @@ function LandingPage() {
                 Edit & Share
               </h3>
               <p className="text-gray-600">
-                Refine your framework and share it with your team or publish to
-                the library
+                Refine your framework and keep polished versions in your
+                authenticated library
               </p>
             </div>
           </div>
@@ -230,7 +235,7 @@ function LandingPage() {
       {/* Footer */}
       <footer className="bg-gray-900 text-gray-400 py-8 mt-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <p>&copy; 2024 Valorie Framework Builder. All rights reserved.</p>
+          <p>&copy; 2024 {APP_NAME}. All rights reserved.</p>
         </div>
       </footer>
     </div>

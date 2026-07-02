@@ -18,7 +18,7 @@ This sequence removes visible naming and config residue first, then deletes isol
 
 ## Sources And Current Facts
 
-Required source documents read for this planning package:
+Required source documents read for this planning package and required before Phase 7 implementation:
 
 - `MIGRATION_PHASES.md`
 - `docs/PERSONAL_USE_BOUNDARY.md`
@@ -38,6 +38,8 @@ Phase 6 status basis for this plan:
 - Browser smoke remains deferred unless a later executor actually runs it.
 - Phase 7 semantic cleanup was intentionally not folded into Phase 6.
 - If Phase 6 closeout docs do not record accepted status in a future checkout, Phase 7 implementation is gated until that documentation contradiction is corrected.
+
+For Phase 7 implementation, Phase 6 `checklist.md` is required context alongside Phase 6 `phase-report.md` and `verification.md`; do not treat the report/verification pair alone as sufficient.
 
 Focused planning scans found current Phase 7 residue in these areas:
 
@@ -413,7 +415,7 @@ Read first:
 - docs/migration/phases/phase-07-domain-legacy-cleanup/verification.md
 
 Phase 6 gate:
-- Before implementation, verify the Phase 6 checklist/report/verification record Migration Reviewer closeout acceptance, browser smoke deferred due unavailable Docker/Postgres/seeded local environment, and Round 6 closeout commit `27679f8 Complete Phase 6 frontend de-Firebase closeout`.
+- Before implementation, verify Phase 6 `checklist.md`, `phase-report.md`, and `verification.md` record Migration Reviewer closeout acceptance, browser smoke deferred due unavailable Docker/Postgres/seeded local environment, and Round 6 closeout commit `27679f8 Complete Phase 6 frontend de-Firebase closeout`.
 - If Phase 6 docs do not record accepted closeout status, stop Phase 7 implementation and correct Phase 6 closeout docs first.
 
 Round 1 scope:

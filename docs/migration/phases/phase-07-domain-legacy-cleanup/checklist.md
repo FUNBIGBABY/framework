@@ -1,73 +1,73 @@
 # Phase 07 Checklist - Domain and Legacy Cleanup
 
-Planning status: documentation only. Do not mark Phase 7 complete from this document, and do not treat any implementation task below as done until an executor records evidence. Phase 7 planning relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
+Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have evidence recorded in `phase-report.md` and `verification.md`. Do not mark Phase 7 complete from this document; later cleanup rounds and reviewer acceptance remain pending. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
 
 ## Required Context
 
-- [ ] Read `MIGRATION_PHASES.md`, especially Phase 7 and the Phase 8 boundary.
-- [ ] Read `docs/PERSONAL_USE_BOUNDARY.md`.
-- [ ] Read `docs/migration/README.md`.
-- [ ] Read `docs/migration/decisions/ADR-0001-auth-strategy.md`.
-- [ ] Read Phase 6 `checklist.md`, `phase-report.md`, and `verification.md`.
-- [ ] Confirm Phase 6 `checklist.md`, `phase-report.md`, and `verification.md` record Migration Reviewer closeout acceptance before starting or merging Phase 7 implementation.
-- [ ] Gate Phase 7 implementation if Phase 6 closeout docs do not record accepted status.
-- [ ] Confirm Phase 6 browser smoke remains deferred unless it has actually been run in the current environment.
-- [ ] Confirm Phase 7 does not reopen Phase 6 Firebase SDK, bearer/localStorage, or backend Bearer compatibility work.
+- [x] Read `MIGRATION_PHASES.md`, especially Phase 7 and the Phase 8 boundary.
+- [x] Read `docs/PERSONAL_USE_BOUNDARY.md`.
+- [x] Read `docs/migration/README.md`.
+- [x] Read `docs/migration/decisions/ADR-0001-auth-strategy.md`.
+- [x] Read Phase 6 `checklist.md`, `phase-report.md`, and `verification.md`.
+- [x] Confirm Phase 6 `checklist.md`, `phase-report.md`, and `verification.md` record Migration Reviewer closeout acceptance before starting or merging Phase 7 implementation.
+- [x] Gate Phase 7 implementation if Phase 6 closeout docs do not record accepted status.
+- [x] Confirm Phase 6 browser smoke remains deferred unless it has actually been run in the current environment.
+- [x] Confirm Phase 7 does not reopen Phase 6 Firebase SDK, bearer/localStorage, or backend Bearer compatibility work.
 
 ## Phase Guardrails
 
-- [ ] Keep Phase 7 focused on semantic cleanup of Valorie/domain, tenant, organization, invite, migration, obsolete docs, obsolete scripts/tests, and legacy deployment naming residue.
-- [ ] Do not implement Agent loop, Tool Registry, Skill Registry, Chat UI, RAG, LLMWiki, MCP marketplace, public registration, OAuth, Firebase Auth, Firestore, or a SaaS tenant/org sharing model.
-- [ ] Do not introduce new invite, organization, workspace, or public marketplace behavior.
-- [ ] Do not perform broad UI redesign; route and navigation changes should support the personal-use app flow only.
-- [ ] Preserve personal-use auth boundaries: private routes require backend cookie-session auth and public signup remains disabled.
-- [ ] Do not claim browser smoke unless a browser session was actually run against a live backend/Postgres environment.
-- [ ] Preserve historical migration records unless an explicit owner decision allows rewriting them.
+- [x] Keep Phase 7 focused on semantic cleanup of Valorie/domain, tenant, organization, invite, migration, obsolete docs, obsolete scripts/tests, and legacy deployment naming residue.
+- [x] Do not implement Agent loop, Tool Registry, Skill Registry, Chat UI, RAG, LLMWiki, MCP marketplace, public registration, OAuth, Firebase Auth, Firestore, or a SaaS tenant/org sharing model.
+- [x] Do not introduce new invite, organization, workspace, or public marketplace behavior.
+- [x] Do not perform broad UI redesign; route and navigation changes should support the personal-use app flow only.
+- [x] Preserve personal-use auth boundaries: private routes require backend cookie-session auth and public signup remains disabled.
+- [x] Do not claim browser smoke unless a browser session was actually run against a live backend/Postgres environment.
+- [x] Preserve historical migration records unless an explicit owner decision allows rewriting them.
 - [ ] Apply the canonical active-surface acceptance rule: runtime source, config, deploy scripts, current README/user docs, and active tests must have zero forbidden legacy-string matches, except explicitly allowlisted security/negative assertion tests.
-- [ ] Allowlisted historical migration records and security/negative assertion tests must be recorded in both `phase-report.md` and `verification.md`, and the allowlist must not hide active runtime/config/deploy/current-doc residue.
+- [x] Allowlisted historical migration records and security/negative assertion tests must be recorded in both `phase-report.md` and `verification.md`, and the allowlist must not hide active runtime/config/deploy/current-doc residue.
 
 ## Round 0 - Fresh Inventory And Boundary Confirmation
 
-- [ ] Re-read the canonical Phase 7 section in `MIGRATION_PHASES.md`.
-- [ ] Reconcile Phase 7 scope with the personal-use boundary and ADR-0001.
-- [ ] Re-read Phase 6 closeout docs and list the residue intentionally deferred to Phase 7.
-- [ ] Run focused scans for `valorie`, `Valorie`, `valorie.ai`, `expert.valorie.ai`, `framework-builder-55896`, `webmaster@valorie`, `UNSW`, and `ad.unsw`.
-- [ ] Run focused scans for `tenant`, `Tenant`, `organization`, `Organization`, `invite`, `Invite`, `MigrationTool`, `migrate-data`, `cleanupData`, and `updateFrameworkTenants`.
-- [ ] Classify each hit as active runtime, route/navigation, placeholder tool, backend/config/deploy, obsolete script/test, obsolete doc, migration-history record, or intentional security negative assertion.
-- [ ] Decide and document the verification allowlist for historical `docs/migration/phases/**` records and security/negative assertion tests before implementation changes begin.
+- [x] Re-read the canonical Phase 7 section in `MIGRATION_PHASES.md`.
+- [x] Reconcile Phase 7 scope with the personal-use boundary and ADR-0001.
+- [x] Re-read Phase 6 closeout docs and list the residue intentionally deferred to Phase 7.
+- [x] Run focused scans for `valorie`, `Valorie`, `valorie.ai`, `expert.valorie.ai`, `framework-builder-55896`, `webmaster@valorie`, `UNSW`, and `ad.unsw`.
+- [x] Run focused scans for `tenant`, `Tenant`, `organization`, `Organization`, `invite`, `Invite`, `MigrationTool`, `migrate-data`, `cleanupData`, and `updateFrameworkTenants`.
+- [x] Classify each hit as active runtime, route/navigation, placeholder tool, backend/config/deploy, obsolete script/test, obsolete doc, migration-history record, or intentional security negative assertion.
+- [x] Decide and document the verification allowlist for historical `docs/migration/phases/**` records and security/negative assertion tests before implementation changes begin.
 
 Acceptance criteria:
 
-- [ ] The executor has a file/module inventory grouped by cleanup category.
-- [ ] The reviewer handoff criteria distinguish active-surface cleanup from explicitly allowlisted historical documentation and security/negative-test exceptions.
-- [ ] The canonical active-surface acceptance rule is reflected in `MIGRATION_PHASES.md`, `phase-report.md`, and `verification.md`.
+- [x] The executor has a file/module inventory grouped by cleanup category.
+- [x] The reviewer handoff criteria distinguish active-surface cleanup from explicitly allowlisted historical documentation and security/negative-test exceptions.
+- [x] The canonical active-surface acceptance rule is reflected in `MIGRATION_PHASES.md`, `phase-report.md`, and `verification.md`.
 
 ## Round 1 - Domain, Brand, And Active Runtime Naming Cleanup
 
-- [ ] Replace active Valorie/domain hardcoding in app-visible strings and runtime config with neutral personal-use naming.
-- [ ] Use `APP_NAME`, `APP_BASE_DOMAIN`, and `SUPER_ADMIN_EMAIL` where runtime behavior depends on app name, allowed domain, or admin email.
-- [ ] Remove or replace `expert.valorie.ai` and `*.valorie.ai` production domain assumptions from frontend API base URL logic.
-- [ ] Remove or replace `valorie.ai` CORS origin patterns in backend startup code without weakening credentialed CORS.
-- [ ] Remove Valorie-branded user-facing copy from login, landing, navigation, and app chrome.
-- [ ] Keep admin checks backend-authoritative through `SUPER_ADMIN_EMAIL`.
-- [ ] Update tests that assert old Valorie or route-copy behavior.
+- [x] Replace active Valorie/domain hardcoding in app-visible strings and runtime config with neutral personal-use naming.
+- [x] Use `APP_NAME`, `APP_BASE_DOMAIN`, and `SUPER_ADMIN_EMAIL` where runtime behavior depends on app name, allowed domain, or admin email.
+- [x] Remove or replace `expert.valorie.ai` and `*.valorie.ai` production domain assumptions from frontend API base URL logic.
+- [x] Remove or replace `valorie.ai` CORS origin patterns in backend startup code without weakening credentialed CORS.
+- [x] Remove Valorie-branded user-facing copy from login, landing, navigation, and app chrome.
+- [x] Keep admin checks backend-authoritative through `SUPER_ADMIN_EMAIL`.
+- [x] Update tests that assert old Valorie or route-copy behavior.
 
 Likely files:
 
-- [ ] `backend_py/main.py`
-- [ ] `.env.example`
-- [ ] `backend_py/.env.example`
-- [ ] `frontend/src/lib/api.js`
-- [ ] `frontend/src/components/Login.jsx`
-- [ ] `frontend/src/components/LandingPage.jsx`
-- [ ] `frontend/src/components/Navbar.jsx`
-- [ ] frontend tests touching API base URL, login, routes, or navigation
+- [x] `backend_py/main.py`
+- [x] `.env.example`
+- [x] `backend_py/.env.example`
+- [x] `frontend/src/lib/api.js`
+- [x] `frontend/src/components/Login.jsx`
+- [x] `frontend/src/components/LandingPage.jsx`
+- [x] `frontend/src/components/Navbar.jsx`
+- [x] frontend tests touching API base URL, login, routes, or navigation
 
 Acceptance criteria:
 
-- [ ] Active runtime files no longer hardcode `valorie.ai`, `expert.valorie.ai`, `webmaster@valorie`, `framework-builder-55896`, `UNSW`, or `ad.unsw`.
-- [ ] Backend CORS still accepts local development origins and configured production origins without wildcard credentialed access.
-- [ ] Frontend API base URL behavior still supports local development and configured deployment.
+- [x] Active runtime files no longer hardcode `valorie.ai`, `expert.valorie.ai`, `webmaster@valorie`, `framework-builder-55896`, `UNSW`, or `ad.unsw`.
+- [x] Backend CORS still accepts local development origins and configured production origins without wildcard credentialed access.
+- [x] Frontend API base URL behavior still supports local development and configured deployment.
 
 ## Round 2 - Legacy Migration Tool And Placeholder Removal
 
@@ -221,15 +221,15 @@ Acceptance criteria:
 
 ## Verification Checklist
 
-- [ ] Active-surface Valorie/domain/customer string scan.
-- [ ] Active tenant/org/invite/migration route scan.
-- [ ] Obsolete script/test/doc scan.
-- [ ] Frontend `npm run lint`.
+- [x] Active-surface Valorie/domain/customer string scan.
+- [x] Active tenant/org/invite/migration route scan.
+- [x] Obsolete script/test/doc scan.
+- [x] Frontend `npm run lint`.
 - [ ] Frontend `npm test`.
-- [ ] Frontend `npm run build`.
-- [ ] Backend focused pytest for changed app surfaces.
+- [x] Frontend `npm run build`.
+- [x] Backend focused pytest for changed app surfaces.
 - [ ] Backend full pytest if backend app/config changed.
-- [ ] `git diff --check`.
+- [x] `git diff --check`.
 - [ ] Browser smoke with login/personal routes/framework/library/admin/logout only if local environment is available.
 
 ## Reviewer Handoff Criteria

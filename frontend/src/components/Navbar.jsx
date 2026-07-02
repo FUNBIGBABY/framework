@@ -1,12 +1,13 @@
 import { useNavigate, useLocation, useParams } from 'react-router-dom'
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
+import { APP_INITIAL, APP_NAME } from '../lib/appConfig'
 
 /**
  * Navbar - Global navigation bar component (path mode)
  *
  * ✅ Retain all original functionality, only modify the path logic.
- * 🆕 Path pattern: All content is in expert.valorie.ai/{tenantId}/...
+ * Legacy path mode remains until the personal route cleanup round.
  */
 function Navbar() {
   const navigate = useNavigate()
@@ -95,11 +96,11 @@ function Navbar() {
 
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-blue-600 rounded flex items-center justify-center">
-              <span className="text-white font-bold text-sm">V</span>
+              <span className="text-white font-bold text-sm">
+                {APP_INITIAL}
+              </span>
             </div>
-            <span className="font-semibold text-gray-800">
-              Expert Framework Builder
-            </span>
+            <span className="font-semibold text-gray-800">{APP_NAME}</span>
           </div>
 
           {showNavigation && (
@@ -325,7 +326,7 @@ function Navbar() {
                   </p>
                   {tenantId && (
                     <p className="text-xs text-blue-600 mt-1">
-                      {tenantId}.valorie.ai
+                      Workspace: {tenantId}
                     </p>
                   )}
                   {user?.joinedOrganization && (

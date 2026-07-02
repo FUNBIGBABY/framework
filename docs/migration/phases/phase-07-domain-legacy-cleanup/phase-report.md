@@ -1,19 +1,20 @@
 # Phase 07 Report - Domain and Legacy Cleanup
 
-Planning status: documentation only. No Phase 7 implementation has been performed in this report, and Phase 7 is not complete. Phase 7 planning relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
+Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have been performed. Phase 7 is not complete, and later tenant/org/invite/migration route cleanup, deploy cleanup, obsolete docs/scripts cleanup, browser smoke, and reviewer acceptance remain pending. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
 
 ## Status
 
-This initial report creates the Phase 7 planning record after the Phase 6 frontend de-Firebase closeout docs were corrected to record Migration Reviewer acceptance.
+This report now records the Phase 7 planning package and the first narrow Round 0/1 implementation pass after the Phase 6 frontend de-Firebase closeout docs were corrected to record Migration Reviewer acceptance.
 
 Current Phase 7 state:
 
 - Planning package created: `checklist.md`, `phase-plan.md`, `verification.md`, and this `phase-report.md`.
+- Round 0/1 implementation performed on 2026-07-02: focused inventory, active runtime/domain cleanup, app-visible Valorie brand cleanup, CORS origin configuration cleanup, focused tests, lint, build, backend syntax, and Docker availability check.
 - Phase 6 `checklist.md`, `phase-report.md`, and `verification.md` record Migration Reviewer closeout acceptance.
 - Phase 6 Round 6 closeout commit is `27679f8 Complete Phase 6 frontend de-Firebase closeout`.
 - Phase 7 scope is semantic cleanup of Valorie/domain, tenant/org/invite/migration residue, obsolete docs, obsolete scripts/tests, and legacy deploy/env naming.
 - Phase 6 browser smoke remains documented as deferred because Docker/Postgres/seeded local environment was unavailable.
-- Phase 7 implementation has not started.
+- Phase 7 implementation has started but is not complete.
 - Phase 7 must not be marked complete before implementation evidence and reviewer acceptance.
 - If Phase 6 closeout docs do not record accepted status in a future checkout, Phase 7 implementation is gated until that documentation contradiction is corrected.
 
@@ -27,6 +28,8 @@ Current Phase 7 state:
 - `docs/migration/phases/phase-06-frontend-defirebase/phase-report.md`
 - `docs/migration/phases/phase-06-frontend-defirebase/verification.md`
 - Local planner skill instructions at `docs/skills/migration-phase-planner/SKILL.md`
+
+For Phase 7 implementation, Phase 6 `checklist.md` remains required context alongside Phase 6 `phase-report.md` and `verification.md`; the report/verification pair alone is not sufficient for the Phase 6 gate.
 
 ## Planning Inventory Snapshot
 
@@ -107,7 +110,80 @@ Canonical rule recorded in `phase-plan.md` and `verification.md`:
 
 ## Allowlist Record
 
-No Phase 7 implementation allowlist has been populated yet. Before Phase 7 can close, any retained historical migration-record matches or intentional security/negative assertion test matches must be listed here and in `verification.md` with file paths, matched terms, and rationale.
+Round 0/1 allowlist entries are recorded here and mirrored in `verification.md`:
+
+- `MIGRATION_PHASES.md`: retains legacy strings such as `valorie.ai`, `framework-builder-55896`, `webmaster@valorie`, `UNSW`, `ad.unsw`, tenant, invite, and migration terms because it is the canonical migration plan and names the cleanup targets and acceptance scans. It is not active runtime/config/deploy/current user documentation.
+- `docs/migration/phases/**`: retains historical phase evidence and current phase verification records that quote legacy strings, commands, and outputs. These records must remain auditable and are not active runtime/config/deploy/current user documentation.
+- `backend_py/tests/test_main.py`: retains `https://expert.valorie.ai` only as an intentional negative assertion proving the old Valorie production origin is no longer accepted by backend CORS.
+- `frontend/src/lib/api.test.js`: retains `tenant_id` and `X-Tenant-ID` only as intentional negative assertions proving frontend request payload/header helpers strip client-supplied identity fields.
+
+These allowlist entries do not cover active runtime/config/deploy/current-doc residue. Active deploy residue in `deploy.sh` and `nginx-valorie.conf`, and active tenant/org/invite/migration route residue, remain explicit Phase 7 follow-up work rather than allowlisted closeout exceptions.
+
+## Round 0/1 Implementation - 2026-07-02
+
+Scope performed:
+
+- Re-read required Phase 7 context, ADR-0001, the personal-use boundary, and Phase 6 dependency docs.
+- Re-ran focused legacy/domain and tenant/org/invite/migration inventory scans.
+- Classified matches into active runtime/config, deploy, current docs, historical migration docs, active route residue, obsolete script/test residue, and intentional negative assertions.
+- Cleaned Round 1 active runtime/config/app-visible domain and brand residue only.
+- Left `/migrate`, tenant, organization, invite, Docker image/container/database naming, deploy/nginx cleanup, current README rewrite, and obsolete helper script cleanup for later Phase 7 rounds.
+
+Files changed in Round 0/1:
+
+- `.env.example`
+- `backend_py/.env.example`
+- `backend_py/alembic.ini`
+- `backend_py/main.py`
+- `backend_py/tests/test_main.py`
+- `frontend/.env.example`
+- `frontend/index.html`
+- `frontend/src/lib/appConfig.js`
+- `frontend/src/lib/api.js`
+- `frontend/src/lib/api.test.js`
+- `frontend/src/components/Login.jsx`
+- `frontend/src/components/LandingPage.jsx`
+- `frontend/src/components/Navbar.jsx`
+- `docs/migration/phases/phase-07-domain-legacy-cleanup/checklist.md`
+- `docs/migration/phases/phase-07-domain-legacy-cleanup/phase-report.md`
+- `docs/migration/phases/phase-07-domain-legacy-cleanup/verification.md`
+
+Implementation details:
+
+- `backend_py/main.py` now derives the FastAPI title from `APP_NAME` with a neutral default and builds credentialed CORS origin patterns from localhost/127.0.0.1 plus exact configured `FRONTEND_URL` and `APP_BASE_DOMAIN` origins. The old `expert.valorie.ai` and wildcard `*.valorie.ai` CORS patterns were removed.
+- Env examples and Alembic sample URLs use neutral `framework` database/user names instead of `valorie`, and document `APP_NAME`, `APP_BASE_DOMAIN`, `SUPER_ADMIN_EMAIL`, and Vite-side `VITE_APP_*` knobs.
+- `frontend/src/lib/api.js` no longer infers production mode or tenant identity from `expert.valorie.ai` / `*.valorie.ai`. It uses `VITE_API_BASE_URL` first, then relative API paths only for the exact configured `VITE_APP_BASE_DOMAIN`, and keeps the legacy route shim path-based until the route cleanup round.
+- Login, landing, navbar, and `frontend/index.html` now use neutral personal-use naming. The landing page no longer advertises organization invites or team collaboration as current behavior.
+- Focused tests cover backend CORS/app-title behavior and frontend API base URL/path-shim behavior.
+
+Round 0/1 inventory classification:
+
+- Cleaned active runtime/config/app-visible targets: `backend_py/main.py`, `.env.example`, `backend_py/.env.example`, `backend_py/alembic.ini`, `frontend/.env.example`, `frontend/index.html`, `frontend/src/lib/api.js`, `frontend/src/components/Login.jsx`, `frontend/src/components/LandingPage.jsx`, and `frontend/src/components/Navbar.jsx`.
+- Deferred active deploy targets: `deploy.sh` and `nginx-valorie.conf` still contain `expert.valorie.ai`, `*.valorie.ai`, and `valorie.ai`; these belong to Phase 7 Round 4.
+- Deferred Docker naming targets: `docker-compose.yml` still contains Valorie container/image/database defaults; this belongs to Phase 7 Round 4 because this Round 1 pass did not rename containers/images/local volumes.
+- Deferred active route/navigation targets: `frontend/src/App.jsx`, `TenantRoute.jsx`, `TenantSettings.jsx`, `YourOrganization.jsx`, `InviteAccept.jsx`, `MigrationTool.jsx`, `AuthContext.jsx`, framework route helpers, and related route/component tests still contain tenant/org/invite/migration residue; these belong to Phase 7 Rounds 2 and 3.
+- Deferred current-doc/script/test targets: `README.md`, `Project-Startup-and-Operation-Flow.md`, `firebaseDoc.md`, `docs/CN_DEPLOY.md`, `backend_py/README-DIFF.md`, and top-level backend helper scripts/tests still need Round 5 cleanup.
+- Historical migration records: retained under the allowlist above.
+- Intentional negative assertions: retained under the allowlist above.
+
+Round 0/1 verification summary:
+
+- Focused active runtime/config domain scan for touched Round 1 files returned no Valorie/customer string matches.
+- Broader active domain scan still reports `deploy.sh` and `nginx-valorie.conf`; these are deferred Round 4 work, not hidden allowlist entries. The same scan reports `backend_py/tests/test_main.py` only for the allowlisted negative CORS assertion against the old Valorie origin.
+- Focused backend tests passed: `backend_py\.venv\Scripts\python.exe -m pytest -q tests/test_main.py` produced `3 passed` with existing Pydantic deprecation warnings.
+- Backend syntax passed: `backend_py\.venv\Scripts\python.exe -m py_compile main.py tests/test_main.py`.
+- Focused frontend tests passed on escalated rerun after the sandboxed Vitest config-read failure: 2 files, 25 tests.
+- Frontend lint passed.
+- Frontend build passed on escalated rerun after the sandboxed Vite config-read failure; warnings were stale browser data and chunk size.
+- Browser smoke was not run because `docker compose ps` still cannot connect to Docker Desktop's Linux engine pipe, and no live Postgres/seeded browser-smoke environment is available in this turn.
+
+Round 0/1 boundaries honored:
+
+- Did not delete or rewrite `/migrate`, tenant, organization, invite, or placeholder route files.
+- Did not remove `TenantRoute`, `tenantId` route shims, `getCurrentTenantId`, or organization sharing UI beyond removing Valorie-domain inference and stale landing copy.
+- Did not rename Docker containers/images/database defaults in `docker-compose.yml`.
+- Did not rewrite README/current user docs or delete obsolete backend helper scripts.
+- Did not implement Agent loop, Tool Registry, RAG, LLMWiki, Chat UI, Skill Registry, MCP, public registration, SaaS tenant/org sharing, workspace sharing, or a new invite system.
 
 ## Scope
 

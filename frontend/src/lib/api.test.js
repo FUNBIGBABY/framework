@@ -9,6 +9,8 @@ import {
   enableAdminUser,
   generateFrameworkFromText,
   getAdminUsers,
+  getApiBaseUrl,
+  getCurrentTenantId,
   getFrameworkArtefact,
   listFrameworkArtefacts,
   getPublicFrameworks,
@@ -48,6 +50,38 @@ function expectNoClientIdentityFields(value) {
 afterEach(() => {
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
+  vi.unstubAllEnvs()
+})
+
+describe('API deployment configuration', () => {
+  it('uses the local backend default when no explicit API base or app domain is configured', () => {
+    vi.stubEnv('VITE_API_BASE_URL', '')
+    vi.stubEnv('VITE_APP_BASE_DOMAIN', '')
+
+    expect(getApiBaseUrl('localhost')).toBe('http://localhost:8000')
+  })
+
+  it('uses relative API paths only for the configured app base domain', () => {
+    vi.stubEnv('VITE_API_BASE_URL', '')
+    vi.stubEnv('VITE_APP_BASE_DOMAIN', 'personal.example.com')
+
+    expect(getApiBaseUrl('personal.example.com')).toBe('')
+    expect(getApiBaseUrl('workspace.personal.example.com')).toBe(
+      'http://localhost:8000'
+    )
+  })
+
+  it('prefers an explicit API base URL over app-domain inference', () => {
+    vi.stubEnv('VITE_API_BASE_URL', 'https://api.example.com')
+    vi.stubEnv('VITE_APP_BASE_DOMAIN', 'personal.example.com')
+
+    expect(getApiBaseUrl('personal.example.com')).toBe('https://api.example.com')
+  })
+
+  it('keeps the legacy route shim path-based instead of deployment-domain based', () => {
+    expect(getCurrentTenantId('/personal/frameworks')).toBe('personal')
+    expect(getCurrentTenantId('/frameworks')).toBeNull()
+  })
 })
 
 describe('apiFetch cookie-session refresh', () => {

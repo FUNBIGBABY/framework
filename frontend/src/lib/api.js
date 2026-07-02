@@ -2,33 +2,37 @@
  * API Client - backend REST with cookie sessions.
  */
 
-function getApiBaseUrl() {
-  const hostname = window.location.hostname
+function getApiBaseUrl(currentHostname = window.location.hostname) {
+  const configuredApiBaseUrl = import.meta.env.VITE_API_BASE_URL
+  if (configuredApiBaseUrl) return configuredApiBaseUrl
 
-  // Production environment - using relative paths.
-  if (hostname === 'expert.valorie.ai' || hostname.endsWith('.valorie.ai')) {
+  const hostname = normalizeHostname(currentHostname)
+  const appBaseDomain = normalizeHostname(import.meta.env.VITE_APP_BASE_DOMAIN)
+
+  if (appBaseDomain && hostname === appBaseDomain) {
     return ''
   }
 
-  return import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+  return 'http://localhost:8000'
 }
 
 const API_BASE_URL = getApiBaseUrl()
 
 /**
- * Phase 7 owns semantic tenant/domain cleanup. Phase 6 Round 1 keeps this
- * helper for legacy route generation only; it is not sent as request identity.
+ * Legacy route generation only; this value is not sent as request identity.
  */
-function getCurrentTenantId() {
-  const hostname = window.location.hostname
-
-  const tenantMatch = hostname.match(/^([a-z0-9-]+)\.valorie\.ai$/)
-  if (tenantMatch) return tenantMatch[1]
-
-  const pathMatch = window.location.pathname.match(/^\/([a-z0-9-]+)\//)
+function getCurrentTenantId(currentPathname = window.location.pathname) {
+  const pathMatch = currentPathname.match(/^\/([a-z0-9-]+)\//)
   if (pathMatch) return pathMatch[1]
 
   return null
+}
+
+function normalizeHostname(value = '') {
+  const rawValue = String(value).trim().toLowerCase()
+  const withoutScheme = rawValue.replace(/^https?:\/\//, '')
+  const host = withoutScheme.split('/')[0]
+  return host.split(':')[0]
 }
 
 class APIError extends Error {

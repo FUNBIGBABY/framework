@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
+import { APP_INITIAL, APP_NAME } from '../lib/appConfig'
 
 function Login() {
   const { login } = useAuth()
@@ -53,13 +54,13 @@ function Login() {
         {/* Logo and Title */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full mb-4">
-            <span className="text-white font-bold text-2xl">V</span>
+            <span className="text-white font-bold text-2xl">{APP_INITIAL}</span>
           </div>
           <h2 className="text-3xl font-bold text-gray-900 mb-2">
             Welcome Back
           </h2>
           <p className="text-gray-600">
-            Sign in to your Valorie Framework Builder account
+            Sign in to your {APP_NAME} account
           </p>
         </div>
 
