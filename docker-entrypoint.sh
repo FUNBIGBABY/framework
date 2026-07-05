@@ -2,10 +2,11 @@
 set -e
 
 echo "=========================================="
-echo "Starting Valorie Framework Builder"
+echo "Starting ${APP_NAME:-Personal AI Framework Studio}"
 echo "=========================================="
 
 echo "Environment Configuration:"
+echo "  - APP_NAME: ${APP_NAME:-Personal AI Framework Studio}"
 echo "  - LLM_PROVIDER: ${LLM_PROVIDER:-not set}"
 echo "  - DEEPSEEK_BASE_URL: ${DEEPSEEK_BASE_URL:-not set}"
 echo "  - ENABLE_LEGACY_LLM: ${ENABLE_LEGACY_LLM:-false}"

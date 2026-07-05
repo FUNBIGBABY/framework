@@ -1,6 +1,6 @@
 # Phase 07 Report - Domain and Legacy Cleanup
 
-Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have been performed. Phase 7 is not complete, and later tenant/org/invite/migration route cleanup, deploy cleanup, obsolete docs/scripts cleanup, browser smoke, and reviewer acceptance remain pending. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
+Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have been performed. A requested deploy/nginx/docker naming cleanup pass was performed on 2026-07-02. Phase 7 is not complete, and later migration placeholder cleanup, tenant/org/invite route cleanup, obsolete docs/scripts cleanup, browser smoke, and reviewer acceptance remain pending. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
 
 ## Status
 
@@ -10,6 +10,7 @@ Current Phase 7 state:
 
 - Planning package created: `checklist.md`, `phase-plan.md`, `verification.md`, and this `phase-report.md`.
 - Round 0/1 implementation performed on 2026-07-02: focused inventory, active runtime/domain cleanup, app-visible Valorie brand cleanup, CORS origin configuration cleanup, focused tests, lint, build, backend syntax, and Docker availability check.
+- Requested deploy/nginx/docker naming cleanup performed on 2026-07-02: neutral Docker image/container/database defaults, neutral nginx template replacement, rewritten deployment helper, and removal of the obsolete tenant preflight/deploy header.
 - Phase 6 `checklist.md`, `phase-report.md`, and `verification.md` record Migration Reviewer closeout acceptance.
 - Phase 6 Round 6 closeout commit is `27679f8 Complete Phase 6 frontend de-Firebase closeout`.
 - Phase 7 scope is semantic cleanup of Valorie/domain, tenant/org/invite/migration residue, obsolete docs, obsolete scripts/tests, and legacy deploy/env naming.
@@ -114,10 +115,10 @@ Round 0/1 allowlist entries are recorded here and mirrored in `verification.md`:
 
 - `MIGRATION_PHASES.md`: retains legacy strings such as `valorie.ai`, `framework-builder-55896`, `webmaster@valorie`, `UNSW`, `ad.unsw`, tenant, invite, and migration terms because it is the canonical migration plan and names the cleanup targets and acceptance scans. It is not active runtime/config/deploy/current user documentation.
 - `docs/migration/phases/**`: retains historical phase evidence and current phase verification records that quote legacy strings, commands, and outputs. These records must remain auditable and are not active runtime/config/deploy/current user documentation.
-- `backend_py/tests/test_main.py`: retains `https://expert.valorie.ai` only as an intentional negative assertion proving the old Valorie production origin is no longer accepted by backend CORS.
+- `backend_py/tests/test_main.py`: retains `https://expert.valorie.ai` and `X-Tenant-ID` only as intentional negative assertions proving the old Valorie production origin is no longer accepted by backend CORS and the legacy tenant header is no longer advertised by backend preflight handling.
 - `frontend/src/lib/api.test.js`: retains `tenant_id` and `X-Tenant-ID` only as intentional negative assertions proving frontend request payload/header helpers strip client-supplied identity fields.
 
-These allowlist entries do not cover active runtime/config/deploy/current-doc residue. Active deploy residue in `deploy.sh` and `nginx-valorie.conf`, and active tenant/org/invite/migration route residue, remain explicit Phase 7 follow-up work rather than allowlisted closeout exceptions.
+These allowlist entries do not cover active runtime/config/deploy/current-doc residue. The deploy/nginx/docker naming residue previously present in `deploy.sh`, `nginx-valorie.conf`, `docker-compose.yml`, `docker-entrypoint.sh`, and backend preflight handling has now been cleaned. Active tenant/org/invite/migration route residue and obsolete current-doc/script residue remain explicit Phase 7 follow-up work rather than allowlisted closeout exceptions.
 
 ## Round 0/1 Implementation - 2026-07-02
 
@@ -185,6 +186,53 @@ Round 0/1 boundaries honored:
 - Did not rewrite README/current user docs or delete obsolete backend helper scripts.
 - Did not implement Agent loop, Tool Registry, RAG, LLMWiki, Chat UI, Skill Registry, MCP, public registration, SaaS tenant/org sharing, workspace sharing, or a new invite system.
 
+## Requested Deploy/Nginx/Docker Naming Cleanup - 2026-07-02
+
+Scope performed:
+
+- Cleaned active deployment naming only: `deploy.sh`, nginx template naming, Docker Compose image/container/database defaults, Docker entrypoint startup label, and the backend CORS preflight header list.
+- Replaced `nginx-valorie.conf` with `nginx-framework.conf`, a neutral single-domain HTTP template rendered by `deploy.sh` from `APP_DOMAIN`; `certbot --nginx` is left to add HTTPS after certificates exist.
+- Removed wildcard Valorie tenant subdomain handling and `proxy_set_header X-Tenant-ID` from the nginx deployment template.
+- Rewrote `deploy.sh` so it no longer copies a Valorie-named site, provisions `expert.valorie.ai`, provisions `*.valorie.ai`, or mentions GCP-specific firewall instructions. It now requires `APP_DOMAIN`, validates the hostname shape, renders the HTTP `nginx-framework.conf` template, and points the operator to `APP_BASE_DOMAIN`, `FRONTEND_URL`, and `VITE_APP_BASE_DOMAIN`.
+- Renamed Docker defaults from `valorie-db`, `valorie-app`, `valorie-framework-builder:latest`, `POSTGRES_DB=valorie`, `POSTGRES_USER=valorie`, and `postgresql+psycopg://valorie:.../valorie` to neutral `framework` defaults.
+- Passed active deployment env knobs through Compose for `FRONTEND_URL`, `APP_BASE_DOMAIN`, `APP_NAME`, and `SUPER_ADMIN_EMAIL`.
+- Removed `X-Tenant-ID` from backend preflight `Access-Control-Allow-Headers` after a backend scan found no active backend consumer for that header. `backend_py/app/api/vector_sync.py` still contains the Phase 9-deferred `include_organization` request field and was intentionally not changed in this pass.
+
+Files changed in this pass:
+
+- `deploy.sh`
+- `docker-compose.yml`
+- `docker-entrypoint.sh`
+- `nginx-valorie.conf` deleted
+- `nginx-framework.conf` added
+- `backend_py/main.py`
+- `backend_py/tests/test_main.py`
+- `docs/migration/phases/phase-07-domain-legacy-cleanup/checklist.md`
+- `docs/migration/phases/phase-07-domain-legacy-cleanup/phase-report.md`
+- `docs/migration/phases/phase-07-domain-legacy-cleanup/verification.md`
+
+Local Docker volume implication:
+
+- Compose still uses the named volume `pgdata`, but Compose projects it as `framework_pgdata` under the current project name. Existing local volumes initialized with the old `valorie` database/user defaults may not contain the new `framework` database/user. Developers with an old local volume may need to set explicit `POSTGRES_DB`, `POSTGRES_USER`, and `DATABASE_URL` compatibility values, or intentionally recreate the local dev volume after backing up any needed data.
+
+Verification summary:
+
+- Focused deploy legacy scans now return no active deploy/config Valorie or wildcard tenant-domain matches. Remaining `https://expert.valorie.ai` and `X-Tenant-ID` matches are intentional negative assertions in `backend_py/tests/test_main.py`.
+- `docker compose config` exited 0 and rendered `framework-app`, `framework-db`, `framework-builder:latest`, `POSTGRES_DB=framework`, `POSTGRES_USER=framework`, and the neutral `DATABASE_URL`. It warned that `JWT_SECRET_KEY` and `DEEPSEEK_API_KEY` are unset and that the Compose `version` attribute is obsolete.
+- Focused backend tests passed after replacing a `TestClient`-based assertion with direct middleware invocation compatible with the current Starlette/httpx versions: `4 passed, 3 warnings`.
+- Backend syntax compilation passed.
+- `bash -n deploy.sh` could not validate the script because the only `bash.exe` on PATH is the Windows WSL launcher and WSL is not installed/configured in this environment.
+- `nginx` is not available on PATH, so nginx syntax validation was not run.
+- Browser smoke was not claimed or run.
+
+Boundaries honored:
+
+- Did not delete `/migrate` or any migration placeholder route/tool files.
+- Did not touch tenant/org/invite route/model deletion.
+- Did not change backend auth semantics beyond removing the unused legacy preflight header advertisement.
+- Did not touch Agent loop, Tool Registry, RAG, LLMWiki, Chat UI, Skill Registry, public registration, SaaS expansion, invite systems, or MCP marketplace work.
+- Did not rewrite current README or obsolete deployment/docs beyond the Phase 7 execution record.
+
 ## Scope
 
 Included:
@@ -231,7 +279,7 @@ Round 6: verification, documentation closeout, and reviewer handoff.
 - The new active-surface acceptance rule depends on accurate match classification; an overly broad allowlist could hide residue unless reviewers check runtime source, config, deploy scripts, current README/user docs, and active tests separately.
 - Route cleanup touches many frontend files at once; the executor should avoid mixing route rewrites with docs/script deletion in one oversized diff.
 - CORS/domain changes must preserve secure cookie-session behavior and must not introduce wildcard credentialed origins.
-- Renaming Docker/container/database defaults can affect local volumes and smoke commands.
+- The Docker/container/database defaults have been renamed to neutral `framework` values; existing local volumes created with old `valorie` database/user defaults may require explicit compatibility env values or an intentional local volume reset.
 - Some tenant terms may remain in tests as intentional negative assertions from Phase 6; the executor must either rewrite those tests or record a narrow allowlist in both this report and `verification.md`.
 - Browser smoke may still be blocked by Docker/Postgres availability and seeded credentials.
 

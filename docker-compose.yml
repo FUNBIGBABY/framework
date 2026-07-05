@@ -3,16 +3,16 @@ version: '3.8'
 services:
   db:
     image: pgvector/pgvector:pg16
-    container_name: valorie-db
+    container_name: framework-db
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-valorie}
-      POSTGRES_USER: ${POSTGRES_USER:-valorie}
+      POSTGRES_DB: ${POSTGRES_DB:-framework}
+      POSTGRES_USER: ${POSTGRES_USER:-framework}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-change-me}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-valorie} -d $${POSTGRES_DB:-valorie}"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-framework} -d $${POSTGRES_DB:-framework}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -22,10 +22,10 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-}
     
-    image: valorie-framework-builder:latest
-    container_name: valorie-app
+    image: framework-builder:latest
+    container_name: framework-app
     
     ports:
       - "8000:8000"
@@ -38,7 +38,11 @@ services:
       - PORT=8000
       - WORKERS=1
       - JWT_SECRET_KEY=${JWT_SECRET_KEY}
-      - DATABASE_URL=${DATABASE_URL:-postgresql+psycopg://valorie:change-me@db:5432/valorie}
+      - DATABASE_URL=${DATABASE_URL:-postgresql+psycopg://framework:change-me@db:5432/framework}
+      - FRONTEND_URL=${FRONTEND_URL:-http://localhost:5173}
+      - APP_BASE_DOMAIN=${APP_BASE_DOMAIN:-}
+      - APP_NAME=${APP_NAME:-Personal AI Framework Studio}
+      - SUPER_ADMIN_EMAIL=${SUPER_ADMIN_EMAIL:-}
       
       # LLM API Configuration
       # Legacy GCP/self-hosted Cloud LLM defaults are intentionally disabled.

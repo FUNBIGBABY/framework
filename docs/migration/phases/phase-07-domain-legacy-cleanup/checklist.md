@@ -1,6 +1,6 @@
 # Phase 07 Checklist - Domain and Legacy Cleanup
 
-Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have evidence recorded in `phase-report.md` and `verification.md`. Do not mark Phase 7 complete from this document; later cleanup rounds and reviewer acceptance remain pending. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
+Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have evidence recorded in `phase-report.md` and `verification.md`. A requested deploy/nginx/docker naming cleanup pass was also performed on 2026-07-02. Do not mark Phase 7 complete from this document; later migration placeholder, tenant/org/invite route, obsolete docs/scripts, browser smoke, and reviewer acceptance work remain pending. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
 
 ## Required Context
 
@@ -130,31 +130,31 @@ Acceptance criteria:
 
 ## Round 4 - Backend, Deploy, Env, And Nginx Legacy Naming Cleanup
 
-- [ ] Rename legacy container/image/database defaults only where they are naming residue, documenting any local volume reset implications.
-- [ ] Delete `nginx-valorie.conf` or replace it with a neutral deployment template only if Phase 7 owns the replacement.
-- [ ] Rewrite or delete `deploy.sh` so it no longer provisions Valorie domains or wildcard tenant subdomains.
-- [ ] Remove `X-Tenant-ID` from CORS/preflight/deploy surfaces unless a current backend contract still requires it.
+- [x] Rename legacy container/image/database defaults only where they are naming residue, documenting any local volume reset implications.
+- [x] Delete `nginx-valorie.conf` or replace it with a neutral deployment template only if Phase 7 owns the replacement.
+- [x] Rewrite or delete `deploy.sh` so it no longer provisions Valorie domains or wildcard tenant subdomains.
+- [x] Remove `X-Tenant-ID` from CORS/preflight/deploy surfaces unless a current backend contract still requires it.
 - [ ] Inspect backend for tenant/org/invite route residue; delete only confirmed inert routes, and do not remove Phase 9-deferred RAG stubs by accident.
 - [ ] Review `backend_py/app/api/vector_sync.py` for organization naming residue while preserving its Phase 9-deferred behavior if still needed.
 
 Likely files:
 
-- [ ] `docker-compose.yml`
-- [ ] `docker-entrypoint.sh`
+- [x] `docker-compose.yml`
+- [x] `docker-entrypoint.sh`
 - [ ] `Dockerfile`
 - [ ] `.env.example`
 - [ ] `backend_py/.env.example`
 - [ ] `backend_py/alembic.ini`
-- [ ] `backend_py/main.py`
-- [ ] `deploy.sh`
-- [ ] `nginx-valorie.conf`
+- [x] `backend_py/main.py`
+- [x] `deploy.sh`
+- [x] `nginx-valorie.conf` deleted and replaced by `nginx-framework.conf`
 - [ ] `backend_py/app/api/vector_sync.py`
 
 Acceptance criteria:
 
-- [ ] Deployment files no longer reference Valorie domains, Valorie container names, tenant subdomains, or obsolete nginx tenant headers.
-- [ ] Local development defaults remain documented and runnable.
-- [ ] No new infrastructure stack is introduced beyond the cleanup needed for Phase 7.
+- [x] Deployment files no longer reference Valorie domains, Valorie container names, tenant subdomains, or obsolete nginx tenant headers.
+- [x] Local development defaults remain documented and runnable, with the local Docker volume implication recorded in `phase-report.md`.
+- [x] No new infrastructure stack is introduced beyond the cleanup needed for Phase 7.
 
 ## Round 5 - Obsolete Docs, Scripts, And Tests Cleanup
 
@@ -224,6 +224,8 @@ Acceptance criteria:
 - [x] Active-surface Valorie/domain/customer string scan.
 - [x] Active tenant/org/invite/migration route scan.
 - [x] Obsolete script/test/doc scan.
+- [x] Deploy/nginx/docker legacy naming scan.
+- [x] `docker compose config`.
 - [x] Frontend `npm run lint`.
 - [ ] Frontend `npm test`.
 - [x] Frontend `npm run build`.

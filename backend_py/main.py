@@ -153,7 +153,7 @@ class CustomCORSMiddleware(BaseHTTPMiddleware):
                             "GET, POST, PUT, DELETE, OPTIONS, PATCH"
                         ),
                         "Access-Control-Allow-Headers": (
-                            "Content-Type, Authorization, X-Tenant-ID"
+                            "Content-Type, Authorization"
                         ),
                         "Access-Control-Allow-Credentials": "true",
                         "Access-Control-Max-Age": "3600",

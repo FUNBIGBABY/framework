@@ -1,6 +1,6 @@
 # Phase 07 Verification - Domain and Legacy Cleanup
 
-Round 0/1 implementation status: this document defines the verification contract, records initial planning scans, and now records Round 0/1 implementation verification. It does not mark Phase 7 complete. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
+Round 0/1 implementation status: this document defines the verification contract, records initial planning scans, and records Round 0/1 implementation verification. A requested deploy/nginx/docker naming cleanup pass was verified on 2026-07-02. It does not mark Phase 7 complete. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
 
 ## Verification Principles
 
@@ -153,10 +153,10 @@ Round 0/1 allowlist entries are recorded here and mirrored in `phase-report.md`:
 
 - `MIGRATION_PHASES.md`: retains legacy strings such as `valorie.ai`, `framework-builder-55896`, `webmaster@valorie`, `UNSW`, `ad.unsw`, tenant, invite, and migration terms because it is the canonical migration plan and names the cleanup targets and acceptance scans. It is not active runtime/config/deploy/current user documentation.
 - `docs/migration/phases/**`: retains historical phase evidence and current phase verification records that quote legacy strings, commands, and outputs. These records must remain auditable and are not active runtime/config/deploy/current user documentation.
-- `backend_py/tests/test_main.py`: retains `https://expert.valorie.ai` only as an intentional negative assertion proving the old Valorie production origin is no longer accepted by backend CORS.
+- `backend_py/tests/test_main.py`: retains `https://expert.valorie.ai` and `X-Tenant-ID` only as intentional negative assertions proving the old Valorie production origin is no longer accepted by backend CORS and the legacy tenant header is no longer advertised by backend preflight handling.
 - `frontend/src/lib/api.test.js`: retains `tenant_id` and `X-Tenant-ID` only as intentional negative assertions proving frontend request payload/header helpers strip client-supplied identity fields.
 
-These allowlist entries do not cover active runtime/config/deploy/current-doc residue. Active deploy residue in `deploy.sh` and `nginx-valorie.conf`, and active tenant/org/invite/migration route residue, remain explicit Phase 7 follow-up work rather than allowlisted closeout exceptions.
+These allowlist entries do not cover active runtime/config/deploy/current-doc residue. The deploy/nginx/docker naming residue previously present in `deploy.sh`, `nginx-valorie.conf`, `docker-compose.yml`, `docker-entrypoint.sh`, and backend preflight handling has now been cleaned. Active tenant/org/invite/migration route residue and obsolete current-doc/script residue remain explicit Phase 7 follow-up work rather than allowlisted closeout exceptions.
 
 ## Round 0/1 Verification - 2026-07-02
 
@@ -424,6 +424,307 @@ Outcome:
 No stdout. Command exited 0.
 ```
 
+## Requested Deploy/Nginx/Docker Naming Cleanup Verification - 2026-07-02
+
+### Baseline Working Tree And Commit
+
+Command:
+
+```powershell
+git status --short
+```
+
+Outcome before this pass:
+
+```text
+No stdout. Working tree was clean.
+```
+
+Command:
+
+```powershell
+git log -5 --oneline
+```
+
+Outcome:
+
+```text
+1d489d3 Complete Phase 7 Round 0/1 domain cleanup
+ea32cbf Fix Phase 6 closeout docs and Phase 7 planning
+27679f8 Complete Phase 6 frontend de-Firebase closeout
+68a03e3 Implement Phase 6 Round 5 artefact wiring
+3179837 Implement Phase 6 Round 4 admin REST wiring
+```
+
+### Initial Focused Deploy Legacy Scan
+
+Command:
+
+```powershell
+rg -n --hidden -S "valorie|Valorie|expert\.valorie\.ai|valorie\.ai|nginx-valorie|framework-builder-55896|webmaster@valorie|UNSW|ad\.unsw" deploy.sh nginx-valorie.conf docker-compose.yml docker-entrypoint.sh Dockerfile .env.example backend_py/.env.example backend_py/alembic.ini backend_py/main.py -g "!.git"
+```
+
+Outcome:
+
+```text
+Exit 0. Active deployment/config matches were found in `docker-entrypoint.sh`, `docker-compose.yml`, `deploy.sh`, and `nginx-valorie.conf`.
+Key matches included `Starting Valorie Framework Builder`, `valorie-db`, `valorie-app`, `valorie-framework-builder:latest`, `POSTGRES_DB`/`POSTGRES_USER`/`DATABASE_URL` defaults using `valorie`, `nginx-valorie.conf`, `expert.valorie.ai`, `*.valorie.ai`, and wildcard Valorie nginx server names.
+```
+
+Command:
+
+```powershell
+rg -n --hidden -S "tenant|Tenant|X-Tenant-ID|organization|Organization|invite|Invite|server_name|ssl_certificate|container_name|image:|POSTGRES_DB|POSTGRES_USER|DATABASE_URL" deploy.sh nginx-valorie.conf docker-compose.yml docker-entrypoint.sh Dockerfile .env.example backend_py/.env.example backend_py/alembic.ini backend_py/main.py
+```
+
+Outcome:
+
+```text
+Exit 0. Active deployment/config matches included backend preflight `X-Tenant-ID`, wildcard tenant nginx `server_name` entries, `proxy_set_header X-Tenant-ID $tenant`, Valorie container/image/database defaults, and neutral env-example database defaults from Round 0/1.
+```
+
+### Backend Contract Check For Tenant Header
+
+Command:
+
+```powershell
+rg -n --hidden -S "X-Tenant-ID|tenant_id|tenantId|include_organization|organization" backend_py/app backend_py/tests docker-compose.yml docker-entrypoint.sh deploy.sh nginx-valorie.conf .env.example backend_py/.env.example -g "!backend_py/.venv"
+```
+
+Outcome:
+
+```text
+nginx-valorie.conf:77:        proxy_set_header X-Tenant-ID $tenant;
+backend_py/app\api\vector_sync.py:19:    include_organization: bool = True
+```
+
+Interpretation: no active backend route consumes `X-Tenant-ID`; the remaining backend app hit is `include_organization` in the Phase 9-deferred vector sync request shape, which this pass did not change.
+
+### Post-Edit Active Deploy Legacy Scan
+
+Command:
+
+```powershell
+rg -n --hidden -S "valorie|Valorie|expert\.valorie\.ai|valorie\.ai|nginx-valorie|framework-builder-55896|webmaster@valorie|UNSW|ad\.unsw" deploy.sh nginx-framework.conf docker-compose.yml docker-entrypoint.sh Dockerfile .env.example backend_py/.env.example backend_py/alembic.ini backend_py/main.py backend_py/tests/test_main.py -g "!.git"
+```
+
+Outcome:
+
+```text
+backend_py/tests/test_main.py:29:    assert not main.is_valid_origin("https://expert.valorie.ai")
+```
+
+Interpretation: no active deploy/config files in the command contain Valorie/customer deployment naming. The remaining match is an allowlisted negative CORS assertion.
+
+Command:
+
+```powershell
+rg -n --hidden -S "X-Tenant-ID|nginx-valorie|server_name ~|\*\.valorie|tenant subdomain|valorie-db|valorie-app|valorie-framework-builder" deploy.sh nginx-framework.conf docker-compose.yml docker-entrypoint.sh backend_py/main.py backend_py/tests/test_main.py
+```
+
+Outcome:
+
+```text
+The only match was the allowlisted negative preflight assertion in
+`backend_py/tests/test_main.py`: `assert "X-Tenant-ID" not in allowed_headers`.
+The exact line number is intentionally omitted because it is not part of the
+acceptance evidence.
+```
+
+Interpretation: no active deploy/config files in the command contain legacy tenant nginx/header naming. The remaining match is an allowlisted negative preflight assertion.
+
+### Docker Compose Config
+
+Command:
+
+```powershell
+docker compose config
+```
+
+Outcome:
+
+```text
+Exit 0. Rendered config included `container_name: framework-app`, `container_name: framework-db`, `image: framework-builder:latest`, `POSTGRES_DB: framework`, `POSTGRES_USER: framework`, `DATABASE_URL: postgresql+psycopg://framework:change-me@db:5432/framework`, `APP_NAME: Personal AI Framework Studio`, `FRONTEND_URL: http://localhost:5173`, and `APP_BASE_DOMAIN: ""`.
+Warnings:
+time="2026-07-02T21:25:19+08:00" level=warning msg="The \"JWT_SECRET_KEY\" variable is not set. Defaulting to a blank string."
+time="2026-07-02T21:25:19+08:00" level=warning msg="The \"DEEPSEEK_API_KEY\" variable is not set. Defaulting to a blank string."
+time="2026-07-02T21:25:19+08:00" level=warning msg="C:\\Users\\micha\\Desktop\\project\\framework\\docker-compose.yml: the attribute `version` is obsolete, it will be ignored, please remove it to avoid potential confusion"
+```
+
+### Backend Focused Tests
+
+Initial meaningful run after adding a preflight assertion:
+
+```powershell
+cd backend_py
+.\.venv\Scripts\python.exe -m pytest -q tests/test_main.py
+```
+
+Outcome:
+
+```text
+1 failed, 3 passed, 3 warnings in 10.23s.
+Failure: `TestClient(main.app)` raised `TypeError: Client.__init__() got an unexpected keyword argument 'app'` due the current Starlette/httpx versions. The test was rewritten to call `CustomCORSMiddleware.dispatch()` directly instead of using `TestClient`.
+```
+
+Corrected command:
+
+```powershell
+cd backend_py
+.\.venv\Scripts\python.exe -m pytest -q tests/test_main.py
+```
+
+Outcome:
+
+```text
+4 passed, 3 warnings in 9.92s.
+Warnings were existing Pydantic V2 deprecation warnings from `app/api/users.py`.
+```
+
+### Backend Syntax
+
+Command:
+
+```powershell
+cd backend_py
+.\.venv\Scripts\python.exe -m py_compile main.py tests/test_main.py
+```
+
+Outcome:
+
+```text
+No stdout. Command exited 0.
+```
+
+### Shell And Nginx Config Validators
+
+Command:
+
+```powershell
+Get-Command bash -All -ErrorAction SilentlyContinue | Select-Object Source,CommandType
+```
+
+Outcome:
+
+```text
+Source                       CommandType
+------                       -----------
+C:\WINDOWS\system32\bash.exe Application
+```
+
+Command:
+
+```powershell
+bash -n deploy.sh
+```
+
+Outcome:
+
+```text
+Exit 1. Windows launched the WSL `bash.exe` shim and failed before reading `deploy.sh` because WSL is not installed/configured in this environment. The terminal rendered the failure as mojibake, but it included WSL guidance for `wsl.exe --list --online` and `wsl.exe --install <Distro>`.
+```
+
+Command:
+
+```powershell
+Get-Command nginx -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Source
+```
+
+Outcome:
+
+```text
+No stdout. Command exited 1.
+```
+
+Nginx syntax validation result: not run because `nginx` is unavailable on PATH in this environment.
+
+### Final Post-Documentation Scans And Whitespace Check
+
+Command:
+
+```powershell
+rg -n --hidden -S "valorie|Valorie|expert\.valorie\.ai|valorie\.ai|nginx-valorie|framework-builder-55896|webmaster@valorie|UNSW|ad\.unsw" deploy.sh nginx-framework.conf docker-compose.yml docker-entrypoint.sh Dockerfile .env.example backend_py/.env.example backend_py/alembic.ini backend_py/main.py -g "!.git"
+```
+
+Outcome:
+
+```text
+No stdout. `rg` exited 1.
+```
+
+Command:
+
+```powershell
+rg -n --hidden -S "X-Tenant-ID|nginx-valorie|server_name ~|\*\.valorie|tenant subdomain|valorie-db|valorie-app|valorie-framework-builder|ssl_certificate" deploy.sh nginx-framework.conf docker-compose.yml docker-entrypoint.sh backend_py/main.py
+```
+
+Outcome:
+
+```text
+No stdout. `rg` exited 1.
+```
+
+Command:
+
+```powershell
+Test-Path -LiteralPath nginx-valorie.conf
+```
+
+Outcome:
+
+```text
+False
+```
+
+Command:
+
+```powershell
+Test-Path -LiteralPath nginx-framework.conf
+```
+
+Outcome:
+
+```text
+True
+```
+
+Command:
+
+```powershell
+git diff --check
+```
+
+Outcome:
+
+```text
+No stdout. Command exited 0.
+```
+
+Command:
+
+```powershell
+git status --short
+```
+
+Outcome:
+
+```text
+ M backend_py/main.py
+ M backend_py/tests/test_main.py
+ M deploy.sh
+ M docker-compose.yml
+ M docker-entrypoint.sh
+ M docs/migration/phases/phase-07-domain-legacy-cleanup/checklist.md
+ M docs/migration/phases/phase-07-domain-legacy-cleanup/phase-report.md
+ M docs/migration/phases/phase-07-domain-legacy-cleanup/verification.md
+ D nginx-valorie.conf
+?? nginx-framework.conf
+```
+
+### Browser Smoke
+
+Browser smoke was not run and is not claimed. This pass only changed deploy/config files and backend preflight handling; no live Docker/Postgres/frontend/seeded browser-smoke environment was started.
+
 ## Initial Planning Scan Summary
 
 These scans were run only to ground planning. They are not acceptance evidence for completed implementation.
@@ -583,7 +884,8 @@ Suggested behavior tests:
 Suggested scans:
 
 ```powershell
-rg -n "valorie|Valorie|expert\.valorie\.ai|tenant|X-Tenant-ID|nginx-valorie" Dockerfile docker-compose.yml docker-entrypoint.sh deploy.sh nginx-valorie.conf .env.example backend_py/.env.example backend_py/alembic.ini backend_py/main.py backend_py/app
+rg -n "valorie|Valorie|expert\.valorie\.ai|tenant|X-Tenant-ID|nginx-valorie" Dockerfile docker-compose.yml docker-entrypoint.sh deploy.sh nginx-framework.conf .env.example backend_py/.env.example backend_py/alembic.ini backend_py/main.py backend_py/app
+Test-Path nginx-valorie.conf
 rg -n "container_name|image:|POSTGRES_DB|POSTGRES_USER|DATABASE_URL" docker-compose.yml .env.example backend_py/.env.example backend_py/alembic.ini
 ```
 
