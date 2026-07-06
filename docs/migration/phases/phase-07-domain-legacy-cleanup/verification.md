@@ -1,6 +1,6 @@
 # Phase 07 Verification - Domain and Legacy Cleanup
 
-Round 0/1 implementation status: this document defines the verification contract, records initial planning scans, and records Round 0/1 implementation verification. A requested deploy/nginx/docker naming cleanup pass was verified on 2026-07-02. It does not mark Phase 7 complete. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
+Round 0/1 implementation status: this document defines the verification contract, records initial planning scans, and records Round 0/1 implementation verification. A requested deploy/nginx/docker naming cleanup pass was verified on 2026-07-02. Migration placeholder route/tool cleanup was verified on 2026-07-05. It does not mark Phase 7 complete. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
 
 ## Verification Principles
 
@@ -156,7 +156,7 @@ Round 0/1 allowlist entries are recorded here and mirrored in `phase-report.md`:
 - `backend_py/tests/test_main.py`: retains `https://expert.valorie.ai` and `X-Tenant-ID` only as intentional negative assertions proving the old Valorie production origin is no longer accepted by backend CORS and the legacy tenant header is no longer advertised by backend preflight handling.
 - `frontend/src/lib/api.test.js`: retains `tenant_id` and `X-Tenant-ID` only as intentional negative assertions proving frontend request payload/header helpers strip client-supplied identity fields.
 
-These allowlist entries do not cover active runtime/config/deploy/current-doc residue. The deploy/nginx/docker naming residue previously present in `deploy.sh`, `nginx-valorie.conf`, `docker-compose.yml`, `docker-entrypoint.sh`, and backend preflight handling has now been cleaned. Active tenant/org/invite/migration route residue and obsolete current-doc/script residue remain explicit Phase 7 follow-up work rather than allowlisted closeout exceptions.
+These allowlist entries do not cover active runtime/config/deploy/current-doc residue. The deploy/nginx/docker naming residue previously present in `deploy.sh`, `nginx-valorie.conf`, `docker-compose.yml`, `docker-entrypoint.sh`, and backend preflight handling has now been cleaned. The active `/migrate` route and isolated migration placeholder files have now been removed. Active tenant/org/invite route residue and obsolete current-doc/script residue remain explicit Phase 7 follow-up work rather than allowlisted closeout exceptions.
 
 ## Round 0/1 Verification - 2026-07-02
 
@@ -724,6 +724,249 @@ Outcome:
 ### Browser Smoke
 
 Browser smoke was not run and is not claimed. This pass only changed deploy/config files and backend preflight handling; no live Docker/Postgres/frontend/seeded browser-smoke environment was started.
+
+## Migration Placeholder Route/Tool Cleanup Verification - 2026-07-05
+
+### Baseline Working Tree
+
+Command:
+
+```powershell
+git status --short
+```
+
+Outcome before this pass:
+
+```text
+No stdout. Working tree was clean.
+```
+
+### Focused Placeholder Inventory
+
+Command:
+
+```powershell
+rg -n --hidden -S "MigrationTool|migrate-data|cleanupData|DataCleanupButton|updateFrameworkTenants|/migrate|migration placeholder|data migration|cleanup data|migration tool" frontend/src backend_py docs README.md -g "!node_modules" -g "!frontend/node_modules" -g "!frontend/dist" -g "!backend_py/.venv"
+```
+
+Outcome:
+
+```text
+Exit 0. Active frontend matches were found in:
+frontend/src\App.jsx:16:import MigrationTool from './components/MigrationTool'
+frontend/src\App.jsx:66:        <Route path="/migrate" element={<MigrationTool />} />
+frontend/src\App.route.test.jsx:39:vi.mock('./components/MigrationTool', () => ({
+frontend/src\migrate-data.js:2:  'Legacy client-side migration tooling is isolated for Phase 6 SDK removal.'
+frontend/src\components\MigrationTool.jsx:1:function MigrationTool() {
+frontend/src\components\MigrationTool.jsx:18:export default MigrationTool
+frontend/src\utils\cleanupData.js:4:export async function cleanupData() {
+frontend/src\utils\DataCleanupButton.jsx:1:function DataCleanupButton() {
+frontend/src\utils\DataCleanupButton.jsx:14:export default DataCleanupButton
+
+The same scan also matched historical migration docs under `docs/migration/phases/**`,
+which remain allowlisted audit records. `backend_py/app/services/vectorstore/openai_legacy.py`
+matched only the phrase "legacy migration tool" inside provider compatibility code; it
+is not a frontend migration placeholder route/tool and was not edited.
+```
+
+Candidate classification:
+
+- Deleted obsolete active placeholders: `frontend/src/components/MigrationTool.jsx`, `frontend/src/migrate-data.js`, `frontend/src/utils/cleanupData.js`, `frontend/src/utils/DataCleanupButton.jsx`, and `frontend/src/utils/updateFrameworkTenants.js`.
+- Removed active route/import: `frontend/src/App.jsx` `/migrate` route and `MigrationTool` import.
+- Removed active-test placeholder mock: `frontend/src/App.route.test.jsx` `MigrationTool` mock.
+- Deferred/non-target: tenant/org/invite route shells and `backend_py/app/services/vectorstore/openai_legacy.py` provider compatibility text.
+
+### Post-Edit Placeholder Scan
+
+Command:
+
+```powershell
+rg -n --hidden -S "MigrationTool|migrate-data|cleanupData|DataCleanupButton|updateFrameworkTenants|/migrate" frontend/src -g "!frontend/dist"
+```
+
+Outcome:
+
+```text
+No stdout. `rg` exited 1.
+```
+
+Command:
+
+```powershell
+Test-Path frontend\src\migrate-data.js; Test-Path frontend\src\utils\cleanupData.js; Test-Path frontend\src\utils\DataCleanupButton.jsx; Test-Path frontend\src\utils\updateFrameworkTenants.js; Test-Path frontend\src\components\MigrationTool.jsx
+```
+
+Outcome:
+
+```text
+False
+False
+False
+False
+False
+```
+
+### Focused Frontend Route Test
+
+Initial sandboxed command:
+
+```powershell
+cd frontend
+npm test -- App.route.test.jsx
+```
+
+Sandboxed outcome:
+
+```text
+Failed before tests: esbuild could not read/resolve `frontend/vitest.config.js`
+because the sandbox denied reading directory "../../../..".
+```
+
+Escalated rerun command:
+
+```powershell
+cd frontend
+npm test -- App.route.test.jsx
+```
+
+Outcome:
+
+```text
+1 test file passed, 1 test passed.
+Warning: baseline-browser-mapping data is over two months old.
+```
+
+### Full Frontend Tests
+
+Command:
+
+```powershell
+cd frontend
+npm test
+```
+
+Outcome:
+
+```text
+10 test files passed, 53 tests passed.
+Warnings/notices: baseline-browser-mapping data over two months old;
+Browserslist/caniuse-lite data 9 months old.
+```
+
+### Frontend Lint
+
+Command:
+
+```powershell
+cd frontend
+npm run lint
+```
+
+Outcome:
+
+```text
+No lint errors. Command exited 0.
+```
+
+### Frontend Build
+
+Initial sandboxed command:
+
+```powershell
+cd frontend
+npm run build
+```
+
+Sandboxed outcome:
+
+```text
+Failed before build: esbuild could not read/resolve `frontend/vite.config.js`
+because the sandbox denied reading directory "../../../..".
+```
+
+Escalated rerun command:
+
+```powershell
+cd frontend
+npm run build
+```
+
+Outcome:
+
+```text
+Build passed. Vite transformed 140 modules and produced `dist/index.html`,
+`dist/assets/index-DfLzCzBj.css`, and `dist/assets/index-D53k77nA.js`.
+Warnings: baseline-browser-mapping data over two months old; browserslist/caniuse-lite
+data 9 months old; one chunk larger than 500 kB after minification.
+```
+
+### Skipped Checks
+
+- Backend syntax and backend tests: not run because this pass changed only frontend route/test files plus migration docs.
+- Browser smoke: not run because this pass only removed inactive frontend placeholder tooling, and the prior Docker/Postgres/seeded-credential blocker remains unresolved in this environment.
+
+### Final Post-Documentation Scans And Whitespace Check
+
+Command:
+
+```powershell
+rg -n --hidden -S "MigrationTool|migrate-data|cleanupData|DataCleanupButton|updateFrameworkTenants|/migrate" frontend/src backend_py/app -g "!frontend/dist" -g "!backend_py/.venv"
+```
+
+Outcome:
+
+```text
+No stdout. `rg` exited 1.
+```
+
+Command:
+
+```powershell
+Test-Path frontend\src\migrate-data.js; Test-Path frontend\src\utils\cleanupData.js; Test-Path frontend\src\utils\DataCleanupButton.jsx; Test-Path frontend\src\utils\updateFrameworkTenants.js; Test-Path frontend\src\components\MigrationTool.jsx
+```
+
+Outcome:
+
+```text
+False
+False
+False
+False
+False
+```
+
+Command:
+
+```powershell
+git diff --check
+```
+
+Outcome:
+
+```text
+No stdout. Command exited 0.
+```
+
+Command:
+
+```powershell
+git status --short
+```
+
+Outcome:
+
+```text
+ M docs/migration/phases/phase-07-domain-legacy-cleanup/checklist.md
+ M docs/migration/phases/phase-07-domain-legacy-cleanup/phase-report.md
+ M docs/migration/phases/phase-07-domain-legacy-cleanup/verification.md
+ M frontend/src/App.jsx
+ M frontend/src/App.route.test.jsx
+ D frontend/src/components/MigrationTool.jsx
+ D frontend/src/migrate-data.js
+ D frontend/src/utils/DataCleanupButton.jsx
+ D frontend/src/utils/cleanupData.js
+ D frontend/src/utils/updateFrameworkTenants.js
+```
 
 ## Initial Planning Scan Summary
 

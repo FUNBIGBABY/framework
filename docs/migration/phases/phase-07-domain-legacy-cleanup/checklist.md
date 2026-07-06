@@ -1,6 +1,6 @@
 # Phase 07 Checklist - Domain and Legacy Cleanup
 
-Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have evidence recorded in `phase-report.md` and `verification.md`. A requested deploy/nginx/docker naming cleanup pass was also performed on 2026-07-02. Do not mark Phase 7 complete from this document; later migration placeholder, tenant/org/invite route, obsolete docs/scripts, browser smoke, and reviewer acceptance work remain pending. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
+Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have evidence recorded in `phase-report.md` and `verification.md`. A requested deploy/nginx/docker naming cleanup pass was performed on 2026-07-02. Migration placeholder route/tool cleanup was performed on 2026-07-05. Do not mark Phase 7 complete from this document; tenant/org/invite route cleanup, obsolete docs/scripts cleanup, browser smoke, and reviewer acceptance work remain pending. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
 
 ## Required Context
 
@@ -71,26 +71,26 @@ Acceptance criteria:
 
 ## Round 2 - Legacy Migration Tool And Placeholder Removal
 
-- [ ] Delete one-time frontend migration and cleanup placeholder files left from Phase 6.
-- [ ] Remove the `/migrate` route from the active route tree.
-- [ ] Remove any migration/cleanup buttons or imports from active UI.
-- [ ] Remove tests that only prove isolated migration placeholders render.
+- [x] Delete one-time frontend migration and cleanup placeholder files left from Phase 6.
+- [x] Remove the `/migrate` route from the active route tree.
+- [x] Remove any migration/cleanup buttons or imports from active UI.
+- [x] Remove tests that only prove isolated migration placeholders render.
 
 Likely files:
 
-- [ ] `frontend/src/migrate-data.js`
-- [ ] `frontend/src/utils/cleanupData.js`
-- [ ] `frontend/src/utils/DataCleanupButton.jsx`
-- [ ] `frontend/src/utils/updateFrameworkTenants.js`
-- [ ] `frontend/src/components/MigrationTool.jsx`
-- [ ] `frontend/src/App.jsx`
-- [ ] `frontend/src/App.route.test.jsx`
+- [x] `frontend/src/migrate-data.js`
+- [x] `frontend/src/utils/cleanupData.js`
+- [x] `frontend/src/utils/DataCleanupButton.jsx`
+- [x] `frontend/src/utils/updateFrameworkTenants.js`
+- [x] `frontend/src/components/MigrationTool.jsx`
+- [x] `frontend/src/App.jsx`
+- [x] `frontend/src/App.route.test.jsx`
 
 Acceptance criteria:
 
-- [ ] No active frontend route exposes migration or cleanup tooling.
-- [ ] Deleted placeholders are not imported by active source or tests.
-- [ ] Frontend lint/tests/build remain green.
+- [x] No active frontend route exposes migration or cleanup tooling.
+- [x] Deleted placeholders are not imported by active source or tests.
+- [x] Frontend lint/tests/build remain green.
 
 ## Round 3 - Personal Route Flow And Tenant/Org/Invite Cleanup
 
@@ -227,7 +227,7 @@ Acceptance criteria:
 - [x] Deploy/nginx/docker legacy naming scan.
 - [x] `docker compose config`.
 - [x] Frontend `npm run lint`.
-- [ ] Frontend `npm test`.
+- [x] Frontend `npm test`.
 - [x] Frontend `npm run build`.
 - [x] Backend focused pytest for changed app surfaces.
 - [ ] Backend full pytest if backend app/config changed.

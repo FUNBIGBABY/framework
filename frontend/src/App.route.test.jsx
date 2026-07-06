@@ -36,10 +36,6 @@ vi.mock('./components/Library', () => ({
   default: () => 'library route',
 }))
 
-vi.mock('./components/MigrationTool', () => ({
-  default: () => 'migration route',
-}))
-
 vi.mock('./components/TenantSettings', () => ({
   default: () => 'settings route',
 }))

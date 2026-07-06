@@ -1,6 +1,6 @@
 # Phase 07 Report - Domain and Legacy Cleanup
 
-Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have been performed. A requested deploy/nginx/docker naming cleanup pass was performed on 2026-07-02. Phase 7 is not complete, and later migration placeholder cleanup, tenant/org/invite route cleanup, obsolete docs/scripts cleanup, browser smoke, and reviewer acceptance remain pending. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
+Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have been performed. A requested deploy/nginx/docker naming cleanup pass was performed on 2026-07-02. Migration placeholder route/tool cleanup was performed on 2026-07-05. Phase 7 is not complete, and tenant/org/invite route cleanup, obsolete docs/scripts cleanup, browser smoke, and reviewer acceptance remain pending. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
 
 ## Status
 
@@ -11,11 +11,12 @@ Current Phase 7 state:
 - Planning package created: `checklist.md`, `phase-plan.md`, `verification.md`, and this `phase-report.md`.
 - Round 0/1 implementation performed on 2026-07-02: focused inventory, active runtime/domain cleanup, app-visible Valorie brand cleanup, CORS origin configuration cleanup, focused tests, lint, build, backend syntax, and Docker availability check.
 - Requested deploy/nginx/docker naming cleanup performed on 2026-07-02: neutral Docker image/container/database defaults, neutral nginx template replacement, rewritten deployment helper, and removal of the obsolete tenant preflight/deploy header.
+- Migration placeholder route/tool cleanup performed on 2026-07-05: removed the inert `/migrate` frontend route, deleted the isolated client-side migration/cleanup placeholders, and removed the route-test mock that existed only for the placeholder component.
 - Phase 6 `checklist.md`, `phase-report.md`, and `verification.md` record Migration Reviewer closeout acceptance.
 - Phase 6 Round 6 closeout commit is `27679f8 Complete Phase 6 frontend de-Firebase closeout`.
 - Phase 7 scope is semantic cleanup of Valorie/domain, tenant/org/invite/migration residue, obsolete docs, obsolete scripts/tests, and legacy deploy/env naming.
 - Phase 6 browser smoke remains documented as deferred because Docker/Postgres/seeded local environment was unavailable.
-- Phase 7 implementation has started but is not complete.
+- Phase 7 implementation has started and migration placeholders are now removed, but Phase 7 is not complete.
 - Phase 7 must not be marked complete before implementation evidence and reviewer acceptance.
 - If Phase 6 closeout docs do not record accepted status in a future checkout, Phase 7 implementation is gated until that documentation contradiction is corrected.
 
@@ -118,7 +119,7 @@ Round 0/1 allowlist entries are recorded here and mirrored in `verification.md`:
 - `backend_py/tests/test_main.py`: retains `https://expert.valorie.ai` and `X-Tenant-ID` only as intentional negative assertions proving the old Valorie production origin is no longer accepted by backend CORS and the legacy tenant header is no longer advertised by backend preflight handling.
 - `frontend/src/lib/api.test.js`: retains `tenant_id` and `X-Tenant-ID` only as intentional negative assertions proving frontend request payload/header helpers strip client-supplied identity fields.
 
-These allowlist entries do not cover active runtime/config/deploy/current-doc residue. The deploy/nginx/docker naming residue previously present in `deploy.sh`, `nginx-valorie.conf`, `docker-compose.yml`, `docker-entrypoint.sh`, and backend preflight handling has now been cleaned. Active tenant/org/invite/migration route residue and obsolete current-doc/script residue remain explicit Phase 7 follow-up work rather than allowlisted closeout exceptions.
+These allowlist entries do not cover active runtime/config/deploy/current-doc residue. The deploy/nginx/docker naming residue previously present in `deploy.sh`, `nginx-valorie.conf`, `docker-compose.yml`, `docker-entrypoint.sh`, and backend preflight handling has now been cleaned. The active `/migrate` route and isolated migration placeholder files have now been removed. Active tenant/org/invite route residue and obsolete current-doc/script residue remain explicit Phase 7 follow-up work rather than allowlisted closeout exceptions.
 
 ## Round 0/1 Implementation - 2026-07-02
 
@@ -232,6 +233,46 @@ Boundaries honored:
 - Did not change backend auth semantics beyond removing the unused legacy preflight header advertisement.
 - Did not touch Agent loop, Tool Registry, RAG, LLMWiki, Chat UI, Skill Registry, public registration, SaaS expansion, invite systems, or MCP marketplace work.
 - Did not rewrite current README or obsolete deployment/docs beyond the Phase 7 execution record.
+
+## Migration Placeholder Route/Tool Cleanup - 2026-07-05
+
+Scope performed:
+
+- Ran focused inventory for `MigrationTool`, `migrate-data`, `cleanupData`, `DataCleanupButton`, `updateFrameworkTenants`, `/migrate`, migration placeholder wording, and migration tool wording across active frontend/backend source and migration docs.
+- Confirmed the active runtime candidates were obsolete placeholders: `frontend/src/components/MigrationTool.jsx`, `frontend/src/migrate-data.js`, `frontend/src/utils/cleanupData.js`, `frontend/src/utils/DataCleanupButton.jsx`, and `frontend/src/utils/updateFrameworkTenants.js` only returned isolated/unavailable placeholder responses from the Phase 6 SDK-removal bridge.
+- Removed the `/migrate` route and `MigrationTool` import from `frontend/src/App.jsx`.
+- Deleted the five isolated client-side migration/cleanup placeholder files.
+- Removed the unused `MigrationTool` route mock from `frontend/src/App.route.test.jsx`.
+
+Files changed or deleted in this pass:
+
+- `frontend/src/App.jsx`
+- `frontend/src/App.route.test.jsx`
+- `frontend/src/components/MigrationTool.jsx` deleted
+- `frontend/src/migrate-data.js` deleted
+- `frontend/src/utils/cleanupData.js` deleted
+- `frontend/src/utils/DataCleanupButton.jsx` deleted
+- `frontend/src/utils/updateFrameworkTenants.js` deleted
+- `docs/migration/phases/phase-07-domain-legacy-cleanup/checklist.md`
+- `docs/migration/phases/phase-07-domain-legacy-cleanup/phase-report.md`
+- `docs/migration/phases/phase-07-domain-legacy-cleanup/verification.md`
+
+Verification summary:
+
+- Post-edit active frontend scan for `MigrationTool`, `migrate-data`, `cleanupData`, `DataCleanupButton`, `updateFrameworkTenants`, and `/migrate` returned no matches.
+- `Test-Path` checks for all five deleted placeholder files returned `False`.
+- Focused route test passed after the expected sandbox config-read failure was rerun outside the sandbox: `1 passed`.
+- Full frontend test suite passed outside the sandbox: `10 passed`, `53 passed`.
+- Frontend lint passed.
+- Frontend build passed outside the sandbox after the expected sandbox config-read failure: `140 modules transformed`, build completed in `7.43s`, with existing browser-data and chunk-size warnings.
+- Backend syntax/tests were not run because this pass changed only frontend route/test files and migration docs.
+
+Deferrals and non-targets:
+
+- Tenant/org/invite route cleanup remains deferred to the later personal route-flow round. `TenantRoute`, `TenantSettings`, `InviteAccept`, `YourOrganization`, tenant route shims, organization UI, and related auth state were intentionally not changed.
+- `backend_py/app/services/vectorstore/openai_legacy.py` contains a provider compatibility message mentioning a legacy migration tool. It is not a frontend migration placeholder route/tool and is preserved under the existing provider-compatibility boundary.
+- Historical migration docs retain placeholder names as audit evidence under the existing `docs/migration/phases/**` allowlist.
+- No Agent loop, Tool Registry, RAG, LLMWiki, Chat UI, Skill Registry, public registration, SaaS expansion, invite system, MCP marketplace, auth/session, model, or database migration behavior was changed.
 
 ## Scope
 

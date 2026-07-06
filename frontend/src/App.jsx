@@ -13,7 +13,6 @@ import YourFrameworks from './components/YourFrameworks'
 import CreateFramework from './components/CreateFramework'
 import FrameworkEditor from './components/FrameworkEditor'
 import Library from './components/Library'
-import MigrationTool from './components/MigrationTool'
 import TenantSettings from './components/TenantSettings'
 import InviteAccept from './components/InviteAccept'
 import YourOrganization from './components/YourOrganization'
@@ -63,7 +62,6 @@ function AppContent() {
             </PrivateRoute>
           }
         />
-        <Route path="/migrate" element={<MigrationTool />} />
         <Route path="/invite/:token" element={<InviteAccept />} />
 
         <Route
