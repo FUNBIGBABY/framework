@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import FrameworkCard from './FrameworkCard'
 import UpdateFrameworksButton from './UpdateFrameworksButton'
-import { getCurrentTenantId, getMyFrameworks } from '../lib/api'
+import { getMyFrameworks } from '../lib/api'
 
 function YourFrameworks() {
   const navigate = useNavigate()
@@ -14,7 +14,6 @@ function YourFrameworks() {
   const [error, setError] = useState(null)
   const [expandedFamilies, setExpandedFamilies] = useState({})
   const [filter, setFilter] = useState('all')
-  const tenantShim = user?.tenantId || getCurrentTenantId() || 'personal'
 
   useEffect(() => {
     let cancelled = false
@@ -200,7 +199,7 @@ function YourFrameworks() {
               Create your first framework to get started
             </p>
             <button
-              onClick={() => navigate(`/${tenantShim}/create`)}
+              onClick={() => navigate('/frameworks/create')}
               className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:from-blue-700 hover:to-indigo-700 transition shadow-lg"
             >
               Create Framework
@@ -286,7 +285,7 @@ function YourFrameworks() {
 
         {frameworks.length > 0 && (
           <button
-            onClick={() => navigate(`/${tenantShim}/create`)}
+            onClick={() => navigate('/frameworks/create')}
             className="fixed bottom-8 right-8 p-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-full shadow-2xl hover:shadow-3xl hover:scale-110 transition-all duration-200 group"
             title="Create New Framework"
           >

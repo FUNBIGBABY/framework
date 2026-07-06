@@ -4,7 +4,7 @@ function Home() {
   const navigate = useNavigate()
 
   const handleNewFramework = () => {
-    navigate('/create')
+    navigate('/frameworks/create')
   }
 
   const handleLearnMore = e => {

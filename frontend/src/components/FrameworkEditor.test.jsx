@@ -18,7 +18,6 @@ const apiMocks = vi.hoisted(() => {
     apiFetch: vi.fn(),
     createFrameworkArtefact: vi.fn(),
     deleteFrameworkArtefact: vi.fn(),
-    getCurrentTenantId: vi.fn(() => 'personal'),
     getFramework: vi.fn(),
     listFrameworkArtefacts: vi.fn(),
     regenerateFramework: vi.fn(),
@@ -36,7 +35,6 @@ vi.mock('../lib/api', () => ({
   apiFetch: apiMocks.apiFetch,
   createFrameworkArtefact: apiMocks.createFrameworkArtefact,
   deleteFrameworkArtefact: apiMocks.deleteFrameworkArtefact,
-  getCurrentTenantId: apiMocks.getCurrentTenantId,
   getFramework: apiMocks.getFramework,
   listFrameworkArtefacts: apiMocks.listFrameworkArtefacts,
   regenerateFramework: apiMocks.regenerateFramework,
@@ -49,7 +47,6 @@ vi.mock('../contexts/AuthContext', () => ({
     user: {
       id: 'user_owner',
       email: 'owner@example.com',
-      tenantId: null,
     },
   }),
 }))
@@ -117,9 +114,9 @@ function makeArtefact(overrides = {}) {
 
 function renderEditor() {
   return render(
-    <MemoryRouter initialEntries={['/personal/frameworks/fw_123']}>
+    <MemoryRouter initialEntries={['/frameworks/fw_123']}>
       <Routes>
-        <Route path="/:tenant/frameworks/:id" element={<FrameworkEditor />} />
+        <Route path="/frameworks/:id" element={<FrameworkEditor />} />
       </Routes>
     </MemoryRouter>
   )
@@ -138,7 +135,6 @@ afterEach(() => {
   Object.values(apiMocks).forEach(value => {
     if (typeof value?.mockReset === 'function') value.mockReset()
   })
-  apiMocks.getCurrentTenantId.mockReturnValue('personal')
 })
 
 describe('FrameworkEditor artefact child-resource wiring', () => {

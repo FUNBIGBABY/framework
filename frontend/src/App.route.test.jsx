@@ -36,22 +36,6 @@ vi.mock('./components/Library', () => ({
   default: () => 'library route',
 }))
 
-vi.mock('./components/TenantSettings', () => ({
-  default: () => 'settings route',
-}))
-
-vi.mock('./components/TenantCreationModal', () => ({
-  default: () => 'tenant creation modal',
-}))
-
-vi.mock('./components/InviteAccept', () => ({
-  default: () => 'invite route',
-}))
-
-vi.mock('./components/YourOrganization', () => ({
-  default: () => 'organization route',
-}))
-
 vi.mock('./components/AdminPanel', () => ({
   default: () => 'admin route',
 }))
@@ -66,22 +50,40 @@ describe('App route shell', () => {
         id: 'backend-user-1',
         email: 'owner@example.com',
         username: 'owner',
-        tenantId: null,
-        joinedOrganization: null,
         authProvider: 'backend-cookie',
       },
       logout: vi.fn(),
     }
   })
 
-  it('does not open tenant creation on the normal backend-cookie post-login path', async () => {
+  it('routes authenticated root users to the personal framework list', async () => {
     render(<App />)
 
     expect(await screen.findByText('framework route shell')).toBeInTheDocument()
-    expect(screen.queryByText('tenant creation modal')).not.toBeInTheDocument()
 
     await waitFor(() => {
-      expect(window.location.pathname).toBe('/personal/frameworks')
+      expect(window.location.pathname).toBe('/frameworks')
     })
+  })
+
+  it('mounts create, editor, library, and admin through personal private routes', async () => {
+    window.history.pushState({}, '', '/frameworks/create')
+    const { unmount } = render(<App />)
+    expect(await screen.findByText('create route')).toBeInTheDocument()
+    unmount()
+
+    window.history.pushState({}, '', '/frameworks/fw_123')
+    const editorRender = render(<App />)
+    expect(await screen.findByText('editor route')).toBeInTheDocument()
+    editorRender.unmount()
+
+    window.history.pushState({}, '', '/library')
+    const libraryRender = render(<App />)
+    expect(await screen.findByText('library route')).toBeInTheDocument()
+    libraryRender.unmount()
+
+    window.history.pushState({}, '', '/admin')
+    render(<App />)
+    expect(await screen.findByText('admin route')).toBeInTheDocument()
   })
 })

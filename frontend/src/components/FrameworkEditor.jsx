@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import LoadingDialog from './LoadingDialog' //Update: Use LoadingDialog instead of RegenerateDialog.
-import { useAuth } from '../contexts/AuthContext'
 import MergeModeDialog from './MergeModeDialog'
 import ManualMergeMode from './ManualMergeMode'
 import AIMergeMode from './AIMergeMode'
@@ -11,7 +10,6 @@ import API_ENDPOINTS, {
   createFrameworkArtefact,
   deleteFrameworkArtefact,
   getFramework,
-  getCurrentTenantId,
   listFrameworkArtefacts,
   regenerateFramework,
   updateFramework,
@@ -70,9 +68,7 @@ function writeFrameworkDraftBackup(frameworkId, frameworkData, artefacts = []) {
 
 function FrameworkEditor() {
   const navigate = useNavigate()
-  const { user } = useAuth()
   const { id } = useParams()
-  const tenantShim = user?.tenantId || getCurrentTenantId() || 'personal'
 
   // UI state management
   const [activeSection, setActiveSection] = useState('metadata')
@@ -347,7 +343,7 @@ function FrameworkEditor() {
           setIsSaved(false)
         } else {
           alert('Failed to load framework. It may have been deleted.')
-          navigate(`/${tenantShim}/frameworks`)
+          navigate('/frameworks')
         }
         setIsLoading(false)
         setIsLoadingArtefacts(false)
@@ -355,7 +351,7 @@ function FrameworkEditor() {
     }
 
     loadFramework()
-  }, [id, navigate, tenantShim])
+  }, [id, navigate])
 
   // Warn user before leaving page with unsaved changes
   useEffect(() => {
@@ -674,7 +670,7 @@ function FrameworkEditor() {
   // Event handlers for top-level actions
   const handleDiscardChanges = () => {
     if (window.confirm('Are you sure you want to discard all changes?')) {
-      navigate(`/${tenantShim}/frameworks`)
+      navigate('/frameworks')
     }
   }
 

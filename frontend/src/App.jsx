@@ -6,23 +6,16 @@ import {
 } from 'react-router-dom'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 import PrivateRoute from './components/PrivateRoute'
-import TenantRoute from './components/TenantRoute'
 import Navbar from './components/Navbar'
 import Login from './components/Login'
 import YourFrameworks from './components/YourFrameworks'
 import CreateFramework from './components/CreateFramework'
 import FrameworkEditor from './components/FrameworkEditor'
 import Library from './components/Library'
-import TenantSettings from './components/TenantSettings'
-import InviteAccept from './components/InviteAccept'
-import YourOrganization from './components/YourOrganization'
 import AdminPanel from './components/AdminPanel'
-
-const PERSONAL_ROUTE_TENANT = 'personal'
 
 /**
  * RootRedirect - root path redirection component.
- * The tenant path segment is a legacy UI routing shim during Phase 6.
  */
 function RootRedirect() {
   const { user, loading } = useAuth()
@@ -42,8 +35,7 @@ function RootRedirect() {
     return <Navigate to="/login" replace />
   }
 
-  const routeTenant = user.tenantId || PERSONAL_ROUTE_TENANT
-  return <Navigate to={`/${routeTenant}/frameworks`} replace />
+  return <Navigate to="/frameworks" replace />
 }
 
 function AppContent() {
@@ -53,7 +45,14 @@ function AppContent() {
 
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/admin" element={<AdminPanel />} />
+        <Route
+          path="/admin"
+          element={
+            <PrivateRoute>
+              <AdminPanel />
+            </PrivateRoute>
+          }
+        />
         <Route
           path="/library"
           element={
@@ -62,46 +61,29 @@ function AppContent() {
             </PrivateRoute>
           }
         />
-        <Route path="/invite/:token" element={<InviteAccept />} />
 
         <Route
-          path="/:tenantId/frameworks"
+          path="/frameworks"
           element={
-            <TenantRoute>
+            <PrivateRoute>
               <YourFrameworks />
-            </TenantRoute>
+            </PrivateRoute>
           }
         />
         <Route
-          path="/:tenantId/organization"
+          path="/frameworks/create"
           element={
-            <TenantRoute>
-              <YourOrganization />
-            </TenantRoute>
-          }
-        />
-        <Route
-          path="/:tenantId/create"
-          element={
-            <TenantRoute>
+            <PrivateRoute>
               <CreateFramework />
-            </TenantRoute>
+            </PrivateRoute>
           }
         />
         <Route
-          path="/:tenantId/editor/:id"
+          path="/frameworks/:id"
           element={
-            <TenantRoute>
+            <PrivateRoute>
               <FrameworkEditor />
-            </TenantRoute>
-          }
-        />
-        <Route
-          path="/:tenantId/settings"
-          element={
-            <TenantRoute>
-              <TenantSettings />
-            </TenantRoute>
+            </PrivateRoute>
           }
         />
 

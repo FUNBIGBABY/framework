@@ -1,4 +1,4 @@
-import { useNavigate, useLocation, useParams } from 'react-router-dom'
+import { useNavigate, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import { useAuth } from '../contexts/AuthContext'
 import { APP_INITIAL, APP_NAME } from '../lib/appConfig'
@@ -7,35 +7,21 @@ import { APP_INITIAL, APP_NAME } from '../lib/appConfig'
  * Navbar - Global navigation bar component (path mode)
  *
  * ✅ Retain all original functionality, only modify the path logic.
- * Legacy path mode remains until the personal route cleanup round.
+ * Personal route mode is active for framework navigation.
  */
 function Navbar() {
   const navigate = useNavigate()
   const location = useLocation()
-  const { tenantId: urlTenantId } = useParams()
   const { user, logout, isAuthenticated } = useAuth()
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showFrameworksMenu, setShowFrameworksMenu] = useState(false)
   const isAdmin = Boolean(user?.isSuperAdmin)
 
-  // Use the tenantId from the URL or the tenantId of the user.
-  const tenantId = urlTenantId || user?.tenantId
-
-  const hasOrganizationAccess = !!(user?.tenantId || user?.joinedOrganization)
-  const isOwner = !user?.joinedOrganization
-
-  // path gennerate function：/{tenantId}{path}
-  const getPath = path => {
-    if (tenantId) {
-      return `/${tenantId}${path}`
-    }
-    return path
-  }
+  const frameworkListPath = '/frameworks'
+  const createFrameworkPath = '/frameworks/create'
 
   const handleCreateClick = () => {
-    if (tenantId) {
-      navigate(getPath('/create'))
-    }
+    navigate(createFrameworkPath)
   }
 
   const handleComingSoon = feature => {
@@ -66,7 +52,7 @@ function Navbar() {
     return null
   }
 
-  const showNavigation = !!tenantId
+  const showNavigation = true
 
   return (
     <nav className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
@@ -106,9 +92,9 @@ function Navbar() {
           {showNavigation && (
             <div className="flex items-center space-x-1">
               <button
-                onClick={() => navigate(getPath('/create'))}
+                onClick={() => navigate(createFrameworkPath)}
                 className={`px-3 py-2 rounded font-medium transition-colors ${
-                  isActive('/create')
+                  isActive(createFrameworkPath)
                     ? 'text-blue-600 bg-blue-50 border-b-2 border-blue-600'
                     : 'text-gray-700 hover:bg-gray-100'
                 }`}
@@ -124,7 +110,7 @@ function Navbar() {
                     setTimeout(() => setShowFrameworksMenu(false), 200)
                   }
                   className={`px-3 py-2 rounded font-medium transition-colors flex items-center space-x-1 ${
-                    isActive('/frameworks') || isActive('/organization')
+                    isActive(frameworkListPath)
                       ? 'text-blue-600 bg-blue-50 border-b-2 border-blue-600'
                       : 'text-gray-700 hover:bg-gray-100'
                   }`}
@@ -147,7 +133,7 @@ function Navbar() {
                   <div className="absolute left-0 mt-1 w-56 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
                     <button
                       onClick={() => {
-                        navigate(getPath('/frameworks'))
+                        navigate(frameworkListPath)
                         setShowFrameworksMenu(false)
                       }}
                       className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
@@ -166,46 +152,6 @@ function Navbar() {
                         />
                       </svg>
                       <span>My Drafts</span>
-                    </button>
-
-                    <button
-                      onClick={() => {
-                        if (hasOrganizationAccess) {
-                          navigate(getPath('/organization'))
-                          setShowFrameworksMenu(false)
-                        } else {
-                          alert('No organization available.')
-                          setShowFrameworksMenu(false)
-                        }
-                      }}
-                      className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-50 flex items-center justify-between ${
-                        hasOrganizationAccess
-                          ? 'text-gray-700'
-                          : 'text-gray-400 cursor-not-allowed'
-                      }`}
-                      disabled={!hasOrganizationAccess}
-                    >
-                      <div className="flex items-center space-x-2">
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                          />
-                        </svg>
-                        <span>My Organization</span>
-                      </div>
-                      {hasOrganizationAccess && (
-                        <span className="text-xs text-gray-500">
-                          {isOwner ? 'owner' : 'joined'}
-                        </span>
-                      )}
                     </button>
                   </div>
                 )}
@@ -237,12 +183,7 @@ function Navbar() {
         <div className="flex items-center space-x-3">
           <button
             onClick={handleCreateClick}
-            disabled={!tenantId}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              tenantId
-                ? 'bg-blue-600 text-white hover:bg-blue-700'
-                : 'bg-gray-300 text-gray-500 cursor-not-allowed'
-            }`}
+            className="px-4 py-2 rounded-lg font-medium transition-colors bg-blue-600 text-white hover:bg-blue-700"
           >
             Create
           </button>
@@ -286,11 +227,7 @@ function Navbar() {
 
           <button
             className="p-2 hover:bg-gray-100 rounded"
-            onClick={() => {
-              if (tenantId) {
-                navigate(getPath('/settings'))
-              }
-            }}
+            onClick={() => handleComingSoon('Settings')}
           >
             <svg
               className="w-5 h-5 text-gray-600"
@@ -324,16 +261,6 @@ function Navbar() {
                   <p className="text-xs text-gray-500 truncate">
                     {user?.email}
                   </p>
-                  {tenantId && (
-                    <p className="text-xs text-blue-600 mt-1">
-                      Workspace: {tenantId}
-                    </p>
-                  )}
-                  {user?.joinedOrganization && (
-                    <p className="text-xs text-green-600 mt-1">
-                      Member of: {user.joinedOrganization}
-                    </p>
-                  )}
                 </div>
 
                 {showNavigation && (
@@ -341,7 +268,7 @@ function Navbar() {
                     <button
                       onClick={() => {
                         setShowUserMenu(false)
-                        navigate(getPath('/frameworks'))
+                        navigate(frameworkListPath)
                       }}
                       className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
                     >
@@ -384,36 +311,6 @@ function Navbar() {
                       </svg>
                       <span>Marketplace</span>
                     </button>
-
-                    <button
-                      onClick={() => {
-                        setShowUserMenu(false)
-                        navigate(getPath('/settings'))
-                      }}
-                      className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
-                    >
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"
-                        />
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                        />
-                      </svg>
-                      <span>Tenant Settings</span>
-                    </button>
-
                     <div className="border-t border-gray-100 my-1"></div>
                   </>
                 )}

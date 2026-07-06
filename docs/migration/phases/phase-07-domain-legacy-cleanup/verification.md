@@ -1,6 +1,6 @@
 # Phase 07 Verification - Domain and Legacy Cleanup
 
-Round 0/1 implementation status: this document defines the verification contract, records initial planning scans, and records Round 0/1 implementation verification. A requested deploy/nginx/docker naming cleanup pass was verified on 2026-07-02. Migration placeholder route/tool cleanup was verified on 2026-07-05. It does not mark Phase 7 complete. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
+Round 0/1 implementation status: this document defines the verification contract, records initial planning scans, and records Round 0/1 implementation verification. A requested deploy/nginx/docker naming cleanup pass was verified on 2026-07-02. Migration placeholder route/tool cleanup was verified on 2026-07-05. Frontend personal-route cleanup was verified on 2026-07-06. It does not mark Phase 7 complete. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
 
 ## Verification Principles
 
@@ -966,6 +966,570 @@ Outcome:
  D frontend/src/utils/DataCleanupButton.jsx
  D frontend/src/utils/cleanupData.js
  D frontend/src/utils/updateFrameworkTenants.js
+```
+
+## Tenant/Org/Invite Cleanup Inventory Verification - 2026-07-06
+
+Scope: inventory-only pass. No runtime code deletion, backend/frontend tests, database model edits, Alembic migration edits, auth/session behavior changes, or replacement tenant/org/invite/workspace behavior were performed.
+
+### Baseline Working Tree
+
+Command:
+
+```powershell
+git status --short
+```
+
+Outcome:
+
+```text
+No stdout. Working tree was clean before this inventory pass.
+```
+
+### Active Frontend Source Scan
+
+Command:
+
+```powershell
+rg --count-matches --hidden -S "tenant|tenants|organization|organizations|org_id|organization_id|invite|invitation|invite_token|X-Tenant-ID|tenant_id|default_tenant|framework_tenant" frontend/src -g "!**/*.test.*" -g "!frontend/dist"
+```
+
+Outcome summary:
+
+```text
+15 active frontend source files, 72 total matches.
+
+File counts:
+- frontend/src/App.jsx: 9
+- frontend/src/components/CreateFramework.jsx: 4
+- frontend/src/components/FrameworkCard.jsx: 3
+- frontend/src/components/FrameworkEditor.jsx: 5
+- frontend/src/components/InviteAccept.jsx: 1
+- frontend/src/components/LandingPage.jsx: 2
+- frontend/src/contexts/AuthContext.jsx: 4
+- frontend/src/components/Login.jsx: 1
+- frontend/src/lib/api.js: 1
+- frontend/src/components/Navbar.jsx: 19
+- frontend/src/components/TenantRoute.jsx: 14
+- frontend/src/components/TenantSettings.jsx: 1
+- frontend/src/components/UpdateFrameworksButton.jsx: 1
+- frontend/src/components/YourFrameworks.jsx: 6
+- frontend/src/components/YourOrganization.jsx: 1
+```
+
+Interpretation: active frontend cleanup remains. The matches are route shells, route guards, user-state compatibility fields, route-generation helpers, inert org-sharing UI, and isolated org/invite/tenant placeholders.
+
+### Frontend API Split-String Identity-Strip Scan
+
+Command:
+
+```powershell
+rg -n --hidden -F "tenant_id" frontend\src\lib\api.js
+```
+
+Outcome:
+
+```text
+No stdout. `rg` exited 1.
+```
+
+Command:
+
+```powershell
+rg -n --hidden -F "X-Tenant-ID" frontend\src\lib\api.js
+```
+
+Outcome:
+
+```text
+No stdout. `rg` exited 1.
+```
+
+Command:
+
+```powershell
+rg -n --hidden -S "stripArtefactResourceFields|\['tenant', 'id'\]|\['X', 'Tenant-ID'\]" frontend\src\lib\api.js
+```
+
+Outcome:
+
+```text
+frontend\src\lib\api.js:180:function stripArtefactResourceFields(artefactData = {}) {
+frontend\src\lib\api.js:187:    ['tenant', 'id'].join('_'),
+frontend\src\lib\api.js:188:    ['X', 'Tenant-ID'].join('-'),
+frontend\src\lib\api.js:236:    const contentJson = stripArtefactResourceFields(artefactData)
+```
+
+Interpretation: literal full-string scans missed the `api.js` `tenant_id` and `X-Tenant-ID` handling because the active guard constructs those names from split strings. The inventory now documents this as a security-preserving identity-strip guard that prevents client-supplied identity/header data from being forwarded in artefact payloads; it is preserved for now and assigned only to a focused future frontend API cleanup that keeps equivalent strip coverage.
+
+### UpdateFrameworksButton Import/Render Scan
+
+Command:
+
+```powershell
+rg -n --hidden -S "UpdateFrameworksButton|YourFrameworks" frontend\src\components\UpdateFrameworksButton.jsx frontend\src\components\YourFrameworks.jsx frontend\src\App.jsx
+```
+
+Outcome:
+
+```text
+frontend\src\App.jsx:12:import YourFrameworks from './components/YourFrameworks'
+frontend\src\App.jsx:71:              <YourFrameworks />
+frontend\src\components\YourFrameworks.jsx:5:import UpdateFrameworksButton from './UpdateFrameworksButton'
+frontend\src\components\YourFrameworks.jsx:8:function YourFrameworks() {
+frontend\src\components\YourFrameworks.jsx:130:        <UpdateFrameworksButton />
+frontend\src\components\YourFrameworks.jsx:313:export default YourFrameworks
+frontend\src\components\UpdateFrameworksButton.jsx:1:function UpdateFrameworksButton() {
+frontend\src\components\UpdateFrameworksButton.jsx:6:export default UpdateFrameworksButton
+```
+
+Interpretation: `UpdateFrameworksButton.jsx` is active source residue because `YourFrameworks.jsx` imports and renders it in the active framework list, even though the component currently returns null. The inventory now assigns it to a focused frontend org placeholder cleanup, not backend tenant/model cleanup.
+
+### Frontend Test Scan
+
+Command:
+
+```powershell
+rg --count-matches --hidden -S "tenant|tenants|organization|organizations|org_id|organization_id|invite|invitation|invite_token|X-Tenant-ID|tenant_id|default_tenant|framework_tenant" frontend/src -g "**/*.test.*" -g "!frontend/dist"
+```
+
+Outcome summary:
+
+```text
+6 frontend test files, 34 total matches.
+
+File counts:
+- frontend/src/lib/api.test.js: 20
+- frontend/src/App.route.test.jsx: 6
+- frontend/src/components/TenantRoute.test.jsx: 3
+- frontend/src/components/FrameworkEditor.test.jsx: 2
+- frontend/src/components/FrameworkCard.test.jsx: 1
+- frontend/src/components/Login.test.jsx: 2
+```
+
+Interpretation: route/component tests need frontend cleanup updates. `frontend/src/lib/api.test.js` also contains intentional negative assertions proving frontend helpers strip client-supplied `tenant_id` and `X-Tenant-ID`; keep equivalent coverage unless rewritten.
+
+### Backend App, Services, Models, And Migrations Scan
+
+Command:
+
+```powershell
+rg --count-matches --hidden -S "tenant|tenants|organization|organizations|org_id|organization_id|invite|invitation|invite_token|X-Tenant-ID|tenant_id|default_tenant|framework_tenant" backend_py/app/models.py backend_py/app/db.py backend_py/app/api backend_py/app/services backend_py/alembic -g "!backend_py/.venv"
+```
+
+Outcome summary:
+
+```text
+1 backend app file, 1 total match:
+- backend_py/app/api/vector_sync.py: 1
+```
+
+Command:
+
+```powershell
+rg -n --hidden -S "tenant|tenants|organization|organizations|org_id|organization_id|invite|invitation|invite_token|X-Tenant-ID|tenant_id|default_tenant|framework_tenant" backend_py/app/models.py backend_py/alembic
+```
+
+Outcome:
+
+```text
+No stdout. `rg` exited 1.
+```
+
+Interpretation: no tenant/org/invite residue was found in the active database model or Alembic migration files. The single backend app match is `include_organization` in `backend_py/app/api/vector_sync.py`, which remains deferred because that route is Phase 9-deferred indexing/RAG plumbing.
+
+### Backend Tenant/Invite Router Absence Scan
+
+Command:
+
+```powershell
+rg -n --hidden -S "/api/tenants|tenants/|tenant_members|invites|invite_token|organization_id|org_id" backend_py/app backend_py/alembic backend_py/tests -g "!backend_py/.venv"
+```
+
+Outcome:
+
+```text
+No stdout. `rg` exited 1.
+```
+
+Interpretation: no active backend tenant/invite router, tenant-member schema, invite token field, organization id field, or org id field was found.
+
+### Backend Ownership/Auth Preservation Scan
+
+Command:
+
+```powershell
+rg -n --hidden -S "Depends\(get_current_user_id\)|Depends\(get_current_user\)|current_user_id|owner|creator_id|user_id" backend_py/app/api/frameworks_crud.py backend_py/app/api/frameworks_public.py backend_py/app/api/artefacts.py backend_py/app/api/admin_users.py backend_py/app/api/users.py
+```
+
+Outcome summary:
+
+```text
+Matches show current framework, artefact, admin, and user routes derive identity from JWT-backed dependencies and enforce ownership through backend user id / creator_id checks.
+```
+
+Interpretation: backend personal-use ownership/auth concepts should be preserved and are not classified as tenant/org/invite residue.
+
+### Backend Test And Obsolete Helper Scan
+
+Command:
+
+```powershell
+rg -n --hidden -S "tenant|tenants|organization|organizations|org_id|organization_id|invite|invitation|invite_token|X-Tenant-ID|tenant_id|default_tenant|framework_tenant" backend_py/app/api/vector_sync.py backend_py/tests/test_main.py
+```
+
+Outcome summary:
+
+```text
+backend_py/tests/test_main.py has 2 matches, both in the negative preflight assertion that `X-Tenant-ID` is not advertised.
+backend_py/app/api/vector_sync.py has 1 match: `include_organization`.
+```
+
+Command:
+
+```powershell
+rg --count-matches --hidden -S "tenant|tenants|organization|organizations|org_id|organization_id|invite|invitation|invite_token|X-Tenant-ID|tenant_id|default_tenant|framework_tenant" backend_py -g "!backend_py/.venv" -g "!backend_py/app/**" -g "!backend_py/tests/**" -g "!backend_py/alembic/**" -g "!backend_py/scripts/**"
+```
+
+Outcome summary:
+
+```text
+5 obsolete backend doc/helper files, 26 total matches.
+
+File counts:
+- backend_py/README-DIFF.md: 5
+- backend_py/test_update.py: 1
+- backend_py/test_update_publish.py: 11
+- backend_py/test_firebase.py: 7
+- backend_py/check_vector_store_attributes.py: 2
+```
+
+Interpretation: top-level backend helper scripts and obsolete backend docs remain Round 5 cleanup material, not active backend app behavior.
+
+### Env, Config, And Deploy Scan
+
+Command:
+
+```powershell
+rg -n --hidden -S "tenant|tenants|organization|organizations|org_id|organization_id|invite|invitation|invite_token|X-Tenant-ID|tenant_id|default_tenant|framework_tenant" .env.example frontend/.env.example backend_py/.env.example Dockerfile docker-compose.yml docker-entrypoint.sh deploy.sh nginx-framework.conf
+```
+
+Outcome:
+
+```text
+No stdout. `rg` exited 1.
+```
+
+Interpretation: active env/config/deploy files are clean for the requested tenant/org/invite terms.
+
+### Current And Historical Docs Scan
+
+Command:
+
+```powershell
+rg --count-matches --hidden -S "tenant|tenants|organization|organizations|org_id|organization_id|invite|invitation|invite_token|X-Tenant-ID|tenant_id|default_tenant|framework_tenant" MIGRATION_PHASES.md README.md docs -g "!docs/migration/phases/phase-07-domain-legacy-cleanup/verification.md"
+```
+
+Outcome summary:
+
+```text
+20 files, 382 total matches.
+
+Current docs/tooling:
+- README.md: 1
+- docs/skills/migration-reviewer/SKILL.md: 1
+- docs/skills/migration-phase-planner/SKILL.md: 1
+
+Canonical/historical records:
+- MIGRATION_PHASES.md: 12
+- docs/migration/phases/**: 367
+```
+
+Interpretation: `README.md` remains Round 5 current-doc cleanup. `MIGRATION_PHASES.md` and `docs/migration/phases/**` are historical/canonical allowlist records. `docs/skills/**` are migration tooling references and are deferred unless a later docs-tooling cleanup updates them.
+
+Command:
+
+```powershell
+rg -n --hidden -S "tenant|tenants|organization|organizations|org_id|organization_id|invite|invitation|invite_token|X-Tenant-ID|tenant_id|default_tenant|framework_tenant" MIGRATION_PHASES.md README.md docs/PERSONAL_USE_BOUNDARY.md docs/migration/README.md docs/migration/decisions/ADR-0001-auth-strategy.md
+```
+
+Outcome summary:
+
+```text
+README.md has one current-doc match: "Legacy Multi-Tenant Compatibility".
+MIGRATION_PHASES.md has canonical cleanup-target matches.
+docs/PERSONAL_USE_BOUNDARY.md, docs/migration/README.md, and ADR-0001 had no matches for this term set.
+```
+
+### Specific Hidden-Identifier Scan
+
+Command:
+
+```powershell
+rg -n --hidden -S "default_tenant|framework_tenant|invite_token|organization_id|org_id" . -g "!node_modules" -g "!frontend/node_modules" -g "!frontend/dist" -g "!backend_py/.venv" -g "!.git"
+```
+
+Outcome:
+
+```text
+No stdout. `rg` exited 1.
+```
+
+Interpretation: no `default_tenant`, `framework_tenant`, `invite_token`, `organization_id`, or `org_id` residue was found in the scanned workspace.
+
+### Skipped Checks
+
+- Backend tests: not run because this pass changed only migration documentation.
+- Frontend tests: not run because this pass changed only migration documentation.
+- Browser smoke: not run and not claimed; this was an inventory-only documentation pass.
+
+### Post-Documentation Whitespace Check
+
+Command:
+
+```powershell
+git diff --check
+```
+
+Outcome:
+
+```text
+No stdout. Command exited 0.
+```
+
+## Frontend Personal Route Cleanup Verification - 2026-07-06
+
+Scope: frontend personal-route cleanup only. Backend auth/session behavior, backend ownership checks, database models, migrations, README, obsolete backend helper scripts, `UpdateFrameworksButton.jsx`, and the `api.js` split-string identity-strip guard were not changed.
+
+### Active Route Residue Scan
+
+Command:
+
+```powershell
+rg -n 'TenantRoute|TenantCreationModal|TenantSettings|YourOrganization|InviteAccept|/:tenantId|/invite/:token|/personal/frameworks|/editor/|getPath\(|tenantShim|getCurrentTenantId' frontend\src
+```
+
+Outcome:
+
+```text
+frontend\src\components\InviteAccept.jsx:1:function InviteAccept() {
+frontend\src\components\InviteAccept.jsx:17:export default InviteAccept
+frontend\src\components\TenantRoute.jsx:5: * TenantRoute - Tenant Route Protection Component (Path Mode - Simplified Version)
+frontend\src\components\TenantRoute.jsx:11:function TenantRoute({ children }) {
+frontend\src\components\TenantRoute.jsx:92:export default TenantRoute
+frontend\src\components\YourOrganization.jsx:1:function YourOrganization() {
+frontend\src\components\YourOrganization.jsx:18:export default YourOrganization
+frontend\src\components\TenantSettings.jsx:1:function TenantSettings() {
+frontend\src\components\TenantSettings.jsx:17:export default TenantSettings
+frontend\src\components\TenantCreationModal.jsx:1:function TenantCreationModal() {
+frontend\src\components\TenantCreationModal.jsx:5:export default TenantCreationModal
+```
+
+Interpretation: no active old route paths, route helpers, or active route imports remain. The remaining matches are unmounted placeholder component files deferred to the frontend org/invite placeholder cleanup slice.
+
+Command:
+
+```powershell
+rg -n 'path="/:tenantId|path="/invite|/:tenantId|/invite/:token|/personal/frameworks|/editor/' frontend\src
+```
+
+Outcome:
+
+```text
+No stdout. `rg` exited 1.
+```
+
+Interpretation: active frontend source and tests no longer define or assert the removed tenant/invite/personal-shim route paths.
+
+### Removed Placeholder Import Scan
+
+Command:
+
+```powershell
+rg -n "from './components/(TenantRoute|TenantSettings|InviteAccept|YourOrganization)'|from './(TenantRoute|TenantSettings|InviteAccept|YourOrganization)'|<TenantRoute|<TenantSettings|<InviteAccept|<YourOrganization" frontend\src
+```
+
+Outcome:
+
+```text
+No stdout. `rg` exited 1.
+```
+
+Interpretation: `App.jsx` no longer imports or mounts `TenantRoute`, `TenantSettings`, `InviteAccept`, or `YourOrganization`.
+
+Command:
+
+```powershell
+rg -n "getCurrentTenantId" frontend\src -g "!frontend/src/lib/api.js" -g "!frontend/src/lib/api.test.js"
+```
+
+Outcome:
+
+```text
+No stdout. `rg` exited 1.
+```
+
+Interpretation: no component or active route-generation code imports the removed legacy route shim. The shim was also removed from `api.js` and `api.test.js`.
+
+### Remaining Tenant/Org/Invite Residue Scan
+
+Command:
+
+```powershell
+rg -n 'tenant|Tenant|organization|Organization|invite|Invite|joinedOrganization|tenantId|publishedToOrganization|Publish to Organization|Tenant Settings|My Organization|X-Tenant-ID|tenant_id' frontend\src -g '!frontend/src/components/TenantRoute.jsx' -g '!frontend/src/components/TenantCreationModal.jsx' -g '!frontend/src/components/TenantSettings.jsx' -g '!frontend/src/components/YourOrganization.jsx' -g '!frontend/src/components/InviteAccept.jsx'
+```
+
+Outcome summary:
+
+```text
+frontend\src\contexts\AuthContext.jsx retains tenantId, joinedOrganization, and updateUserTenant.
+frontend\src\lib\api.js retains split-string tenant_id / X-Tenant-ID identity-strip guard lines and publishedToOrganization normalization.
+frontend\src\lib\api.test.js retains tenant_id / X-Tenant-ID negative assertions.
+frontend\src\components\FrameworkCard.jsx retains organization sharing labels/actions.
+frontend\src\components\YourFrameworks.jsx retains organization filters and publishedToOrganization checks.
+frontend\src\components\UpdateFrameworksButton.jsx remains as the documented org-field repair placeholder.
+```
+
+Interpretation: remaining matches are the previously documented deferrals: frontend auth-state cleanup, frontend org placeholder/sharing cleanup, and focused API identity-strip guard cleanup. They are not active tenant route shells.
+
+### Focused Route/API Tests
+
+Initial sandboxed command:
+
+```powershell
+cd frontend
+npm test -- src/App.route.test.jsx src/components/Login.test.jsx src/components/FrameworkEditor.test.jsx src/lib/api.test.js
+```
+
+Initial result:
+
+```text
+Failed before tests ran: esbuild/Vitest could not read ../../../.. and could not resolve frontend\vitest.config.js inside the sandbox.
+```
+
+Escalated rerun command:
+
+```powershell
+cd frontend
+npm test -- src/App.route.test.jsx src/components/Login.test.jsx src/components/FrameworkEditor.test.jsx src/lib/api.test.js
+```
+
+Escalated rerun result:
+
+```text
+4 test files passed.
+30 tests passed.
+Duration 5.16s.
+```
+
+Warnings: existing stale `baseline-browser-mapping` and Browserslist/caniuse data warnings.
+
+### Frontend Lint
+
+Command:
+
+```powershell
+cd frontend
+npm run lint
+```
+
+Result:
+
+```text
+> frontend@0.0.0 lint
+> eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0
+```
+
+Exit code: `0`.
+
+### Full Frontend Tests
+
+Initial sandboxed command:
+
+```powershell
+cd frontend
+npm test
+```
+
+Initial result:
+
+```text
+Failed before tests ran: esbuild/Vitest could not read ../../../.. and could not resolve frontend\vitest.config.js inside the sandbox.
+```
+
+Escalated rerun command:
+
+```powershell
+cd frontend
+npm test
+```
+
+Escalated rerun result:
+
+```text
+9 test files passed.
+52 tests passed.
+Duration 4.06s.
+```
+
+Warnings/output: existing stdout from `PublishModal.test.jsx` and `Login.test.jsx`; existing stale `baseline-browser-mapping` and Browserslist/caniuse data warnings.
+
+### Frontend Build
+
+Initial sandboxed command:
+
+```powershell
+cd frontend
+npm run build
+```
+
+Initial result:
+
+```text
+Failed before build compilation: esbuild/Vite could not read ../../../.. and could not resolve frontend\vite.config.js inside the sandbox.
+```
+
+Escalated rerun command:
+
+```powershell
+cd frontend
+npm run build
+```
+
+Escalated rerun result:
+
+```text
+vite v7.1.9 building for production...
+136 modules transformed.
+dist/index.html                 0.48 kB | gzip:   0.31 kB
+dist/assets/index-DfLzCzBj.css 38.87 kB | gzip:   7.06 kB
+dist/assets/index-BZMVfgS5.js  851.64 kB | gzip: 257.11 kB
+built in 5.19s
+```
+
+Warnings: existing stale `baseline-browser-mapping` and Browserslist/caniuse data warnings; existing chunk larger than 500 kB after minification warning.
+
+### Skipped Checks
+
+- Backend tests: not run because this slice changed only frontend route/navigation/test files and migration docs.
+- Browser smoke: not run and not claimed; Docker/Postgres/seeded local environment availability remains the blocker recorded earlier in Phase 6 and Phase 7 docs.
+
+### Post-Documentation Rerun
+
+Commands:
+
+```powershell
+rg -n 'TenantRoute|TenantCreationModal|TenantSettings|YourOrganization|InviteAccept|/:tenantId|/invite/:token|/personal/frameworks|/editor/|getPath\(|tenantShim|getCurrentTenantId' frontend\src
+rg -n 'path="/:tenantId|path="/invite|/:tenantId|/invite/:token|/personal/frameworks|/editor/' frontend\src
+git diff --check
+```
+
+Results:
+
+```text
+The first scan still reports only the unmounted placeholder component files: InviteAccept.jsx, TenantCreationModal.jsx, TenantSettings.jsx, TenantRoute.jsx, and YourOrganization.jsx.
+The active old-route path scan returned no stdout; `rg` exited 1.
+`git diff --check` returned no stdout and exited 0.
 ```
 
 ## Initial Planning Scan Summary

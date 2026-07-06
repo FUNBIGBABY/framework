@@ -6,7 +6,6 @@ import { APP_INITIAL, APP_NAME } from '../lib/appConfig'
 function Login() {
   const { login } = useAuth()
   const navigate = useNavigate()
-  const personalRouteTenant = 'personal'
 
   const [formData, setFormData] = useState({
     email: '',
@@ -35,8 +34,7 @@ function Login() {
       if (result.success) {
         console.log('✅ Login successful')
 
-        const routeTenant = result.user?.tenantId || personalRouteTenant
-        navigate(`/${routeTenant}/frameworks`)
+        navigate('/frameworks')
       } else {
         setError(result.error || 'Login failed. Please try again.')
         setIsLoading(false)

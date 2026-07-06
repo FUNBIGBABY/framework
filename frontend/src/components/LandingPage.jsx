@@ -9,8 +9,8 @@ function LandingPage() {
 
   // if login in,move into working zone
   useEffect(() => {
-    if (user && user.tenantId) {
-      navigate(`/${user.tenantId}/frameworks`)
+    if (user) {
+      navigate('/frameworks')
     }
   }, [user, navigate])
 

@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom'
 import {
   generateFrameworkFromText,
   generateFrameworkFromFiles,
-  getCurrentTenantId,
   APIError,
 } from '../lib/api'
 import PrivacyLockDialog from './PrivacyLockDialog'
@@ -26,7 +25,6 @@ function CreateFramework() {
   const [privacyLockEnabled, setPrivacyLockEnabled] = useState(false) // Off by default
   const [showLockDialog, setShowLockDialog] = useState(false)
   const [generationMode, setGenerationMode] = useState('fast')
-  const tenantShim = getCurrentTenantId() || 'personal'
 
   const handleTextChange = e => {
     const value = e.target.value
@@ -131,7 +129,7 @@ function CreateFramework() {
   }
 
   const handleCancel = () => {
-    navigate(`/${tenantShim}/frameworks`)
+    navigate('/frameworks')
   }
 
   // 🔥 Modification: When the "Generate" button is clicked, a privacy pop-up window will be displayed first (in both text and file modes).
@@ -219,7 +217,7 @@ function CreateFramework() {
         )
 
         setTimeout(() => {
-          navigate(`/${tenantShim}/editor/${frameworkId}`)
+          navigate(`/frameworks/${frameworkId}`)
         }, 1000)
       } else {
         // ========== File Mode ==========
@@ -262,7 +260,7 @@ function CreateFramework() {
         )
 
         setTimeout(() => {
-          navigate(`/${tenantShim}/editor/${frameworkId}`)
+          navigate(`/frameworks/${frameworkId}`)
         }, 1000)
       }
     } catch (err) {

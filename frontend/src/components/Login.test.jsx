@@ -22,13 +22,12 @@ describe('Login', () => {
       user: {
         id: 'backend-user-1',
         email: 'owner@example.com',
-        tenantId: null,
         authProvider: 'backend-cookie',
       },
     })
   })
 
-  it('routes backend-cookie users without a tenant to the personal framework shell', async () => {
+  it('routes backend-cookie users to the personal framework shell', async () => {
     const user = userEvent.setup()
 
     render(
@@ -36,7 +35,7 @@ describe('Login', () => {
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route
-            path="/personal/frameworks"
+            path="/frameworks"
             element={<div>Personal frameworks destination</div>}
           />
         </Routes>

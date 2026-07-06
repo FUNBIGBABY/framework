@@ -18,16 +18,6 @@ function getApiBaseUrl(currentHostname = window.location.hostname) {
 
 const API_BASE_URL = getApiBaseUrl()
 
-/**
- * Legacy route generation only; this value is not sent as request identity.
- */
-function getCurrentTenantId(currentPathname = window.location.pathname) {
-  const pathMatch = currentPathname.match(/^\/([a-z0-9-]+)\//)
-  if (pathMatch) return pathMatch[1]
-
-  return null
-}
-
 function normalizeHostname(value = '') {
   const rawValue = String(value).trim().toLowerCase()
   const withoutScheme = rawValue.replace(/^https?:\/\//, '')
@@ -892,5 +882,4 @@ export {
   apiFetch,
   getApiBaseUrl,
   getAuthHeaders,
-  getCurrentTenantId,
 }

@@ -10,7 +10,6 @@ import {
   generateFrameworkFromText,
   getAdminUsers,
   getApiBaseUrl,
-  getCurrentTenantId,
   getFrameworkArtefact,
   listFrameworkArtefacts,
   getPublicFrameworks,
@@ -76,11 +75,6 @@ describe('API deployment configuration', () => {
     vi.stubEnv('VITE_APP_BASE_DOMAIN', 'personal.example.com')
 
     expect(getApiBaseUrl('personal.example.com')).toBe('https://api.example.com')
-  })
-
-  it('keeps the legacy route shim path-based instead of deployment-domain based', () => {
-    expect(getCurrentTenantId('/personal/frameworks')).toBe('personal')
-    expect(getCurrentTenantId('/frameworks')).toBeNull()
   })
 })
 

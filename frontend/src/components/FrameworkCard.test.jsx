@@ -4,18 +4,6 @@ import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import FrameworkCard from './FrameworkCard'
 
-const authMock = vi.hoisted(() => ({
-  user: {
-    tenantId: null,
-  },
-}))
-
-vi.mock('../contexts/AuthContext', () => ({
-  useAuth: () => ({
-    user: authMock.user,
-  }),
-}))
-
 function mockResponse(status, data = {}) {
   return {
     status,

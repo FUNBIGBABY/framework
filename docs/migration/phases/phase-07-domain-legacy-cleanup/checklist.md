@@ -1,6 +1,6 @@
 # Phase 07 Checklist - Domain and Legacy Cleanup
 
-Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have evidence recorded in `phase-report.md` and `verification.md`. A requested deploy/nginx/docker naming cleanup pass was performed on 2026-07-02. Migration placeholder route/tool cleanup was performed on 2026-07-05. Do not mark Phase 7 complete from this document; tenant/org/invite route cleanup, obsolete docs/scripts cleanup, browser smoke, and reviewer acceptance work remain pending. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
+Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have evidence recorded in `phase-report.md` and `verification.md`. A requested deploy/nginx/docker naming cleanup pass was performed on 2026-07-02. Migration placeholder route/tool cleanup was performed on 2026-07-05. A frontend personal-route cleanup slice was performed on 2026-07-06. Do not mark Phase 7 complete from this document; remaining tenant/org/invite UI/auth-state cleanup, obsolete docs/scripts cleanup, browser smoke, and reviewer acceptance work remain pending. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
 
 ## Required Context
 
@@ -94,39 +94,41 @@ Acceptance criteria:
 
 ## Round 3 - Personal Route Flow And Tenant/Org/Invite Cleanup
 
-- [ ] Replace `/:tenantId/*` route shells with personal-use routes that do not encode tenant identity.
-- [ ] Remove `TenantRoute` from the active routing path and rely on `PrivateRoute` plus backend ownership checks.
-- [ ] Delete or permanently remove active imports for tenant, organization, and invite placeholder components.
+- [x] Inventory-only pass on 2026-07-06 classified tenant/org/invite references across backend, frontend, tests, docs, database models, migrations, schemas, route guards, services, and env/config; no runtime code, auth/session behavior, models, or migrations were changed.
+- [x] Docs-only inventory repair on 2026-07-06 documented the `frontend/src/lib/api.js` split-string identity-strip guard and the `UpdateFrameworksButton.jsx` active import/render path; no runtime implementation or cleanup began.
+- [x] Replace `/:tenantId/*` route shells with personal-use routes that do not encode tenant identity.
+- [x] Remove `TenantRoute` from the active routing path and rely on `PrivateRoute` plus backend ownership checks.
+- [x] Delete or permanently remove active imports for tenant, organization, and invite placeholder components.
 - [ ] Remove `tenantId`, `joinedOrganization`, and organization access fields from frontend auth user state unless a narrowly documented compatibility test still needs them as legacy input.
-- [ ] Remove `getCurrentTenantId` route/domain shim from active route generation.
-- [ ] Update navigation targets in create, editor, framework cards, and framework lists to the new personal route shape.
+- [x] Remove `getCurrentTenantId` route/domain shim from active route generation.
+- [x] Update navigation targets in create, editor, framework cards, and framework lists to the new personal route shape.
 - [ ] Remove organization sharing UI and inert "Publish to Organization" actions.
-- [ ] Preserve authenticated public library behavior; do not make library anonymous.
+- [x] Preserve authenticated public library behavior; do not make library anonymous.
 
 Likely files:
 
-- [ ] `frontend/src/App.jsx`
+- [x] `frontend/src/App.jsx`
 - [ ] `frontend/src/contexts/AuthContext.jsx`
-- [ ] `frontend/src/lib/api.js`
+- [x] `frontend/src/lib/api.js`
 - [ ] `frontend/src/components/TenantRoute.jsx`
 - [ ] `frontend/src/components/TenantCreationModal.jsx`
 - [ ] `frontend/src/components/TenantSettings.jsx`
 - [ ] `frontend/src/components/YourOrganization.jsx`
 - [ ] `frontend/src/components/InviteAccept.jsx`
-- [ ] `frontend/src/components/Navbar.jsx`
-- [ ] `frontend/src/components/Login.jsx`
-- [ ] `frontend/src/components/CreateFramework.jsx`
-- [ ] `frontend/src/components/FrameworkEditor.jsx`
-- [ ] `frontend/src/components/FrameworkCard.jsx`
-- [ ] `frontend/src/components/YourFrameworks.jsx`
-- [ ] route/component tests
+- [x] `frontend/src/components/Navbar.jsx`
+- [x] `frontend/src/components/Login.jsx`
+- [x] `frontend/src/components/CreateFramework.jsx`
+- [x] `frontend/src/components/FrameworkEditor.jsx`
+- [x] `frontend/src/components/FrameworkCard.jsx`
+- [x] `frontend/src/components/YourFrameworks.jsx`
+- [x] route/component tests
 
 Acceptance criteria:
 
-- [ ] Normal login routes to a personal framework list path without a tenant segment.
-- [ ] Owner list, create, editor, save, publish/unpublish, library, admin, and logout navigation still work through personal-use routes.
+- [x] Normal login routes to a personal framework list path without a tenant segment.
+- [x] Owner list, create, editor, save, publish/unpublish, library, admin, and logout navigation still work through personal-use routes.
 - [ ] Tenant, organization, and invite route components are removed from active source.
-- [ ] Backend remains the authority for framework ownership and admin access.
+- [x] Backend remains the authority for framework ownership and admin access.
 
 ## Round 4 - Backend, Deploy, Env, And Nginx Legacy Naming Cleanup
 

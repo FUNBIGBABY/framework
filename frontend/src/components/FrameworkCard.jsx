@@ -1,18 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
-import { useAuth } from '../contexts/AuthContext'
 import PublishModal from './PublishModal'
 import API_ENDPOINTS, {
   apiFetch,
   deleteFramework,
-  getCurrentTenantId,
   unpublishFramework,
 } from '../lib/api'
 
 function FrameworkCard({ framework, showCreator = false }) {
   const navigate = useNavigate()
-  const { user } = useAuth()
 
   const [showDropdown, setShowDropdown] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
@@ -24,7 +21,6 @@ function FrameworkCard({ framework, showCreator = false }) {
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0 })
   const buttonRef = useRef(null)
   const dropdownRef = useRef(null)
-  const tenantShim = user?.tenantId || getCurrentTenantId() || 'personal'
   const canManage = framework.canManage !== false && !showCreator
   const isShared = Boolean(framework.publishedToOrganization)
 
@@ -33,7 +29,7 @@ function FrameworkCard({ framework, showCreator = false }) {
   }, [framework.is_public, framework.isPublic])
 
   const handleEdit = () => {
-    navigate(`/${tenantShim}/editor/${framework.id}`)
+    navigate(`/frameworks/${framework.id}`)
   }
 
   const handleDownload = async () => {
