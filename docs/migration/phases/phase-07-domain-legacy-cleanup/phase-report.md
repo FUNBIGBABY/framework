@@ -1,6 +1,6 @@
 # Phase 07 Report - Domain and Legacy Cleanup
 
-Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have been performed. A requested deploy/nginx/docker naming cleanup pass was performed on 2026-07-02. Migration placeholder route/tool cleanup was performed on 2026-07-05. Frontend personal-route cleanup was performed on 2026-07-06. Phase 7 is not complete, and remaining tenant/org/invite UI/auth-state cleanup, obsolete docs/scripts cleanup, browser smoke, and reviewer acceptance remain pending. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
+Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have been performed. A requested deploy/nginx/docker naming cleanup pass was performed on 2026-07-02. Migration placeholder route/tool cleanup was performed on 2026-07-05. Frontend personal-route cleanup was performed on 2026-07-06. Unmounted frontend tenant/org/invite placeholder cleanup was performed on 2026-07-07. Phase 7 is not complete, and remaining frontend auth-state cleanup, organization-sharing UI/API-guard cleanup, obsolete docs/scripts cleanup, browser smoke, and reviewer acceptance remain pending. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
 
 ## Status
 
@@ -13,11 +13,12 @@ Current Phase 7 state:
 - Requested deploy/nginx/docker naming cleanup performed on 2026-07-02: neutral Docker image/container/database defaults, neutral nginx template replacement, rewritten deployment helper, and removal of the obsolete tenant preflight/deploy header.
 - Migration placeholder route/tool cleanup performed on 2026-07-05: removed the inert `/migrate` frontend route, deleted the isolated client-side migration/cleanup placeholders, and removed the route-test mock that existed only for the placeholder component.
 - Frontend personal-route cleanup performed on 2026-07-06: replaced active `/:tenantId/*` route shells with `/frameworks`, `/frameworks/create`, and `/frameworks/:id`, removed `TenantRoute` and tenant/org/invite placeholder imports from `App.jsx`, routed `/` and successful login to `/frameworks`, and updated route/navigation tests.
+- Unmounted frontend tenant/org/invite placeholder cleanup performed on 2026-07-07: deleted the five confirmed-unreferenced placeholder component files left after the personal-route cleanup, without changing auth state, organization-sharing UI, the API identity-strip guard, backend behavior, models, or migrations.
 - Phase 6 `checklist.md`, `phase-report.md`, and `verification.md` record Migration Reviewer closeout acceptance.
 - Phase 6 Round 6 closeout commit is `27679f8 Complete Phase 6 frontend de-Firebase closeout`.
 - Phase 7 scope is semantic cleanup of Valorie/domain, tenant/org/invite/migration residue, obsolete docs, obsolete scripts/tests, and legacy deploy/env naming.
 - Phase 6 browser smoke remains documented as deferred because Docker/Postgres/seeded local environment was unavailable.
-- Phase 7 implementation has started, migration placeholders are removed, and personal framework routes are active, but Phase 7 is not complete.
+- Phase 7 implementation has started, migration placeholders are removed, personal framework routes are active, and unmounted tenant/org/invite placeholders are deleted, but Phase 7 is not complete.
 - Phase 7 must not be marked complete before implementation evidence and reviewer acceptance.
 - If Phase 6 closeout docs do not record accepted status in a future checkout, Phase 7 implementation is gated until that documentation contradiction is corrected.
 
@@ -288,11 +289,11 @@ Inventory table:
 | Surface | References found | Classification | Recommended action |
 |---|---|---|---|
 | Frontend route tree | `frontend/src/App.jsx` imports `TenantRoute`, `TenantSettings`, `InviteAccept`, `YourOrganization`; mounts `/invite/:token` and `/:tenantId/*` framework routes | remove in frontend cleanup | Replace with personal routes (`/frameworks`, `/frameworks/create`, `/frameworks/:id`) guarded by `PrivateRoute`; remove invite/org/settings route mounts. |
-| Frontend route guard | `frontend/src/components/TenantRoute.jsx` and `TenantRoute.test.jsx` | remove in frontend cleanup | Delete `TenantRoute` after the route tree no longer uses tenant path identity; keep backend JWT ownership checks as authority. |
+| Frontend route guard | `frontend/src/components/TenantRoute.jsx` and `TenantRoute.test.jsx` | removed in frontend cleanup | `TenantRoute.test.jsx` was deleted in the personal-route slice. `TenantRoute.jsx` was deleted on 2026-07-07 after `rg` proved no imports, renders, or tests remained. Backend JWT ownership checks remain the authority. |
 | Frontend auth/session state | `frontend/src/contexts/AuthContext.jsx` keeps `tenantId`, `joinedOrganization`, and `updateUserTenant`; `Login.jsx`, `LandingPage.jsx`, and `App.jsx` route through `/personal/frameworks` | remove in frontend cleanup | Drop tenant/org state from frontend user shape and route login/root directly to `/frameworks`; preserve backend-cookie auth, `id`, `email`, and `isSuperAdmin`. |
 | Frontend route generation helpers | `frontend/src/lib/api.js` exports `getCurrentTenantId`; `CreateFramework.jsx`, `FrameworkEditor.jsx`, `FrameworkCard.jsx`, `YourFrameworks.jsx`, and `Navbar.jsx` build `/${tenantShim}/...` paths | remove in frontend cleanup | Replace URL generation with personal route helpers or literals; remove `getCurrentTenantId`. |
 | Frontend API defensive identity stripping | `frontend/src/lib/api.js` `stripArtefactResourceFields` removes client-supplied resource and identity fields before artefact create/update payloads; `tenant_id` and `X-Tenant-ID` are built as `['tenant', 'id'].join('_')` and `['X', 'Tenant-ID'].join('-')`, so literal scans for the full strings miss the guard | preserve for now as a security-preserving identity-strip guard | Keep until a focused frontend API cleanup can replace tenant/header fixtures with neutral client-identity fixtures while preserving equivalent strip coverage. Do not delete as backend tenant/model cleanup; its current effect is to prevent client-supplied identity/header data from being forwarded. |
-| Frontend org/invite placeholders | `TenantCreationModal.jsx`, `TenantSettings.jsx`, `InviteAccept.jsx`, `YourOrganization.jsx` | remove in frontend cleanup | Delete placeholders and imports; do not add a new invite/workspace flow. |
+| Frontend org/invite placeholders | `TenantCreationModal.jsx`, `TenantSettings.jsx`, `InviteAccept.jsx`, `YourOrganization.jsx` | removed in frontend cleanup | Deleted on 2026-07-07 after `rg` proved no imports, renders, or tests remained. No invite/workspace flow was added. |
 | Frontend org-field repair placeholder | `frontend/src/components/UpdateFrameworksButton.jsx` returns null as a Phase 7 org-field repair placeholder; `frontend/src/components/YourFrameworks.jsx` imports it and renders `<UpdateFrameworksButton />` in the active framework list | remove in frontend org placeholder cleanup | Delete the null component and the `YourFrameworks.jsx` import/render in a focused frontend org placeholder cleanup slice, alongside organization filters/actions. Do not attach this to backend tenant/model cleanup. |
 | Frontend organization sharing UI | `FrameworkCard.jsx` `publishedToOrganization` display/actions and inert org publish alerts; `YourFrameworks.jsx` organization filter; `Navbar.jsx` organization menu | remove in frontend cleanup | Remove organization-sharing controls and filters; keep authenticated public library/publish behavior only. |
 | Frontend tests | `App.route.test.jsx`, `TenantRoute.test.jsx`, `FrameworkEditor.test.jsx`, `FrameworkCard.test.jsx`, `Login.test.jsx`, and `api.test.js` | mixed: remove/update plus preserve negative assertions | Update route/component tests for personal routes. Preserve `api.test.js` client-identity stripping assertions until equivalent coverage no longer needs tenant-header fixtures. |
@@ -308,15 +309,16 @@ Inventory table:
 Recommended cleanup slices:
 
 1. Frontend personal-route slice: completed on 2026-07-06; active routes now use `/frameworks`, `/frameworks/create`, and `/frameworks/:id`, `TenantRoute` is removed from the route tree, and login/root route to `/frameworks`.
-2. Frontend tenant/org state cleanup slice: remove remaining `tenantId`, `joinedOrganization`, and `updateUserTenant` auth state now that route generation no longer depends on tenant shims.
-3. Frontend org placeholder cleanup slice: delete `TenantCreationModal.jsx`, `TenantSettings.jsx`, `InviteAccept.jsx`, `YourOrganization.jsx`, and `UpdateFrameworksButton.jsx`; remove the `YourFrameworks.jsx` `UpdateFrameworksButton` import/render, inert "Publish to Organization" actions, and organization filters while preserving authenticated public library behavior.
-4. Focused frontend API cleanup slice: preserve the `api.js` split-string identity-strip guard until equivalent neutral client-identity stripping coverage replaces the tenant/header fixtures in `api.js` and `api.test.js`.
-5. Backend/vector-sync decision slice: leave `include_organization` deferred unless Phase 7 explicitly retires the Phase 9-deferred vector sync request shape; do not touch database models or migrations.
-6. Round 5 docs/scripts slice: rewrite current README and remove obsolete Firebase/Firestore/OpenAI Vector Store helper docs/scripts after the active frontend route cleanup is stable.
+2. Frontend unmounted placeholder cleanup slice: completed on 2026-07-07; `TenantRoute.jsx`, `TenantCreationModal.jsx`, `TenantSettings.jsx`, `YourOrganization.jsx`, and `InviteAccept.jsx` were deleted after no active imports/tests remained.
+3. Frontend tenant/org state cleanup slice: remove remaining `tenantId`, `joinedOrganization`, and `updateUserTenant` auth state now that route generation no longer depends on tenant shims.
+4. Frontend organization-sharing UI cleanup slice: delete `UpdateFrameworksButton.jsx`; remove the `YourFrameworks.jsx` `UpdateFrameworksButton` import/render, inert "Publish to Organization" actions, and organization filters while preserving authenticated public library behavior.
+5. Focused frontend API cleanup slice: preserve the `api.js` split-string identity-strip guard until equivalent neutral client-identity stripping coverage replaces the tenant/header fixtures in `api.js` and `api.test.js`.
+6. Backend/vector-sync decision slice: leave `include_organization` deferred unless Phase 7 explicitly retires the Phase 9-deferred vector sync request shape; do not touch database models or migrations.
+7. Round 5 docs/scripts slice: rewrite current README and remove obsolete Firebase/Firestore/OpenAI Vector Store helper docs/scripts after the active frontend route cleanup is stable.
 
 Recommended next implementation slice:
 
-- Implement the next focused frontend tenant/org state and org-placeholder cleanup slice. Personal routes are now active, so the remaining frontend work can remove `tenantId`/`joinedOrganization` auth state, inert organization sharing controls, placeholder components, and `UpdateFrameworksButton.jsx` without changing route shape again.
+- Implement the next focused frontend tenant/org auth-state and organization-sharing cleanup slice. Personal routes are active and unmounted placeholder files are gone, so the remaining frontend work can remove `tenantId`/`joinedOrganization` auth state, inert organization sharing controls, and `UpdateFrameworksButton.jsx` without changing route shape again.
 
 ## Frontend Personal Route Cleanup - 2026-07-06
 
@@ -378,6 +380,54 @@ Boundaries honored:
 - Did not remove `UpdateFrameworksButton.jsx`.
 - Did not implement org sharing, invites, workspaces, public registration, Agent, RAG, LLMWiki, Chat UI, Tool Registry, or MCP marketplace.
 - Did not rewrite README or obsolete backend helper scripts.
+
+## Unmounted Frontend Tenant/Org/Invite Placeholder Cleanup - 2026-07-07
+
+Scope performed:
+
+- Ran the required pre-delete `rg` inventory for `TenantRoute`, `TenantCreationModal`, `TenantSettings`, `YourOrganization`, and `InviteAccept`.
+- Confirmed component-name matches were limited to each placeholder's own source file.
+- Confirmed no active imports, JSX renders, or frontend tests referenced the five placeholder component names.
+- Deleted only the five confirmed-unmounted placeholder files.
+- Did not update tests because no active test referenced only these removed placeholders.
+
+Files deleted in this slice:
+
+- `frontend/src/components/TenantRoute.jsx`
+- `frontend/src/components/TenantCreationModal.jsx`
+- `frontend/src/components/TenantSettings.jsx`
+- `frontend/src/components/YourOrganization.jsx`
+- `frontend/src/components/InviteAccept.jsx`
+
+Verification summary:
+
+- Post-delete component-name scan for the five deleted components returned no matches in `frontend/src`.
+- `Test-Path` returned `False` for all five deleted files.
+- Invite/tenant route residue scan returned no active `/:tenantId`, `/invite/:token`, `/personal/frameworks`, `/editor/`, `Tenant Settings`, `My Organization`, or deleted-component JSX route hits in `frontend/src`.
+- Remaining frontend tenant/org residue is limited to the previously documented deferrals: `AuthContext.jsx` tenant/org state, `api.js` split-string identity-strip guard and `publishedToOrganization` normalization, `api.test.js` negative identity-strip assertions, `FrameworkCard.jsx` organization-sharing labels/actions, `YourFrameworks.jsx` organization filters, and `UpdateFrameworksButton.jsx`.
+- Frontend lint passed.
+- Full frontend tests passed on escalated rerun after the expected sandbox config-read failure: 9 files, 52 tests.
+- Frontend build passed on escalated rerun after the expected sandbox config-read failure: 136 modules transformed, build completed in 6.56s, with existing stale browser-data and chunk-size warnings.
+- Backend tests were not run because this slice changed only frontend placeholder files and migration docs.
+- Browser smoke was not run or claimed.
+
+Boundaries honored:
+
+- Did not change `frontend/src/contexts/AuthContext.jsx` tenantId, joinedOrganization, or updateUserTenant state.
+- Did not change `FrameworkCard.jsx` or `YourFrameworks.jsx` organization-sharing UI.
+- Did not rewrite the `api.js` identity-strip guard.
+- Did not change backend auth/session behavior, backend ownership checks, database models, migrations, API contracts, or deploy/config files.
+- Did not implement invites, org sharing, workspaces, public registration, Agent, RAG, LLMWiki, Chat UI, Tool Registry, or MCP marketplace.
+- Did not rewrite README or obsolete backend helper scripts.
+
+Current remaining frontend tenant/org residue:
+
+- `frontend/src/contexts/AuthContext.jsx` still retains `tenantId`, `joinedOrganization`, and `updateUserTenant`.
+- `frontend/src/lib/api.js` still retains the split-string `tenant_id` / `X-Tenant-ID` identity-strip guard and `publishedToOrganization` normalization.
+- `frontend/src/lib/api.test.js` still retains `tenant_id` / `X-Tenant-ID` negative assertions.
+- `frontend/src/components/FrameworkCard.jsx` still retains organization-sharing labels/actions.
+- `frontend/src/components/YourFrameworks.jsx` still retains organization filters and `publishedToOrganization` checks.
+- `frontend/src/components/UpdateFrameworksButton.jsx` remains imported and rendered by `YourFrameworks.jsx`.
 
 ## Scope
 

@@ -1,6 +1,6 @@
 # Phase 07 Verification - Domain and Legacy Cleanup
 
-Round 0/1 implementation status: this document defines the verification contract, records initial planning scans, and records Round 0/1 implementation verification. A requested deploy/nginx/docker naming cleanup pass was verified on 2026-07-02. Migration placeholder route/tool cleanup was verified on 2026-07-05. Frontend personal-route cleanup was verified on 2026-07-06. It does not mark Phase 7 complete. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
+Round 0/1 implementation status: this document defines the verification contract, records initial planning scans, and records Round 0/1 implementation verification. A requested deploy/nginx/docker naming cleanup pass was verified on 2026-07-02. Migration placeholder route/tool cleanup was verified on 2026-07-05. Frontend personal-route cleanup was verified on 2026-07-06. Unmounted frontend tenant/org/invite placeholder cleanup was verified on 2026-07-07. It does not mark Phase 7 complete. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
 
 ## Verification Principles
 
@@ -1528,6 +1528,313 @@ Results:
 
 ```text
 The first scan still reports only the unmounted placeholder component files: InviteAccept.jsx, TenantCreationModal.jsx, TenantSettings.jsx, TenantRoute.jsx, and YourOrganization.jsx.
+The active old-route path scan returned no stdout; `rg` exited 1.
+`git diff --check` returned no stdout and exited 0.
+```
+
+## Unmounted Frontend Tenant/Org/Invite Placeholder Cleanup Verification - 2026-07-07
+
+Scope: delete only confirmed-unmounted frontend tenant/org/invite placeholder files. Backend auth/session behavior, database models, migrations, ownership checks, API contracts, `AuthContext.jsx` tenant/org state, `FrameworkCard.jsx`/`YourFrameworks.jsx` organization-sharing UI, `UpdateFrameworksButton.jsx`, and the `api.js` split-string identity-strip guard were not changed.
+
+### Baseline Working Tree
+
+Command:
+
+```powershell
+git status --short
+```
+
+Outcome:
+
+```text
+No stdout. Working tree was clean before this placeholder cleanup slice.
+```
+
+### Pre-Delete Placeholder Inventory
+
+Command:
+
+```powershell
+rg -n "TenantRoute|TenantCreationModal|TenantSettings|YourOrganization|InviteAccept" frontend\src
+```
+
+Outcome:
+
+```text
+frontend\src\components\InviteAccept.jsx:1:function InviteAccept() {
+frontend\src\components\InviteAccept.jsx:17:export default InviteAccept
+frontend\src\components\TenantCreationModal.jsx:1:function TenantCreationModal() {
+frontend\src\components\TenantCreationModal.jsx:5:export default TenantCreationModal
+frontend\src\components\TenantRoute.jsx:5: * TenantRoute - Tenant Route Protection Component (Path Mode - Simplified Version)
+frontend\src\components\TenantRoute.jsx:11:function TenantRoute({ children }) {
+frontend\src\components\TenantRoute.jsx:92:export default TenantRoute
+frontend\src\components\TenantSettings.jsx:1:function TenantSettings() {
+frontend\src\components\TenantSettings.jsx:17:export default TenantSettings
+frontend\src\components\YourOrganization.jsx:1:function YourOrganization() {
+frontend\src\components\YourOrganization.jsx:18:export default YourOrganization
+```
+
+Interpretation: each placeholder name appeared only inside its own component file.
+
+Command:
+
+```powershell
+rg -n "from .*TenantRoute|from .*TenantCreationModal|from .*TenantSettings|from .*YourOrganization|from .*InviteAccept|<TenantRoute|<TenantCreationModal|<TenantSettings|<YourOrganization|<InviteAccept" frontend\src
+```
+
+Outcome:
+
+```text
+No stdout. `rg` exited 1.
+```
+
+Interpretation: no active imports or JSX renders remained for the five placeholder components.
+
+Command:
+
+```powershell
+rg -n "TenantRoute|TenantCreationModal|TenantSettings|YourOrganization|InviteAccept" frontend\src -g "**/*.test.*"
+```
+
+Outcome:
+
+```text
+No stdout. `rg` exited 1.
+```
+
+Interpretation: no frontend test referenced the five placeholder components.
+
+Command:
+
+```powershell
+rg -n "TenantRoute|TenantCreationModal|TenantSettings|YourOrganization|InviteAccept" frontend\src -g "!frontend/src/components/TenantRoute.jsx" -g "!frontend/src/components/TenantCreationModal.jsx" -g "!frontend/src/components/TenantSettings.jsx" -g "!frontend/src/components/YourOrganization.jsx" -g "!frontend/src/components/InviteAccept.jsx"
+```
+
+Outcome:
+
+```text
+No stdout. `rg` exited 1.
+```
+
+Interpretation: excluding the five candidate files left no active source or test references.
+
+Command:
+
+```powershell
+Test-Path frontend\src\components\TenantRoute.jsx; Test-Path frontend\src\components\TenantCreationModal.jsx; Test-Path frontend\src\components\TenantSettings.jsx; Test-Path frontend\src\components\YourOrganization.jsx; Test-Path frontend\src\components\InviteAccept.jsx
+```
+
+Outcome:
+
+```text
+True
+True
+True
+True
+True
+```
+
+### Deleted Files
+
+- `frontend/src/components/TenantRoute.jsx`
+- `frontend/src/components/TenantCreationModal.jsx`
+- `frontend/src/components/TenantSettings.jsx`
+- `frontend/src/components/YourOrganization.jsx`
+- `frontend/src/components/InviteAccept.jsx`
+
+No tests were updated or deleted because no test referenced only these removed placeholders.
+
+### Post-Delete Placeholder Scans
+
+Command:
+
+```powershell
+rg -n "TenantRoute|TenantCreationModal|TenantSettings|YourOrganization|InviteAccept" frontend\src
+```
+
+Outcome:
+
+```text
+No stdout. `rg` exited 1.
+```
+
+Command:
+
+```powershell
+Test-Path frontend\src\components\TenantRoute.jsx; Test-Path frontend\src\components\TenantCreationModal.jsx; Test-Path frontend\src\components\TenantSettings.jsx; Test-Path frontend\src\components\YourOrganization.jsx; Test-Path frontend\src\components\InviteAccept.jsx
+```
+
+Outcome:
+
+```text
+False
+False
+False
+False
+False
+```
+
+### Invite/Tenant Route Residue Scan
+
+Command:
+
+```powershell
+rg -n 'path="/:tenantId|path="/invite|/:tenantId|/invite/:token|/personal/frameworks|/editor/|Tenant Settings|My Organization|<Invite|<YourOrganization|<TenantSettings|<TenantRoute' frontend\src
+```
+
+Outcome:
+
+```text
+No stdout. `rg` exited 1.
+```
+
+Interpretation: no active tenant or invite route paths, old personal-route shim paths, or deleted placeholder JSX route mounts remain in `frontend/src`.
+
+### Remaining Frontend Tenant/Org Residue Scan
+
+Command:
+
+```powershell
+rg -n "tenant|Tenant|organization|Organization|invite|Invite|joinedOrganization|tenantId|publishedToOrganization|Publish to Organization|X-Tenant-ID|tenant_id" frontend\src -g "!**/*.test.*"
+```
+
+Outcome:
+
+```text
+frontend\src\contexts\AuthContext.jsx:24:    tenantId: existingUser?.tenantId || null,
+frontend\src\contexts\AuthContext.jsx:25:    joinedOrganization: existingUser?.joinedOrganization || null,
+frontend\src\contexts\AuthContext.jsx:125:  const updateUserTenant = async (tenantId, reload = false) => {
+frontend\src\contexts\AuthContext.jsx:132:      tenantId,
+frontend\src\contexts\AuthContext.jsx:162:    updateUserTenant,
+frontend\src\lib\api.js:177:    ['tenant', 'id'].join('_'),
+frontend\src\lib\api.js:178:    ['X', 'Tenant-ID'].join('-'),
+frontend\src\lib\api.js:385:    publishedToOrganization: Boolean(framework.publishedToOrganization),
+frontend\src\components\FrameworkCard.jsx:25:  const isShared = Boolean(framework.publishedToOrganization)
+frontend\src\components\FrameworkCard.jsx:102:    alert('Organization sharing is not available in this migration round.')
+frontend\src\components\FrameworkCard.jsx:107:    alert('Organization sharing is not available in this migration round.')
+frontend\src\components\FrameworkCard.jsx:389:                <span>Unpublish from Organization</span>
+frontend\src\components\FrameworkCard.jsx:396:                <span>Publish to Organization</span>
+frontend\src\components\YourFrameworks.jsx:57:        return frameworks.filter(f => !f.isPublic && !f.publishedToOrganization)
+frontend\src\components\YourFrameworks.jsx:60:      case 'organization':
+frontend\src\components\YourFrameworks.jsx:61:        return frameworks.filter(f => f.publishedToOrganization)
+frontend\src\components\YourFrameworks.jsx:162:                      f => !f.isPublic && !f.publishedToOrganization
+frontend\src\components\YourFrameworks.jsx:171:                <option value="organization">
+frontend\src\components\YourFrameworks.jsx:172:                  Published to Organization (
+frontend\src\components\YourFrameworks.jsx:173:                  {frameworks.filter(f => f.publishedToOrganization).length})
+frontend\src\components\UpdateFrameworksButton.jsx:2:  // Phase 7 owns the old organization-field repair path.
+```
+
+Interpretation: remaining matches are the explicitly deferred frontend auth-state, API identity-strip guard/published-org normalization, organization-sharing UI, organization filters, and `UpdateFrameworksButton.jsx` residue. This slice intentionally did not change them.
+
+### Frontend Lint
+
+Command:
+
+```powershell
+npm run lint
+```
+
+Working directory: `frontend`
+
+Outcome:
+
+```text
+> frontend@0.0.0 lint
+> eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0
+```
+
+Exit code: `0`.
+
+### Full Frontend Tests
+
+Initial sandboxed command:
+
+```powershell
+npm test
+```
+
+Working directory: `frontend`
+
+Initial result:
+
+```text
+Failed before tests ran: esbuild/Vitest could not read "../../../.." and could not resolve frontend\vitest.config.js inside the sandbox.
+```
+
+Escalated rerun command:
+
+```powershell
+npm test
+```
+
+Working directory: `frontend`
+
+Escalated rerun result:
+
+```text
+9 test files passed.
+52 tests passed.
+Duration 6.90s.
+```
+
+Warnings/output: existing stdout from `PublishModal.test.jsx` and `Login.test.jsx`; existing stale `baseline-browser-mapping` and Browserslist/caniuse data warnings.
+
+### Frontend Build
+
+Initial sandboxed command:
+
+```powershell
+npm run build
+```
+
+Working directory: `frontend`
+
+Initial result:
+
+```text
+Failed before build compilation: esbuild/Vite could not read "../../../.." and could not resolve frontend\vite.config.js inside the sandbox.
+```
+
+Escalated rerun command:
+
+```powershell
+npm run build
+```
+
+Working directory: `frontend`
+
+Escalated rerun result:
+
+```text
+vite v7.1.9 building for production...
+136 modules transformed.
+dist/index.html                 0.48 kB | gzip:   0.31 kB
+dist/assets/index-DfLzCzBj.css  38.87 kB | gzip:   7.06 kB
+dist/assets/index-BZMVfgS5.js   851.64 kB | gzip: 257.11 kB
+built in 6.56s
+```
+
+Warnings: existing stale `baseline-browser-mapping` and Browserslist/caniuse data warnings; existing chunk larger than 500 kB after minification warning.
+
+### Skipped Checks
+
+- Backend tests: not run because this slice changed only frontend placeholder files and migration docs.
+- Browser smoke: not run and not claimed; Docker/Postgres/seeded local environment availability remains the blocker recorded earlier in Phase 6 and Phase 7 docs.
+
+### Post-Documentation Rerun
+
+Commands:
+
+```powershell
+rg -n "TenantRoute|TenantCreationModal|TenantSettings|YourOrganization|InviteAccept" frontend\src
+rg -n 'path="/:tenantId|path="/invite|/:tenantId|/invite/:token|/personal/frameworks|/editor/|Tenant Settings|My Organization|<Invite|<YourOrganization|<TenantSettings|<TenantRoute' frontend\src
+git diff --check
+```
+
+Results:
+
+```text
+The deleted-component scan returned no stdout; `rg` exited 1.
 The active old-route path scan returned no stdout; `rg` exited 1.
 `git diff --check` returned no stdout and exited 0.
 ```
