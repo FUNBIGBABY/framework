@@ -1,6 +1,6 @@
 # Phase 07 Verification - Domain and Legacy Cleanup
 
-Round 0/1 implementation status: this document defines the verification contract, records initial planning scans, and records Round 0/1 implementation verification. A requested deploy/nginx/docker naming cleanup pass was verified on 2026-07-02. Migration placeholder route/tool cleanup was verified on 2026-07-05. Frontend personal-route cleanup was verified on 2026-07-06. Unmounted frontend tenant/org/invite placeholder cleanup was verified on 2026-07-07. It does not mark Phase 7 complete. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
+Round 0/1 implementation status: this document defines the verification contract, records initial planning scans, and records Round 0/1 implementation verification. A requested deploy/nginx/docker naming cleanup pass was verified on 2026-07-02. Migration placeholder route/tool cleanup was verified on 2026-07-05. Frontend personal-route cleanup was verified on 2026-07-06. Unmounted frontend tenant/org/invite placeholder cleanup was verified on 2026-07-07. Frontend organization-sharing UI residue cleanup was verified on 2026-07-07. It does not mark Phase 7 complete. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
 
 ## Verification Principles
 
@@ -1836,6 +1836,261 @@ Results:
 ```text
 The deleted-component scan returned no stdout; `rg` exited 1.
 The active old-route path scan returned no stdout; `rg` exited 1.
+`git diff --check` returned no stdout and exited 0.
+```
+
+## Frontend Organization-Sharing UI Residue Cleanup Verification - 2026-07-07
+
+Scope: active frontend org-sharing UI residue cleanup only. `AuthContext.jsx` tenant/org state, the `api.js` identity-strip guard/request normalization, backend behavior, database models, migrations, API contracts, README, and obsolete backend helper scripts were not changed.
+
+### Focused Pre-Edit Component Inventory
+
+Command:
+
+```powershell
+rg -n "publishedToOrganization|UpdateFrameworksButton|Publish to Organization|Unpublish from Organization|Organization sharing|Published to Organization|organization" frontend\src\components
+```
+
+Outcome:
+
+```text
+frontend\src\components\FrameworkCard.jsx:25:  const isShared = Boolean(framework.publishedToOrganization)
+frontend\src\components\FrameworkCard.jsx:102:    alert('Organization sharing is not available in this migration round.')
+frontend\src\components\FrameworkCard.jsx:107:    alert('Organization sharing is not available in this migration round.')
+frontend\src\components\FrameworkCard.jsx:389:                <span>Unpublish from Organization</span>
+frontend\src\components\FrameworkCard.jsx:396:                <span>Publish to Organization</span>
+frontend\src\components\UpdateFrameworksButton.jsx:1:function UpdateFrameworksButton() {
+frontend\src\components\UpdateFrameworksButton.jsx:2:  // Phase 7 owns the old organization-field repair path.
+frontend\src\components\UpdateFrameworksButton.jsx:6:export default UpdateFrameworksButton
+frontend\src\components\YourFrameworks.jsx:5:import UpdateFrameworksButton from './UpdateFrameworksButton'
+frontend\src\components\YourFrameworks.jsx:57:        return frameworks.filter(f => !f.isPublic && !f.publishedToOrganization)
+frontend\src\components\YourFrameworks.jsx:60:      case 'organization':
+frontend\src\components\YourFrameworks.jsx:61:        return frameworks.filter(f => f.publishedToOrganization)
+frontend\src\components\YourFrameworks.jsx:129:        <UpdateFrameworksButton />
+frontend\src\components\YourFrameworks.jsx:162:                      f => !f.isPublic && !f.publishedToOrganization
+frontend\src\components\YourFrameworks.jsx:171:                <option value="organization">
+frontend\src\components\YourFrameworks.jsx:172:                  Published to Organization (
+frontend\src\components\YourFrameworks.jsx:173:                  {frameworks.filter(f => f.publishedToOrganization).length})
+```
+
+Command:
+
+```powershell
+rg -n "UpdateFrameworksButton" frontend\src
+```
+
+Outcome:
+
+```text
+frontend\src\components\UpdateFrameworksButton.jsx:1:function UpdateFrameworksButton() {
+frontend\src\components\UpdateFrameworksButton.jsx:6:export default UpdateFrameworksButton
+frontend\src\components\YourFrameworks.jsx:5:import UpdateFrameworksButton from './UpdateFrameworksButton'
+frontend\src\components\YourFrameworks.jsx:129:        <UpdateFrameworksButton />
+```
+
+Interpretation: `UpdateFrameworksButton.jsx` was only a null org-field repair placeholder and was actively imported/rendered by `YourFrameworks.jsx`; `FrameworkCard.jsx` and `YourFrameworks.jsx` contained the active visible/inert org-sharing UI residue.
+
+### Files Changed Or Deleted
+
+- `frontend/src/components/FrameworkCard.jsx`
+- `frontend/src/components/FrameworkCard.test.jsx`
+- `frontend/src/components/YourFrameworks.jsx`
+- `frontend/src/components/UpdateFrameworksButton.jsx` deleted
+- `docs/migration/phases/phase-07-domain-legacy-cleanup/checklist.md`
+- `docs/migration/phases/phase-07-domain-legacy-cleanup/phase-report.md`
+- `docs/migration/phases/phase-07-domain-legacy-cleanup/verification.md`
+
+### Post-Cleanup Active Component Scans
+
+Command:
+
+```powershell
+rg -n "publishedToOrganization|UpdateFrameworksButton|Publish to Organization|Unpublish from Organization|Organization sharing|Published to Organization|organization|Organization" frontend\src\components
+```
+
+Outcome:
+
+```text
+No stdout. `rg` exited 1.
+```
+
+Command:
+
+```powershell
+rg -n "UpdateFrameworksButton" frontend\src
+```
+
+Outcome:
+
+```text
+No stdout. `rg` exited 1.
+```
+
+Command:
+
+```powershell
+Test-Path frontend\src\components\UpdateFrameworksButton.jsx
+```
+
+Outcome:
+
+```text
+False
+```
+
+### Remaining Deferred Frontend Residue Scan
+
+Command:
+
+```powershell
+rg -n "tenantId|joinedOrganization|updateUserTenant|tenant_id|X-Tenant-ID|publishedToOrganization|organization|Organization|invite|Invite" frontend\src -g '!**/*.test.*'
+```
+
+Outcome:
+
+```text
+frontend\src\contexts\AuthContext.jsx:24:    tenantId: existingUser?.tenantId || null,
+frontend\src\contexts\AuthContext.jsx:25:    joinedOrganization: existingUser?.joinedOrganization || null,
+frontend\src\contexts\AuthContext.jsx:125:  const updateUserTenant = async (tenantId, reload = false) => {
+frontend\src\contexts\AuthContext.jsx:132:      tenantId,
+frontend\src\contexts\AuthContext.jsx:162:    updateUserTenant,
+frontend\src\lib\api.js:385:    publishedToOrganization: Boolean(framework.publishedToOrganization),
+```
+
+Interpretation: the remaining non-test frontend matches are the explicitly deferred `AuthContext.jsx` tenant/org state and `api.js` framework normalization/identity-strip cleanup. Active component org-sharing UI residue is removed.
+
+### Focused Component Test
+
+Initial sandboxed command:
+
+```powershell
+npm test -- FrameworkCard.test.jsx
+```
+
+Working directory: `frontend`
+
+Initial result:
+
+```text
+Failed before tests ran: esbuild/Vitest could not read "../../../.." and could not resolve frontend\vitest.config.js inside the sandbox.
+```
+
+Escalated rerun command:
+
+```powershell
+npm test -- FrameworkCard.test.jsx
+```
+
+Working directory: `frontend`
+
+Escalated rerun result:
+
+```text
+1 test file passed.
+2 tests passed.
+Duration 3.76s.
+```
+
+Warning: existing stale `baseline-browser-mapping` warning.
+
+### Full Frontend Tests
+
+Command:
+
+```powershell
+npm test
+```
+
+Working directory: `frontend`
+
+Outcome:
+
+```text
+9 test files passed.
+53 tests passed.
+Duration 9.10s.
+```
+
+Warnings/output: existing stdout from `PublishModal.test.jsx` and `Login.test.jsx`; existing stale `baseline-browser-mapping` and Browserslist/caniuse data warnings.
+
+### Frontend Lint
+
+Command:
+
+```powershell
+npm run lint
+```
+
+Working directory: `frontend`
+
+Outcome:
+
+```text
+> frontend@0.0.0 lint
+> eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0
+```
+
+Exit code: `0`.
+
+### Frontend Build
+
+Initial sandboxed command:
+
+```powershell
+npm run build
+```
+
+Working directory: `frontend`
+
+Initial result:
+
+```text
+Failed before build compilation: esbuild/Vite could not read "../../../.." and could not resolve frontend\vite.config.js inside the sandbox.
+```
+
+Escalated rerun command:
+
+```powershell
+npm run build
+```
+
+Working directory: `frontend`
+
+Escalated rerun result:
+
+```text
+vite v7.1.9 building for production...
+135 modules transformed.
+dist/index.html                 0.48 kB | gzip:   0.31 kB
+dist/assets/index-DfLzCzBj.css  38.87 kB | gzip:   7.06 kB
+dist/assets/index-p47zIFo3.js   850.58 kB | gzip: 256.93 kB
+built in 6.86s
+```
+
+Warnings: existing stale `baseline-browser-mapping` and Browserslist/caniuse data warnings; existing chunk larger than 500 kB after minification warning.
+
+### Skipped Checks
+
+- Backend tests: not run because this slice changed only frontend components/tests and migration docs.
+- Browser smoke: not run and not claimed; Docker/Postgres/seeded local environment availability remains the blocker recorded earlier in Phase 6 and Phase 7 docs.
+
+### Post-Documentation Rerun
+
+Commands:
+
+```powershell
+rg -n "publishedToOrganization|UpdateFrameworksButton|Publish to Organization|Unpublish from Organization|Organization sharing|Published to Organization|organization|Organization" frontend\src\components
+rg -n "UpdateFrameworksButton" frontend\src
+rg -n "tenantId|joinedOrganization|updateUserTenant|tenant_id|X-Tenant-ID|publishedToOrganization|organization|Organization|invite|Invite" frontend\src -g '!**/*.test.*'
+git diff --check
+```
+
+Results:
+
+```text
+The active component org-sharing UI scan returned no stdout; `rg` exited 1.
+The `UpdateFrameworksButton` scan returned no stdout; `rg` exited 1.
+The remaining deferred frontend residue scan returned only `AuthContext.jsx` tenant/org state and `api.js` `publishedToOrganization` normalization.
 `git diff --check` returned no stdout and exited 0.
 ```
 

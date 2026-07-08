@@ -22,7 +22,6 @@ function FrameworkCard({ framework, showCreator = false }) {
   const buttonRef = useRef(null)
   const dropdownRef = useRef(null)
   const canManage = framework.canManage !== false && !showCreator
-  const isShared = Boolean(framework.publishedToOrganization)
 
   useEffect(() => {
     setIsPublic(Boolean(framework.is_public ?? framework.isPublic))
@@ -96,16 +95,6 @@ function FrameworkCard({ framework, showCreator = false }) {
       console.error('Error unpublishing framework:', error)
       alert('Failed to unpublish framework')
     }
-  }
-
-  const handlePublishToOrg = () => {
-    alert('Organization sharing is not available in this migration round.')
-    setShowDropdown(false)
-  }
-
-  const handleUnpublishFromOrg = () => {
-    alert('Organization sharing is not available in this migration round.')
-    setShowDropdown(false)
   }
 
   const handleDelete = async () => {
@@ -209,14 +198,6 @@ function FrameworkCard({ framework, showCreator = false }) {
                 </>
               )}
 
-              {isShared && (
-                <>
-                  <span>-</span>
-                  <span className="px-2 py-0.5 bg-purple-100 text-purple-800 rounded text-xs font-medium">
-                    Shared
-                  </span>
-                </>
-              )}
             </div>
 
             {showCreator && (
@@ -378,22 +359,6 @@ function FrameworkCard({ framework, showCreator = false }) {
                 className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
               >
                 <span>Publish to Marketplace</span>
-              </button>
-            )}
-
-            {isShared ? (
-              <button
-                onClick={handleUnpublishFromOrg}
-                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
-              >
-                <span>Unpublish from Organization</span>
-              </button>
-            ) : (
-              <button
-                onClick={handlePublishToOrg}
-                className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center space-x-2"
-              >
-                <span>Publish to Organization</span>
               </button>
             )}
 

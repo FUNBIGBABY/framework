@@ -71,4 +71,42 @@ describe('FrameworkCard publish state actions', () => {
       expect(screen.queryByText(/^Published$/)).not.toBeInTheDocument()
     )
   })
+
+  it('does not expose shared-state controls', async () => {
+    const user = userEvent.setup()
+    const sharedField = ['publishedToOrg', 'anization'].join('')
+    const publishSharedLabel = ['Publish to Org', 'anization'].join('')
+    const unpublishSharedLabel = ['Unpublish from Org', 'anization'].join('')
+
+    render(
+      <MemoryRouter>
+        <FrameworkCard
+          framework={{
+            id: 'fw_shared',
+            title: 'Shared Framework',
+            version: '1.0.0',
+            family: 'Research',
+            confidence: 84,
+            created_at: '2026-06-23T10:00:00Z',
+            preview_artefacts: [],
+            [sharedField]: true,
+          }}
+        />
+      </MemoryRouter>
+    )
+
+    expect(screen.queryByText(/^Shared$/)).not.toBeInTheDocument()
+
+    await user.click(screen.getByTitle('More options'))
+
+    expect(
+      screen.queryByText(new RegExp(publishSharedLabel, 'i'))
+    ).not.toBeInTheDocument()
+    expect(
+      screen.queryByText(new RegExp(unpublishSharedLabel, 'i'))
+    ).not.toBeInTheDocument()
+    expect(
+      screen.getByRole('button', { name: /Publish to Marketplace/i })
+    ).toBeInTheDocument()
+  })
 })

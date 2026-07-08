@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../contexts/AuthContext'
 import FrameworkCard from './FrameworkCard'
-import UpdateFrameworksButton from './UpdateFrameworksButton'
 import { getMyFrameworks } from '../lib/api'
 
 function YourFrameworks() {
@@ -54,11 +53,9 @@ function YourFrameworks() {
   const filteredFrameworks = useMemo(() => {
     switch (filter) {
       case 'drafts':
-        return frameworks.filter(f => !f.isPublic && !f.publishedToOrganization)
+        return frameworks.filter(f => !f.isPublic)
       case 'library':
         return frameworks.filter(f => f.isPublic)
-      case 'organization':
-        return frameworks.filter(f => f.publishedToOrganization)
       case 'all':
       default:
         return frameworks
@@ -126,8 +123,6 @@ function YourFrameworks() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <UpdateFrameworksButton />
-
         <div className="mb-8 flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">Me</h1>
@@ -156,21 +151,11 @@ function YourFrameworks() {
                   All Frameworks ({frameworks.length})
                 </option>
                 <option value="drafts">
-                  My Drafts (
-                  {
-                    frameworks.filter(
-                      f => !f.isPublic && !f.publishedToOrganization
-                    ).length
-                  }
-                  )
+                  My Drafts ({frameworks.filter(f => !f.isPublic).length})
                 </option>
                 <option value="library">
                   Published to Marketplace (
                   {frameworks.filter(f => f.isPublic).length})
-                </option>
-                <option value="organization">
-                  Published to Organization (
-                  {frameworks.filter(f => f.publishedToOrganization).length})
                 </option>
               </select>
             </div>

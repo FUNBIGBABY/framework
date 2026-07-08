@@ -1,6 +1,6 @@
 # Phase 07 Checklist - Domain and Legacy Cleanup
 
-Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have evidence recorded in `phase-report.md` and `verification.md`. A requested deploy/nginx/docker naming cleanup pass was performed on 2026-07-02. Migration placeholder route/tool cleanup was performed on 2026-07-05. A frontend personal-route cleanup slice was performed on 2026-07-06. An unmounted frontend tenant/org/invite placeholder cleanup slice was performed on 2026-07-07. Do not mark Phase 7 complete from this document; remaining frontend auth-state cleanup, org-sharing UI/API-guard cleanup, obsolete docs/scripts cleanup, browser smoke, and reviewer acceptance work remain pending. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
+Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have evidence recorded in `phase-report.md` and `verification.md`. A requested deploy/nginx/docker naming cleanup pass was performed on 2026-07-02. Migration placeholder route/tool cleanup was performed on 2026-07-05. A frontend personal-route cleanup slice was performed on 2026-07-06. An unmounted frontend tenant/org/invite placeholder cleanup slice was performed on 2026-07-07. A frontend organization-sharing UI residue cleanup slice was performed on 2026-07-07. Do not mark Phase 7 complete from this document; remaining frontend auth-state cleanup, API identity-strip guard cleanup, obsolete docs/scripts cleanup, browser smoke, and reviewer acceptance work remain pending. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
 
 ## Required Context
 
@@ -103,7 +103,8 @@ Acceptance criteria:
 - [ ] Remove `tenantId`, `joinedOrganization`, and organization access fields from frontend auth user state unless a narrowly documented compatibility test still needs them as legacy input.
 - [x] Remove `getCurrentTenantId` route/domain shim from active route generation.
 - [x] Update navigation targets in create, editor, framework cards, and framework lists to the new personal route shape.
-- [ ] Remove organization sharing UI and inert "Publish to Organization" actions.
+- [x] Remove organization sharing UI and inert "Publish to Organization" actions.
+- [x] Delete the null `UpdateFrameworksButton.jsx` org-field repair placeholder and remove its active import/render path.
 - [x] Preserve authenticated public library behavior; do not make library anonymous.
 
 Likely files:
@@ -122,6 +123,7 @@ Likely files:
 - [x] `frontend/src/components/FrameworkEditor.jsx`
 - [x] `frontend/src/components/FrameworkCard.jsx`
 - [x] `frontend/src/components/YourFrameworks.jsx`
+- [x] `frontend/src/components/UpdateFrameworksButton.jsx` deleted
 - [x] route/component tests
 
 Acceptance criteria:
