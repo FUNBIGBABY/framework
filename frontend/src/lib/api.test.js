@@ -10,6 +10,7 @@ import {
   generateFrameworkFromText,
   getAdminUsers,
   getApiBaseUrl,
+  getMyFrameworks,
   getFrameworkArtefact,
   listFrameworkArtefacts,
   getPublicFrameworks,
@@ -39,11 +40,20 @@ function requestHeaders(fetchMock, callIndex = 0) {
 function expectNoClientIdentityFields(value) {
   const serialized = JSON.stringify(value)
 
-  expect(serialized).not.toContain('user_id')
-  expect(serialized).not.toContain('creator_id')
-  expect(serialized).not.toContain('framework_id')
-  expect(serialized).not.toContain('tenant_id')
-  expect(serialized).not.toContain('X-Tenant-ID')
+  const clientOwnedFields = [
+    'user_id',
+    'creator_id',
+    'framework_id',
+    'owner_id',
+    'accountId',
+    'created_by',
+    'updatedBy',
+    'X-Owner-ID',
+  ]
+
+  clientOwnedFields.forEach(fieldName => {
+    expect(serialized).not.toContain(fieldName)
+  })
 }
 
 afterEach(() => {
@@ -159,7 +169,8 @@ describe('framework mutation payloads', () => {
       steps: [{ id: 'step-1', name: 'Updated' }],
       user_id: 'client-user',
       creator_id: 'client-creator',
-      tenant_id: 'client-tenant',
+      owner_id: 'client-owner',
+      accountId: 'client-account',
     })
 
     const body = requestBody(fetchMock)
@@ -171,7 +182,7 @@ describe('framework mutation payloads', () => {
     expect(body).not.toHaveProperty('confidence')
     expect(body).not.toHaveProperty('_raw')
     expectNoClientIdentityFields(body)
-    expect(requestHeaders(fetchMock)).not.toHaveProperty('X-Tenant-ID')
+    expect(requestHeaders(fetchMock)).not.toHaveProperty('X-Owner-ID')
   })
 
   it('omits empty raw framework data on update', async () => {
@@ -234,7 +245,8 @@ describe('framework mutation payloads', () => {
       _raw: {},
       user_id: 'client-user',
       creator_id: 'client-creator',
-      tenant_id: 'client-tenant',
+      owner_id: 'client-owner',
+      accountId: 'client-account',
     })
 
     const body = requestBody(fetchMock)
@@ -251,7 +263,7 @@ describe('framework mutation payloads', () => {
     })
     expect(body).not.toHaveProperty('_raw')
     expectNoClientIdentityFields(body)
-    expect(requestHeaders(fetchMock)).not.toHaveProperty('X-Tenant-ID')
+    expect(requestHeaders(fetchMock)).not.toHaveProperty('X-Owner-ID')
   })
 
   it('keeps generation helper payloads valid without client identity fields', async () => {
@@ -293,6 +305,32 @@ describe('framework mutation payloads', () => {
     })
     expect(regenerateBody.framework).not.toHaveProperty('_raw')
     expectNoClientIdentityFields(regenerateBody)
+  })
+})
+
+describe('owner framework summaries', () => {
+  it('omits obsolete organization-sharing state from normalized summaries', async () => {
+    const fetchMock = vi.fn().mockResolvedValueOnce(
+      mockResponse(200, [
+        {
+          id: 'fw_owner',
+          title: 'Owner Framework',
+          is_public: false,
+          publishedToOrganization: true,
+        },
+      ])
+    )
+    vi.stubGlobal('fetch', fetchMock)
+
+    const frameworks = await getMyFrameworks()
+
+    expect(frameworks[0]).toMatchObject({
+      id: 'fw_owner',
+      title: 'Owner Framework',
+      canManage: true,
+      isPublic: false,
+    })
+    expect(frameworks[0]).not.toHaveProperty('publishedToOrganization')
   })
 })
 
@@ -366,7 +404,8 @@ describe('library and publish REST helpers', () => {
       version: '2.0.0',
       user_id: 'ignored-user',
       creator_id: 'ignored-creator',
-      tenant_id: 'ignored-tenant',
+      owner_id: 'ignored-owner',
+      accountId: 'ignored-account',
     })
 
     expect(fetchMock.mock.calls[0][0]).toContain(
@@ -468,8 +507,10 @@ describe('framework artefact child-resource REST helpers', () => {
       framework_id: 'body-parent',
       user_id: 'client-user',
       creator_id: 'client-creator',
-      tenant_id: 'client-tenant',
-      'X-Tenant-ID': 'client-tenant',
+      owner_id: 'client-owner',
+      accountId: 'client-account',
+      created_by: 'client-user',
+      'X-Owner-ID': 'client-owner',
     })
 
     expect(fetchMock.mock.calls[0][0]).toContain(
@@ -538,8 +579,10 @@ describe('framework artefact child-resource REST helpers', () => {
       framework_id: 'body-parent',
       user_id: 'client-user',
       creator_id: 'client-creator',
-      tenant_id: 'client-tenant',
-      'X-Tenant-ID': 'client-tenant',
+      owner_id: 'client-owner',
+      accountId: 'client-account',
+      updatedBy: 'client-user',
+      'X-Owner-ID': 'client-owner',
     })
 
     expect(fetchMock.mock.calls[0][0]).toContain(
@@ -628,7 +671,8 @@ describe('admin users REST helpers', () => {
         password_hash: 'must-not-send',
         user_id: 'client-user',
         creator_id: 'client-creator',
-        tenant_id: 'client-tenant',
+        owner_id: 'client-owner',
+        accountId: 'client-account',
       },
       { suppressAuthRedirect: true }
     )

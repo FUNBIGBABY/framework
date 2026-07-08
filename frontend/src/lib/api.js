@@ -167,26 +167,44 @@ function normalizeJsonContainer(value, fallback) {
   return fallback
 }
 
-function stripArtefactResourceFields(artefactData = {}) {
-  const resourceFields = new Set([
-    'id',
-    'name',
-    ['framework', 'id'].join('_'),
-    ['user', 'id'].join('_'),
-    ['creator', 'id'].join('_'),
-    ['tenant', 'id'].join('_'),
-    ['X', 'Tenant-ID'].join('-'),
-    'artefact_type',
-    'metadata_json',
-    'content_json',
-    'ord',
-    'created_at',
-    'updated_at',
-    '_resource',
-  ])
+const ARTEFACT_RESOURCE_FIELDS = new Set([
+  'name',
+  'artefact_type',
+  'metadata_json',
+  'content_json',
+  'ord',
+  'created_at',
+  'updated_at',
+  '_resource',
+])
 
+function normalizeFieldKey(key) {
+  return String(key)
+    .replace(/([a-z0-9])([A-Z])/g, '$1_$2')
+    .replace(/[^a-z0-9]+/gi, '_')
+    .replace(/^_+|_+$/g, '')
+    .toLowerCase()
+}
+
+function isClientOwnedIdentityField(key) {
+  const normalized = normalizeFieldKey(key)
+  return (
+    normalized === 'id' ||
+    normalized.endsWith('_id') ||
+    normalized.endsWith('_ids') ||
+    normalized.endsWith('_by')
+  )
+}
+
+function stripArtefactResourceFields(artefactData = {}) {
   return Object.fromEntries(
-    Object.entries(artefactData).filter(([key]) => !resourceFields.has(key))
+    Object.entries(artefactData).filter(([key]) => {
+      const normalized = normalizeFieldKey(key)
+      return (
+        !ARTEFACT_RESOURCE_FIELDS.has(normalized) &&
+        !isClientOwnedIdentityField(key)
+      )
+    })
   )
 }
 
@@ -382,7 +400,6 @@ export function normalizeFrameworkSummary(framework = {}) {
     publishedAt,
     preview_artefacts: normalizePreviewArtefacts(framework.preview_artefacts),
     isPublic: Boolean(framework.is_public ?? framework.isPublic),
-    publishedToOrganization: Boolean(framework.publishedToOrganization),
     canManage: true,
   }
 }

@@ -1,6 +1,6 @@
 # Phase 07 Verification - Domain and Legacy Cleanup
 
-Round 0/1 implementation status: this document defines the verification contract, records initial planning scans, and records Round 0/1 implementation verification. A requested deploy/nginx/docker naming cleanup pass was verified on 2026-07-02. Migration placeholder route/tool cleanup was verified on 2026-07-05. Frontend personal-route cleanup was verified on 2026-07-06. Unmounted frontend tenant/org/invite placeholder cleanup was verified on 2026-07-07. Frontend organization-sharing UI residue cleanup was verified on 2026-07-07. Frontend AuthContext tenant/org state cleanup was verified on 2026-07-08. It does not mark Phase 7 complete. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
+Round 0/1 implementation status: this document defines the verification contract, records initial planning scans, and records Round 0/1 implementation verification. A requested deploy/nginx/docker naming cleanup pass was verified on 2026-07-02. Migration placeholder route/tool cleanup was verified on 2026-07-05. Frontend personal-route cleanup was verified on 2026-07-06. Unmounted frontend tenant/org/invite placeholder cleanup was verified on 2026-07-07. Frontend organization-sharing UI residue cleanup was verified on 2026-07-07. Frontend AuthContext tenant/org state cleanup was verified on 2026-07-08. Frontend API request-normalization cleanup was verified on 2026-07-08. It does not mark Phase 7 complete. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
 
 ## Verification Principles
 
@@ -154,7 +154,7 @@ Round 0/1 allowlist entries are recorded here and mirrored in `phase-report.md`:
 - `MIGRATION_PHASES.md`: retains legacy strings such as `valorie.ai`, `framework-builder-55896`, `webmaster@valorie`, `UNSW`, `ad.unsw`, tenant, invite, and migration terms because it is the canonical migration plan and names the cleanup targets and acceptance scans. It is not active runtime/config/deploy/current user documentation.
 - `docs/migration/phases/**`: retains historical phase evidence and current phase verification records that quote legacy strings, commands, and outputs. These records must remain auditable and are not active runtime/config/deploy/current user documentation.
 - `backend_py/tests/test_main.py`: retains `https://expert.valorie.ai` and `X-Tenant-ID` only as intentional negative assertions proving the old Valorie production origin is no longer accepted by backend CORS and the legacy tenant header is no longer advertised by backend preflight handling.
-- `frontend/src/lib/api.test.js`: retains `tenant_id` and `X-Tenant-ID` only as intentional negative assertions proving frontend request payload/header helpers strip client-supplied identity fields.
+- `frontend/src/lib/api.test.js`: retains generic client-owned identity field names such as `user_id`, `creator_id`, `framework_id`, `owner_id`, `accountId`, `created_by`, `updatedBy`, and `X-Owner-ID` only as intentional negative assertions proving frontend request payload/header helpers strip client-supplied identity fields. It also retains `publishedToOrganization` only as a negative assertion proving obsolete organization-sharing state is no longer surfaced by owner framework summary normalization.
 
 These allowlist entries do not cover active runtime/config/deploy/current-doc residue. The deploy/nginx/docker naming residue previously present in `deploy.sh`, `nginx-valorie.conf`, `docker-compose.yml`, `docker-entrypoint.sh`, and backend preflight handling has now been cleaned. The active `/migrate` route and isolated migration placeholder files have now been removed. Active tenant/org/invite route residue and obsolete current-doc/script residue remain explicit Phase 7 follow-up work rather than allowlisted closeout exceptions.
 
@@ -2322,6 +2322,217 @@ The exact removed AuthContext name scan returned no stdout; `rg` exited 1.
 The AuthContext legacy role/profile scan returned no stdout; `rg` exited 1.
 The remaining non-test frontend residue scan returned only `frontend\src\lib\api.js:385` `publishedToOrganization` normalization.
 The guard-specific scan confirmed the intentionally deferred `api.js` split-string `tenant_id` / `X-Tenant-ID` identity-strip guard and `api.test.js` negative assertions remain.
+`git diff --check` returned no stdout and exited 0.
+```
+
+## Frontend API Request-Normalization Cleanup Verification - 2026-07-08
+
+Scope: active frontend `api.js` request-normalization residue only. Backend auth/session behavior, backend ownership checks, database models, migrations, API contracts, README, obsolete backend helper scripts, and browser smoke were not changed.
+
+### Focused Pre-Edit API Inventory
+
+Commands:
+
+```powershell
+rg -n "tenant_id|X-Tenant-ID|publishedToOrganization|organization|Organization|invite|Invite|user_id|creator_id|owner_id|created_by|createdBy|tenantId|workspace|Workspace|account_id|accountId" frontend\src\lib
+rg -n "publishedToOrganization|published_to_organization|publish.*organization|organization|Organization" frontend\src backend_py\app backend_py\tests -g "!frontend/src/lib/api.test.js"
+rg -n "stripArtefactResourceFields|buildArtefactPayload|expectNoClientIdentityFields|client identity|identity fields|framework_id|user_id|creator_id|tenant_id|X-Tenant-ID" frontend\src\lib\api.js frontend\src\lib\api.test.js
+rg -n "tenant_id|X-Tenant-ID|publishedToOrganization|organization|Organization|user_id|creator_id|framework_id|owner_id|created_by|createdBy|account_id|accountId|workspace_id|workspaceId" frontend\src -g "!**/*.test.*"
+```
+
+Outcome summary:
+
+```text
+`publishedToOrganization` was present in `frontend\src\lib\api.js` summary normalization.
+The split-string artefact guard and `tenant_id` / `X-Tenant-ID` negative fixtures were present in `api.js` / `api.test.js`.
+No active UI/backend flow outside `api.js` required `publishedToOrganization`; the backend `organization` hit was limited to the already-deferred `backend_py\app\api\vector_sync.py:19 include_organization`.
+Non-test frontend client-owned identity hits outside `api.js` were backend response IDs in component code, not request-owned identity propagation.
+```
+
+### Files Changed
+
+- `frontend/src/lib/api.js`
+- `frontend/src/lib/api.test.js`
+- `docs/migration/phases/phase-07-domain-legacy-cleanup/checklist.md`
+- `docs/migration/phases/phase-07-domain-legacy-cleanup/phase-report.md`
+- `docs/migration/phases/phase-07-domain-legacy-cleanup/verification.md`
+
+### Focused Post-Edit Scans
+
+Commands:
+
+```powershell
+rg -n "tenant_id|X-Tenant-ID|tenantId|joinedOrganization|updateUserTenant|publishedToOrganization|organization|Organization|invite|Invite" frontend\src\lib
+rg -n "tenant_id|X-Tenant-ID|tenantId|joinedOrganization|updateUserTenant|publishedToOrganization|organization|Organization|invite|Invite" frontend\src\lib\api.js
+rg -n "user_id|creator_id|framework_id|owner_id|accountId|created_by|updatedBy|X-Owner-ID|password_hash" frontend\src\lib
+git diff -- frontend\src\lib\api.js frontend\src\lib\api.test.js
+```
+
+Results:
+
+```text
+The broad frontend/src/lib legacy scan returned only `api.test.js` negative assertions for `publishedToOrganization` / organization-sharing summary normalization.
+The `api.js` runtime scan returned no stdout; `rg` exited 1.
+The client-owned identity scan returned matches only in `api.test.js` negative fixtures and backend response shape fixtures.
+The diff showed `api.js` removed the split-string tenant/header guard, added generic identity-field stripping, and removed `publishedToOrganization` summary normalization.
+```
+
+### Focused API Test
+
+Initial sandboxed command:
+
+```powershell
+npm test -- src/lib/api.test.js
+```
+
+Working directory: `frontend`
+
+Initial result:
+
+```text
+Failed before tests ran: esbuild/Vitest could not read "../../../.." and could not resolve frontend\vitest.config.js inside the sandbox.
+```
+
+Escalated rerun command:
+
+```powershell
+npm test -- src/lib/api.test.js
+```
+
+Working directory: `frontend`
+
+Escalated rerun result:
+
+```text
+1 test file passed.
+24 tests passed.
+Duration 2.22s.
+```
+
+Warning: existing stale `baseline-browser-mapping` warning.
+
+### Full Frontend Tests
+
+Command:
+
+```powershell
+npm test
+```
+
+Working directory: `frontend`
+
+Outcome:
+
+```text
+10 test files passed.
+56 tests passed.
+Duration 8.22s.
+```
+
+Warnings/output: existing stdout from `PublishModal.test.jsx` and `Login.test.jsx`; existing stale `baseline-browser-mapping` and Browserslist/caniuse data warnings.
+
+### Frontend Lint
+
+Command:
+
+```powershell
+npm run lint
+```
+
+Working directory: `frontend`
+
+Outcome:
+
+```text
+> frontend@0.0.0 lint
+> eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0
+```
+
+Exit code: `0`.
+
+### Frontend Build
+
+Initial sandboxed command:
+
+```powershell
+npm run build
+```
+
+Working directory: `frontend`
+
+Initial result:
+
+```text
+Failed before build compilation: esbuild/Vite could not read "../../../.." and could not resolve frontend\vite.config.js inside the sandbox.
+```
+
+Escalated rerun command:
+
+```powershell
+npm run build
+```
+
+Working directory: `frontend`
+
+Escalated rerun result:
+
+```text
+vite v7.1.9 building for production...
+135 modules transformed.
+dist/index.html                 0.48 kB | gzip:   0.31 kB
+dist/assets/index-DfLzCzBj.css  38.87 kB | gzip:   7.06 kB
+dist/assets/index-DovgRqZ9.js   850.25 kB | gzip: 256.85 kB
+built in 7.28s
+```
+
+Warnings: existing stale `baseline-browser-mapping` and Browserslist/caniuse data warnings; existing chunk larger than 500 kB after minification warning.
+
+### Required Focused Scans And Whitespace Check
+
+Commands:
+
+```powershell
+rg -n "tenant_id|X-Tenant-ID" frontend\src\lib
+rg -n "publishedToOrganization" frontend\src\lib
+rg -n "organization|Organization" frontend\src\lib
+rg -n "user_id|creator_id|framework_id|owner_id|accountId|created_by|updatedBy|X-Owner-ID|password_hash" frontend\src\lib
+git diff --check
+```
+
+Results:
+
+```text
+The `tenant_id|X-Tenant-ID` scan returned no stdout; `rg` exited 1.
+The `publishedToOrganization` scan returned only `frontend\src\lib\api.test.js` negative assertion matches.
+The `organization|Organization` scan returned only `frontend\src\lib\api.test.js` negative assertion text for obsolete organization-sharing summary normalization.
+The client-owned identity field scan returned matches only in `frontend\src\lib\api.test.js` negative fixtures, backend response shape fixtures, and the existing password-hash negative assertion.
+`git diff --check` returned no stdout and exited 0.
+```
+
+### Skipped Checks
+
+- Backend tests: not run because this slice changed only frontend API helper/tests and migration docs.
+- Browser smoke: not run and not claimed; Docker/Postgres/seeded local environment availability remains the blocker recorded earlier in Phase 6 and Phase 7 docs.
+
+### Post-Documentation Rerun
+
+Commands:
+
+```powershell
+rg -n "tenant_id|X-Tenant-ID" frontend\src\lib
+rg -n "publishedToOrganization" frontend\src\lib
+rg -n "organization|Organization" frontend\src\lib
+rg -n "user_id|creator_id|framework_id|owner_id|accountId|created_by|updatedBy|X-Owner-ID|password_hash" frontend\src\lib
+git diff --check
+```
+
+Results:
+
+```text
+The `tenant_id|X-Tenant-ID` scan returned no stdout; `rg` exited 1.
+The `publishedToOrganization` scan returned only `frontend\src\lib\api.test.js` negative assertion matches.
+The `organization|Organization` scan returned only `frontend\src\lib\api.test.js` negative assertion text for obsolete organization-sharing summary normalization.
+The client-owned identity field scan returned matches only in `frontend\src\lib\api.test.js` negative fixtures, backend response shape fixtures, and the existing password-hash negative assertion.
 `git diff --check` returned no stdout and exited 0.
 ```
 
