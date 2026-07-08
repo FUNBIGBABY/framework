@@ -1,6 +1,6 @@
 # Phase 07 Verification - Domain and Legacy Cleanup
 
-Round 0/1 implementation status: this document defines the verification contract, records initial planning scans, and records Round 0/1 implementation verification. A requested deploy/nginx/docker naming cleanup pass was verified on 2026-07-02. Migration placeholder route/tool cleanup was verified on 2026-07-05. Frontend personal-route cleanup was verified on 2026-07-06. Unmounted frontend tenant/org/invite placeholder cleanup was verified on 2026-07-07. Frontend organization-sharing UI residue cleanup was verified on 2026-07-07. It does not mark Phase 7 complete. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
+Round 0/1 implementation status: this document defines the verification contract, records initial planning scans, and records Round 0/1 implementation verification. A requested deploy/nginx/docker naming cleanup pass was verified on 2026-07-02. Migration placeholder route/tool cleanup was verified on 2026-07-05. Frontend personal-route cleanup was verified on 2026-07-06. Unmounted frontend tenant/org/invite placeholder cleanup was verified on 2026-07-07. Frontend organization-sharing UI residue cleanup was verified on 2026-07-07. Frontend AuthContext tenant/org state cleanup was verified on 2026-07-08. It does not mark Phase 7 complete. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
 
 ## Verification Principles
 
@@ -2091,6 +2091,237 @@ Results:
 The active component org-sharing UI scan returned no stdout; `rg` exited 1.
 The `UpdateFrameworksButton` scan returned no stdout; `rg` exited 1.
 The remaining deferred frontend residue scan returned only `AuthContext.jsx` tenant/org state and `api.js` `publishedToOrganization` normalization.
+`git diff --check` returned no stdout and exited 0.
+```
+
+## Frontend AuthContext Tenant/Org State Cleanup Verification - 2026-07-08
+
+Scope: active frontend AuthContext tenant/org state cleanup only. `frontend/src/lib/api.js` identity-strip guard/request normalization, backend behavior, database models, migrations, API contracts, README, obsolete backend helper scripts, and browser smoke were not changed.
+
+### Focused Pre-Edit AuthContext Inventory
+
+Command:
+
+```powershell
+rg -n "tenantId|joinedOrganization|updateUserTenant" frontend\src
+```
+
+Outcome:
+
+```text
+frontend\src\contexts\AuthContext.jsx:24:    tenantId: existingUser?.tenantId || null,
+frontend\src\contexts\AuthContext.jsx:25:    joinedOrganization: existingUser?.joinedOrganization || null,
+frontend\src\contexts\AuthContext.jsx:125:  const updateUserTenant = async (tenantId, reload = false) => {
+frontend\src\contexts\AuthContext.jsx:132:      tenantId,
+frontend\src\contexts\AuthContext.jsx:162:    updateUserTenant,
+```
+
+Command:
+
+```powershell
+rg -n "useAuth\(|AuthProvider|AuthContext" frontend\src
+```
+
+Outcome summary:
+
+```text
+Active AuthContext consumers were `App.jsx`, `LandingPage.jsx`, `Login.jsx`, `Navbar.jsx`, `PrivateRoute.jsx`, and `YourFrameworks.jsx`, plus test mocks. These consumers used `user`, `loading`, `login`, `logout`, and `isAuthenticated`; none referenced `tenantId`, `joinedOrganization`, or `updateUserTenant`.
+```
+
+Command:
+
+```powershell
+rg -n "roles|expertProfile|isSuperAdmin|authProvider|backendUserId" frontend\src
+```
+
+Outcome summary:
+
+```text
+`roles` and `expertProfile` were limited to `AuthContext.jsx` tenant-update normalization. `isSuperAdmin` remains consumed by `Navbar.jsx`; `authProvider` appears in route/login tests; `backendUserId` remains AuthContext backend identity normalization.
+```
+
+### Files Changed
+
+- `frontend/src/contexts/AuthContext.jsx`
+- `frontend/src/contexts/AuthContext.test.jsx`
+- `docs/migration/phases/phase-07-domain-legacy-cleanup/checklist.md`
+- `docs/migration/phases/phase-07-domain-legacy-cleanup/phase-report.md`
+- `docs/migration/phases/phase-07-domain-legacy-cleanup/verification.md`
+
+### Focused AuthContext Test
+
+Initial sandboxed command:
+
+```powershell
+npm test -- AuthContext.test.jsx
+```
+
+Working directory: `frontend`
+
+Initial result:
+
+```text
+Failed before tests ran: esbuild/Vitest could not read "../../../.." and could not resolve frontend\vitest.config.js inside the sandbox.
+```
+
+Escalated rerun command:
+
+```powershell
+npm test -- AuthContext.test.jsx
+```
+
+Working directory: `frontend`
+
+Escalated rerun result:
+
+```text
+1 test file passed.
+2 tests passed.
+Duration 1.25s.
+```
+
+Warning: existing stale `baseline-browser-mapping` warning.
+
+### Post-Cleanup AuthContext Scans
+
+Command:
+
+```powershell
+rg -n "tenantId|joinedOrganization|updateUserTenant" frontend\src
+```
+
+Outcome:
+
+```text
+No stdout. `rg` exited 1.
+```
+
+Command:
+
+```powershell
+rg -n "roles|expertProfile" frontend\src\contexts\AuthContext.jsx frontend\src\contexts\AuthContext.test.jsx
+```
+
+Outcome:
+
+```text
+No stdout. `rg` exited 1.
+```
+
+Command:
+
+```powershell
+rg -n "tenant_id|X-Tenant-ID|publishedToOrganization|organization|Organization|invite|Invite" frontend\src -g "!**/*.test.*"
+```
+
+Outcome:
+
+```text
+frontend\src\lib\api.js:385:    publishedToOrganization: Boolean(framework.publishedToOrganization),
+```
+
+Interpretation: exact removed AuthContext names are absent from `frontend/src`. The remaining non-test frontend org residue visible to this scan is the deferred `api.js` `publishedToOrganization` normalization. The `api.js` split-string `tenant_id` / `X-Tenant-ID` identity-strip guard and `api.test.js` negative assertions remain deferred by scope and were intentionally not rewritten in this slice.
+
+### Full Frontend Tests
+
+Command:
+
+```powershell
+npm test
+```
+
+Working directory: `frontend`
+
+Outcome:
+
+```text
+10 test files passed.
+55 tests passed.
+Duration 4.38s.
+```
+
+Warnings/output: existing stdout from `PublishModal.test.jsx` and `Login.test.jsx`; existing stale `baseline-browser-mapping` and Browserslist/caniuse data warnings.
+
+### Frontend Lint
+
+Command:
+
+```powershell
+npm run lint
+```
+
+Working directory: `frontend`
+
+Outcome:
+
+```text
+> frontend@0.0.0 lint
+> eslint . --ext js,jsx --report-unused-disable-directives --max-warnings 0
+```
+
+Exit code: `0`.
+
+### Frontend Build
+
+Command:
+
+```powershell
+npm run build
+```
+
+Working directory: `frontend`
+
+Outcome:
+
+```text
+vite v7.1.9 building for production...
+135 modules transformed.
+dist/index.html                 0.48 kB | gzip:   0.31 kB
+dist/assets/index-DfLzCzBj.css  38.87 kB | gzip:   7.06 kB
+dist/assets/index-BtLA-T-L.js   850.17 kB | gzip: 256.80 kB
+built in 5.96s
+```
+
+Warnings: existing stale `baseline-browser-mapping` and Browserslist/caniuse data warnings; existing chunk larger than 500 kB after minification warning.
+
+### Git Diff Check
+
+Command:
+
+```powershell
+git diff --check
+```
+
+Outcome before documentation updates:
+
+```text
+No stdout. Command exited 0.
+```
+
+### Skipped Checks
+
+- Backend tests: not run because this slice changed only frontend AuthContext/tests and migration docs.
+- Browser smoke: not run and not claimed; Docker/Postgres/seeded local environment availability remains the blocker recorded earlier in Phase 6 and Phase 7 docs.
+
+### Post-Documentation Rerun
+
+Commands:
+
+```powershell
+rg -n "tenantId|joinedOrganization|updateUserTenant" frontend\src
+rg -n "roles|expertProfile" frontend\src\contexts\AuthContext.jsx frontend\src\contexts\AuthContext.test.jsx
+rg -n "tenant_id|X-Tenant-ID|publishedToOrganization|organization|Organization|invite|Invite" frontend\src -g "!**/*.test.*"
+rg -n "\['tenant'|Tenant-ID|publishedToOrganization|tenant_id|X-Tenant-ID" frontend\src\lib\api.js frontend\src\lib\api.test.js
+git diff --check
+```
+
+Results:
+
+```text
+The exact removed AuthContext name scan returned no stdout; `rg` exited 1.
+The AuthContext legacy role/profile scan returned no stdout; `rg` exited 1.
+The remaining non-test frontend residue scan returned only `frontend\src\lib\api.js:385` `publishedToOrganization` normalization.
+The guard-specific scan confirmed the intentionally deferred `api.js` split-string `tenant_id` / `X-Tenant-ID` identity-strip guard and `api.test.js` negative assertions remain.
 `git diff --check` returned no stdout and exited 0.
 ```
 

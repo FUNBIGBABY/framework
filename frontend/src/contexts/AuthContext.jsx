@@ -21,10 +21,6 @@ function buildBackendUser(backendUser, existingUser = {}) {
       existingUser?.username ||
       email?.split('@')[0] ||
       'user',
-    tenantId: existingUser?.tenantId || null,
-    joinedOrganization: existingUser?.joinedOrganization || null,
-    roles: existingUser?.roles || [],
-    expertProfile: existingUser?.expertProfile || null,
     isSuperAdmin: Boolean(backendUser?.is_super_admin),
     authProvider: 'backend-cookie',
   }
@@ -122,28 +118,6 @@ export const AuthProvider = ({ children }) => {
     }
   }
 
-  const updateUserTenant = async (tenantId, reload = false) => {
-    if (!user) {
-      throw new Error('No user logged in')
-    }
-
-    setUser(currentUser => ({
-      ...currentUser,
-      tenantId,
-      roles: currentUser.roles?.includes('expert')
-        ? currentUser.roles
-        : [...(currentUser.roles || []), 'expert'],
-      expertProfile: currentUser.expertProfile || {
-        displayName: `${currentUser.username} Expert`,
-        isApproved: true,
-      },
-    }))
-
-    if (reload) {
-      window.location.reload()
-    }
-  }
-
   const refreshUser = async () => {
     if (!user) {
       throw new Error('No user logged in')
@@ -159,7 +133,6 @@ export const AuthProvider = ({ children }) => {
     signup,
     login,
     logout,
-    updateUserTenant,
     refreshUser,
     isAuthenticated: !!user,
   }

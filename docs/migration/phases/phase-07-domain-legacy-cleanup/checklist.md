@@ -1,6 +1,6 @@
 # Phase 07 Checklist - Domain and Legacy Cleanup
 
-Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have evidence recorded in `phase-report.md` and `verification.md`. A requested deploy/nginx/docker naming cleanup pass was performed on 2026-07-02. Migration placeholder route/tool cleanup was performed on 2026-07-05. A frontend personal-route cleanup slice was performed on 2026-07-06. An unmounted frontend tenant/org/invite placeholder cleanup slice was performed on 2026-07-07. A frontend organization-sharing UI residue cleanup slice was performed on 2026-07-07. Do not mark Phase 7 complete from this document; remaining frontend auth-state cleanup, API identity-strip guard cleanup, obsolete docs/scripts cleanup, browser smoke, and reviewer acceptance work remain pending. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
+Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have evidence recorded in `phase-report.md` and `verification.md`. A requested deploy/nginx/docker naming cleanup pass was performed on 2026-07-02. Migration placeholder route/tool cleanup was performed on 2026-07-05. A frontend personal-route cleanup slice was performed on 2026-07-06. An unmounted frontend tenant/org/invite placeholder cleanup slice was performed on 2026-07-07. A frontend organization-sharing UI residue cleanup slice was performed on 2026-07-07. A frontend AuthContext tenant/org state cleanup slice was performed on 2026-07-08. Do not mark Phase 7 complete from this document; remaining API identity-strip guard cleanup, obsolete docs/scripts cleanup, browser smoke, and reviewer acceptance work remain pending. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
 
 ## Required Context
 
@@ -100,7 +100,7 @@ Acceptance criteria:
 - [x] Remove `TenantRoute` from the active routing path and rely on `PrivateRoute` plus backend ownership checks.
 - [x] Delete or permanently remove active imports for tenant, organization, and invite placeholder components.
 - [x] Delete confirmed-unmounted tenant, organization, and invite placeholder component files.
-- [ ] Remove `tenantId`, `joinedOrganization`, and organization access fields from frontend auth user state unless a narrowly documented compatibility test still needs them as legacy input.
+- [x] Remove `tenantId`, `joinedOrganization`, and organization access fields from frontend auth user state unless a narrowly documented compatibility test still needs them as legacy input.
 - [x] Remove `getCurrentTenantId` route/domain shim from active route generation.
 - [x] Update navigation targets in create, editor, framework cards, and framework lists to the new personal route shape.
 - [x] Remove organization sharing UI and inert "Publish to Organization" actions.
@@ -110,7 +110,7 @@ Acceptance criteria:
 Likely files:
 
 - [x] `frontend/src/App.jsx`
-- [ ] `frontend/src/contexts/AuthContext.jsx`
+- [x] `frontend/src/contexts/AuthContext.jsx`
 - [x] `frontend/src/lib/api.js`
 - [x] `frontend/src/components/TenantRoute.jsx`
 - [x] `frontend/src/components/TenantCreationModal.jsx`
@@ -125,6 +125,7 @@ Likely files:
 - [x] `frontend/src/components/YourFrameworks.jsx`
 - [x] `frontend/src/components/UpdateFrameworksButton.jsx` deleted
 - [x] route/component tests
+- [x] `frontend/src/contexts/AuthContext.test.jsx`
 
 Acceptance criteria:
 
@@ -234,6 +235,7 @@ Acceptance criteria:
 - [x] Frontend `npm run lint`.
 - [x] Frontend `npm test`.
 - [x] Frontend `npm run build`.
+- [x] Focused AuthContext/auth-state tests.
 - [x] Backend focused pytest for changed app surfaces.
 - [ ] Backend full pytest if backend app/config changed.
 - [x] `git diff --check`.
