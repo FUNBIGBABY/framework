@@ -1,6 +1,6 @@
 # Phase 07 Report - Domain and Legacy Cleanup
 
-Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have been performed. A requested deploy/nginx/docker naming cleanup pass was performed on 2026-07-02. Migration placeholder route/tool cleanup was performed on 2026-07-05. Frontend personal-route cleanup was performed on 2026-07-06. Unmounted frontend tenant/org/invite placeholder cleanup was performed on 2026-07-07. Frontend organization-sharing UI residue cleanup was performed on 2026-07-07. Frontend AuthContext tenant/org state cleanup was performed on 2026-07-08. Frontend API request-normalization cleanup was performed on 2026-07-08. Phase 7 is not complete, and remaining obsolete docs/scripts cleanup, browser smoke, and reviewer acceptance remain pending. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
+Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have been performed. A requested deploy/nginx/docker naming cleanup pass was performed on 2026-07-02. Migration placeholder route/tool cleanup was performed on 2026-07-05. Frontend personal-route cleanup was performed on 2026-07-06. Unmounted frontend tenant/org/invite placeholder cleanup was performed on 2026-07-07. Frontend organization-sharing UI residue cleanup was performed on 2026-07-07. Frontend AuthContext tenant/org state cleanup was performed on 2026-07-08. Frontend API request-normalization cleanup was performed on 2026-07-08. Obsolete current docs/scripts cleanup was performed on 2026-07-09. Phase 7 is not complete, and browser smoke plus reviewer acceptance remain pending. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
 
 ## Status
 
@@ -17,11 +17,12 @@ Current Phase 7 state:
 - Frontend organization-sharing UI residue cleanup performed on 2026-07-07: deleted the null `UpdateFrameworksButton.jsx` placeholder, removed its active `YourFrameworks.jsx` import/render, removed organization filters and `publishedToOrganization` draft filtering from `YourFrameworks.jsx`, and removed org-sharing badges/actions/copy from `FrameworkCard.jsx` while preserving public Library publish/unpublish behavior.
 - Frontend AuthContext tenant/org state cleanup performed on 2026-07-08: removed `tenantId`, `joinedOrganization`, `updateUserTenant`, and tenant-helper-only role/profile normalization from `AuthContext.jsx`; added focused AuthContext tests for backend-cookie session restore, login, and logout.
 - Frontend API request-normalization cleanup performed on 2026-07-08: removed obsolete `publishedToOrganization` summary normalization from `api.js`, replaced the split-string tenant/header artefact guard with a neutral generic client-owned identity-field stripper, and updated `api.test.js` to use neutral owner/account-style negative fixtures while preserving defense-in-depth.
+- Obsolete current docs/scripts cleanup performed on 2026-07-09: rewrote the active README for the current personal-use backend-JWT/Postgres/DeepSeek setup, deleted obsolete Firebase/Firestore/OpenAI Vector Store helper docs and top-level helper scripts, preserved current DeepSeek deployment/env diagnostics, and left browser smoke plus reviewer closeout pending.
 - Phase 6 `checklist.md`, `phase-report.md`, and `verification.md` record Migration Reviewer closeout acceptance.
 - Phase 6 Round 6 closeout commit is `27679f8 Complete Phase 6 frontend de-Firebase closeout`.
 - Phase 7 scope is semantic cleanup of Valorie/domain, tenant/org/invite/migration residue, obsolete docs, obsolete scripts/tests, and legacy deploy/env naming.
 - Phase 6 browser smoke remains documented as deferred because Docker/Postgres/seeded local environment was unavailable.
-- Phase 7 implementation has started, migration placeholders are removed, personal framework routes are active, unmounted tenant/org/invite placeholders are deleted, active organization-sharing UI residue is removed, AuthContext no longer exposes tenant/org state, and `api.js` request normalization no longer retains tenant/header or organization-sharing runtime residue, but Phase 7 is not complete.
+- Phase 7 implementation has started, migration placeholders are removed, personal framework routes are active, unmounted tenant/org/invite placeholders are deleted, active organization-sharing UI residue is removed, AuthContext no longer exposes tenant/org state, `api.js` request normalization no longer retains tenant/header or organization-sharing runtime residue, and obsolete current docs/scripts have been cleaned, but Phase 7 is not complete.
 - Phase 7 must not be marked complete before implementation evidence and reviewer acceptance.
 - If Phase 6 closeout docs do not record accepted status in a future checkout, Phase 7 implementation is gated until that documentation contradiction is corrected.
 
@@ -121,10 +122,12 @@ Round 0/1 allowlist entries are recorded here and mirrored in `verification.md`:
 
 - `MIGRATION_PHASES.md`: retains legacy strings such as `valorie.ai`, `framework-builder-55896`, `webmaster@valorie`, `UNSW`, `ad.unsw`, tenant, invite, and migration terms because it is the canonical migration plan and names the cleanup targets and acceptance scans. It is not active runtime/config/deploy/current user documentation.
 - `docs/migration/phases/**`: retains historical phase evidence and current phase verification records that quote legacy strings, commands, and outputs. These records must remain auditable and are not active runtime/config/deploy/current user documentation.
+- `docs/migration/README.md` and `docs/migration/decisions/ADR-0001-auth-strategy.md`: retain Firebase Auth / Firebase ID Token references only as migration decision evidence explaining why backend JWT is the accepted auth route. ADR-0001 was updated in the docs/scripts cleanup to avoid stale future-tense wording about frontend Firebase removal.
+- `docs/skills/migration-reviewer/SKILL.md` and `docs/skills/migration-phase-planner/SKILL.md`: retain legacy terms only as migration-tooling scan/review prompts so future phase agents can find residue; they are not app setup, runtime, config, deploy, or user workflow documentation.
 - `backend_py/tests/test_main.py`: retains `https://expert.valorie.ai` and `X-Tenant-ID` only as intentional negative assertions proving the old Valorie production origin is no longer accepted by backend CORS and the legacy tenant header is no longer advertised by backend preflight handling.
 - `frontend/src/lib/api.test.js`: retains generic client-owned identity field names such as `user_id`, `creator_id`, `framework_id`, `owner_id`, `accountId`, `created_by`, `updatedBy`, and `X-Owner-ID` only as intentional negative assertions proving frontend request payload/header helpers strip client-supplied identity fields. It also retains `publishedToOrganization` only as a negative assertion proving obsolete organization-sharing state is no longer surfaced by owner framework summary normalization.
 
-These allowlist entries do not cover active runtime/config/deploy/current-doc residue. The deploy/nginx/docker naming residue previously present in `deploy.sh`, `nginx-valorie.conf`, `docker-compose.yml`, `docker-entrypoint.sh`, and backend preflight handling has now been cleaned. The active `/migrate` route and isolated migration placeholder files have now been removed. Active tenant/org/invite route residue and obsolete current-doc/script residue remain explicit Phase 7 follow-up work rather than allowlisted closeout exceptions.
+These allowlist entries do not cover active runtime/config/deploy/current-doc residue. The deploy/nginx/docker naming residue previously present in `deploy.sh`, `nginx-valorie.conf`, `docker-compose.yml`, `docker-entrypoint.sh`, and backend preflight handling has now been cleaned. The active `/migrate` route and isolated migration placeholder files have now been removed. Active tenant/org/invite route residue has been removed from frontend runtime surfaces, obsolete current-doc/script residue has been cleaned, and `backend_py/app/api/vector_sync.py` remains preserved as a Phase 9-deferred RAG/indexing API contract rather than a Phase 7 docs/scripts target.
 
 ## Round 0/1 Implementation - 2026-07-02
 
@@ -552,6 +555,56 @@ Current remaining frontend tenant/org residue after this slice:
 - No active `frontend/src/lib/api.js` request-normalization tenant/header or organization-sharing runtime residue remains.
 - `frontend/src/lib/api.test.js` retains only allowlisted negative assertions for removed org-sharing normalization and neutral client-owned identity stripping.
 - `backend_py/app/api/vector_sync.py` still contains the Phase 9-deferred `include_organization` request field; this slice did not change backend behavior or API contracts.
+
+## Obsolete Current Docs/Scripts Cleanup - 2026-07-09
+
+Scope performed:
+
+- Ran focused scans for Valorie/Firebase/SaaS/tenant/org/invite/migration-tool stale references in current docs and top-level helper scripts, excluding historical phase evidence under `docs/migration/phases/**`.
+- Proved the deleted helper scripts had no active imports or current workflow references outside the obsolete backend README-DIFF, self-comments, canonical migration instructions, and migration-tooling scan prompts.
+- Rewrote the active top-level `README.md` to describe the current personal-use backend-JWT/Postgres/DeepSeek setup, current admin seeding path, maintained test locations, deferred browser-smoke status, and Phase 8+ features as planned rather than complete.
+- Deleted obsolete Firebase/Firestore/OpenAI Vector Store/customer deployment docs and top-level helper scripts/tests that were not maintained pytest coverage and supported removed legacy flows.
+- Preserved `docs/CN_DEPLOY.md` because it already describes current DeepSeek deployment notes.
+- Preserved `backend_py/diagnose_env.py` because it already checks the current DeepSeek/provider env path and does not support legacy Valorie/Firebase/SaaS/tenant/org/migration-tool behavior.
+- Updated ADR-0001 only to replace stale future-tense Firebase-removal wording with the current Phase 6 fact.
+- Reviewed backend tenant/org residue without runtime edits: `backend_py/app/api/vector_sync.py` still contains `include_organization` in the Phase 9-deferred RAG/indexing stub, and this docs/scripts cleanup did not change backend API contracts.
+
+Files changed:
+
+- `README.md`
+- `docs/migration/decisions/ADR-0001-auth-strategy.md`
+- `docs/migration/phases/phase-07-domain-legacy-cleanup/checklist.md`
+- `docs/migration/phases/phase-07-domain-legacy-cleanup/phase-report.md`
+- `docs/migration/phases/phase-07-domain-legacy-cleanup/verification.md`
+
+Files deleted:
+
+- `Project-Startup-and-Operation-Flow.md`
+- `firebaseDoc.md`
+- `backend_py/README-DIFF.md`
+- `backend_py/check_versions.py`
+- `backend_py/check_vector_store_attributes.py`
+- `backend_py/test_cloud_llm.py`
+- `backend_py/test_firebase.py`
+- `backend_py/test_update.py`
+- `backend_py/test_update_publish.py`
+- `backend_py/test_vec_base.py`
+
+Verification summary:
+
+- Current active README scan has no named legacy Valorie/Firebase/Firestore/OpenAI Vector Store/tenant/org/invite/migration-tool setup references.
+- Current docs/scripts scan excluding `docs/migration/phases/**`, backend app code, maintained backend tests, virtualenvs, frontend build output, and node_modules now reports only allowlisted migration README/ADR decision evidence and migration skill scan prompts.
+- Deleted-doc/script `rg --files` checks return no matches for the removed files.
+- Backend residue scan reports only `backend_py/tests/test_main.py` negative CORS assertions and the preserved Phase 9-deferred `backend_py/app/api/vector_sync.py` `include_organization` request field.
+- Script syntax checks were not run for deleted scripts. No current script was edited.
+- Frontend/backend tests were not run because this slice changed docs and deleted obsolete unreferenced helper scripts only, with no runtime app code changes.
+- Browser smoke was not run or claimed; `docker compose ps` could not connect to the Docker Desktop Linux engine pipe, so no live Docker/Postgres/frontend/backend environment with seeded credentials was available in this turn.
+
+Boundaries honored:
+
+- Did not change backend auth/session behavior, backend ownership checks, database models, migrations, API contracts, RAG/indexing stubs, Agent loop, Tool Registry, LLMWiki, Chat UI, MCP marketplace, public registration, organization sharing, invites, or workspaces.
+- Did not rewrite historical phase evidence under `docs/migration/phases/**` except the active Phase 7 execution records.
+- Did not edit `MIGRATION_PHASES.md`; no canonical plan change was needed for this cleanup.
 
 ## Scope
 

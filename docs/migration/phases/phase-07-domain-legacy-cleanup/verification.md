@@ -1,6 +1,6 @@
 # Phase 07 Verification - Domain and Legacy Cleanup
 
-Round 0/1 implementation status: this document defines the verification contract, records initial planning scans, and records Round 0/1 implementation verification. A requested deploy/nginx/docker naming cleanup pass was verified on 2026-07-02. Migration placeholder route/tool cleanup was verified on 2026-07-05. Frontend personal-route cleanup was verified on 2026-07-06. Unmounted frontend tenant/org/invite placeholder cleanup was verified on 2026-07-07. Frontend organization-sharing UI residue cleanup was verified on 2026-07-07. Frontend AuthContext tenant/org state cleanup was verified on 2026-07-08. Frontend API request-normalization cleanup was verified on 2026-07-08. It does not mark Phase 7 complete. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
+Round 0/1 implementation status: this document defines the verification contract, records initial planning scans, and records Round 0/1 implementation verification. A requested deploy/nginx/docker naming cleanup pass was verified on 2026-07-02. Migration placeholder route/tool cleanup was verified on 2026-07-05. Frontend personal-route cleanup was verified on 2026-07-06. Unmounted frontend tenant/org/invite placeholder cleanup was verified on 2026-07-07. Frontend organization-sharing UI residue cleanup was verified on 2026-07-07. Frontend AuthContext tenant/org state cleanup was verified on 2026-07-08. Frontend API request-normalization cleanup was verified on 2026-07-08. Obsolete current docs/scripts cleanup was verified on 2026-07-09. It does not mark Phase 7 complete. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
 
 ## Verification Principles
 
@@ -153,10 +153,12 @@ Round 0/1 allowlist entries are recorded here and mirrored in `phase-report.md`:
 
 - `MIGRATION_PHASES.md`: retains legacy strings such as `valorie.ai`, `framework-builder-55896`, `webmaster@valorie`, `UNSW`, `ad.unsw`, tenant, invite, and migration terms because it is the canonical migration plan and names the cleanup targets and acceptance scans. It is not active runtime/config/deploy/current user documentation.
 - `docs/migration/phases/**`: retains historical phase evidence and current phase verification records that quote legacy strings, commands, and outputs. These records must remain auditable and are not active runtime/config/deploy/current user documentation.
+- `docs/migration/README.md` and `docs/migration/decisions/ADR-0001-auth-strategy.md`: retain Firebase Auth / Firebase ID Token references only as migration decision evidence explaining why backend JWT is the accepted auth route. ADR-0001 was updated in the docs/scripts cleanup to avoid stale future-tense wording about frontend Firebase removal.
+- `docs/skills/migration-reviewer/SKILL.md` and `docs/skills/migration-phase-planner/SKILL.md`: retain legacy terms only as migration-tooling scan/review prompts so future phase agents can find residue; they are not app setup, runtime, config, deploy, or user workflow documentation.
 - `backend_py/tests/test_main.py`: retains `https://expert.valorie.ai` and `X-Tenant-ID` only as intentional negative assertions proving the old Valorie production origin is no longer accepted by backend CORS and the legacy tenant header is no longer advertised by backend preflight handling.
 - `frontend/src/lib/api.test.js`: retains generic client-owned identity field names such as `user_id`, `creator_id`, `framework_id`, `owner_id`, `accountId`, `created_by`, `updatedBy`, and `X-Owner-ID` only as intentional negative assertions proving frontend request payload/header helpers strip client-supplied identity fields. It also retains `publishedToOrganization` only as a negative assertion proving obsolete organization-sharing state is no longer surfaced by owner framework summary normalization.
 
-These allowlist entries do not cover active runtime/config/deploy/current-doc residue. The deploy/nginx/docker naming residue previously present in `deploy.sh`, `nginx-valorie.conf`, `docker-compose.yml`, `docker-entrypoint.sh`, and backend preflight handling has now been cleaned. The active `/migrate` route and isolated migration placeholder files have now been removed. Active tenant/org/invite route residue and obsolete current-doc/script residue remain explicit Phase 7 follow-up work rather than allowlisted closeout exceptions.
+These allowlist entries do not cover active runtime/config/deploy/current-doc residue. The deploy/nginx/docker naming residue previously present in `deploy.sh`, `nginx-valorie.conf`, `docker-compose.yml`, `docker-entrypoint.sh`, and backend preflight handling has now been cleaned. The active `/migrate` route and isolated migration placeholder files have now been removed. Active tenant/org/invite route residue has been removed from frontend runtime surfaces, obsolete current-doc/script residue has been cleaned, and `backend_py/app/api/vector_sync.py` remains preserved as a Phase 9-deferred RAG/indexing API contract rather than a Phase 7 docs/scripts target.
 
 ## Round 0/1 Verification - 2026-07-02
 
@@ -2535,6 +2537,186 @@ The `organization|Organization` scan returned only `frontend\src\lib\api.test.js
 The client-owned identity field scan returned matches only in `frontend\src\lib\api.test.js` negative fixtures, backend response shape fixtures, and the existing password-hash negative assertion.
 `git diff --check` returned no stdout and exited 0.
 ```
+
+## Obsolete Current Docs/Scripts Cleanup Verification - 2026-07-09
+
+Scope: current README/user docs, obsolete top-level backend helper scripts, obsolete helper docs, and Phase 7 documentation. No runtime app code, backend auth/session behavior, database models, migrations, ownership checks, API contracts, frontend routes, Agent/RAG/LLMWiki/Tool Registry/Chat UI/MCP code, public registration, org sharing, invites, or workspaces were changed.
+
+### Focused Pre-Edit Inventory
+
+Command:
+
+```powershell
+rg -n --hidden -S "Valorie|valorie|valorie\.ai|expert\.valorie\.ai|framework-builder-55896|webmaster@valorie|UNSW|ad\.unsw|Firebase|Firestore|Firebase Auth|OpenAI Vector Store|SaaS|tenant|Tenant|organization|Organization|invite|Invite|MigrationTool|migrate-data|cleanupData|updateFrameworkTenants|migrate tool|migration tool" README.md Project-Startup-and-Operation-Flow.md firebaseDoc.md docs backend_py -g "*.md" -g "*.py" -g "*.sh" -g "*.ps1" -g "*.js" -g "*.jsx" -g "!docs/migration/phases/**" -g "!backend_py/.venv/**" -g "!backend_py/app/**" -g "!backend_py/tests/**"
+```
+
+Outcome summary:
+
+```text
+Stale active/current docs and helper hits were found in README.md, Project-Startup-and-Operation-Flow.md, firebaseDoc.md, backend_py/README-DIFF.md, backend_py/check_vector_store_attributes.py, backend_py/test_firebase.py, backend_py/test_update.py, and backend_py/test_update_publish.py.
+docs/CN_DEPLOY.md did not contain stale legacy setup instructions and was preserved.
+backend_py/diagnose_env.py did not contain stale legacy setup instructions and was preserved because it checks the current DeepSeek/provider env path.
+docs/migration/README.md, docs/migration/decisions/ADR-0001-auth-strategy.md, and docs/skills/** retained migration decision/tooling references rather than current setup instructions.
+```
+
+### Deleted Helper Dependency Proof
+
+Command:
+
+```powershell
+rg -n --hidden -S "Project-Startup-and-Operation-Flow\.md|firebaseDoc\.md|README-DIFF\.md|test_firebase\.py|test_cloud_llm\.py|test_update\.py|test_update_publish\.py|test_vec_base\.py|check_versions\.py|check_vector_store_attributes\.py|diagnose_env\.py" . -g "!docs/migration/phases/**" -g "!backend_py/.venv/**" -g "!frontend/node_modules/**" -g "!frontend/dist/**" -g "!.git/**"
+```
+
+Pre-delete outcome summary:
+
+```text
+No active runtime imports or current workflow references depended on the obsolete helper scripts.
+Matches were limited to canonical migration instructions, migration-reviewer scan prompts, obsolete backend_py/README-DIFF.md references, and self-comments in the helper scripts.
+```
+
+### Files Changed
+
+- `README.md`
+- `docs/migration/decisions/ADR-0001-auth-strategy.md`
+- `docs/migration/phases/phase-07-domain-legacy-cleanup/checklist.md`
+- `docs/migration/phases/phase-07-domain-legacy-cleanup/phase-report.md`
+- `docs/migration/phases/phase-07-domain-legacy-cleanup/verification.md`
+
+### Files Deleted
+
+- `Project-Startup-and-Operation-Flow.md`
+- `firebaseDoc.md`
+- `backend_py/README-DIFF.md`
+- `backend_py/check_versions.py`
+- `backend_py/check_vector_store_attributes.py`
+- `backend_py/test_cloud_llm.py`
+- `backend_py/test_firebase.py`
+- `backend_py/test_update.py`
+- `backend_py/test_update_publish.py`
+- `backend_py/test_vec_base.py`
+
+### Active README Stale-Reference Scan
+
+Command:
+
+```powershell
+rg -n --hidden -S "Valorie|valorie|valorie\.ai|expert\.valorie\.ai|framework-builder-55896|webmaster@valorie|UNSW|ad\.unsw|Firebase|Firestore|Firebase Auth|OpenAI Vector Store|SaaS|tenant|Tenant|organization|Organization|invite|Invite|MigrationTool|migrate-data|cleanupData|updateFrameworkTenants|migrate tool|migration tool" README.md
+```
+
+Result:
+
+```text
+No stdout. `rg` exited 1.
+```
+
+### Current Docs/Scripts Stale-Reference Scan
+
+Command:
+
+```powershell
+rg -n --hidden -S "Valorie|valorie|valorie\.ai|expert\.valorie\.ai|framework-builder-55896|webmaster@valorie|UNSW|ad\.unsw|Firebase|Firestore|Firebase Auth|OpenAI Vector Store|SaaS|tenant|Tenant|organization|Organization|invite|Invite|MigrationTool|migrate-data|cleanupData|updateFrameworkTenants|migrate tool|migration tool" README.md docs backend_py -g "*.md" -g "*.py" -g "*.sh" -g "*.ps1" -g "*.js" -g "*.jsx" -g "!docs/migration/phases/**" -g "!backend_py/.venv/**" -g "!backend_py/app/**" -g "!backend_py/tests/**"
+```
+
+Result:
+
+```text
+docs\skills\migration-reviewer\SKILL.md:40:- Legacy isolation: Are Firebase, GCP LLM, OpenAI Vector Store, tenant-era paths, and old docs either removed, guarded, or explicitly deferred?
+docs\skills\migration-phase-planner\SKILL.md:75:rg -n "OpenAI|Firebase|Vector Store|GCP|LOCAL_LLM|tenant" backend_py frontend docs
+docs\migration\README.md:20:Phase 0 locks the Auth strategy to option A: self-hosted backend JWT, allowlist, and no public registration. Firebase Auth and Firebase ID Token are not part of the new project route.
+docs\migration\decisions\ADR-0001-auth-strategy.md:9:The legacy project mixed Firebase Auth, backend-local JWT, and frontend-provided `user_id` values in request body, query, or form data. This created a severe identity trust-chain problem because private backend actions could trust user identity supplied by the client instead of deriving identity from a verified token.
+docs\migration\decisions\ADR-0001-auth-strategy.md:17:- Frontend Firebase Auth was removed from the active frontend route in Phase 6.
+docs\migration\decisions\ADR-0001-auth-strategy.md:20:- Firebase ID Token is not the main route for the new project.
+```
+
+Interpretation: remaining matches are allowlisted migration decision evidence and migration tooling scan prompts. They are not active app setup docs, runtime source, config, deploy scripts, or user workflow instructions.
+
+### Deleted File Presence Checks
+
+Commands:
+
+```powershell
+rg --files backend_py -g "test_firebase.py" -g "test_cloud_llm.py" -g "test_update.py" -g "test_update_publish.py" -g "test_vec_base.py" -g "check_versions.py" -g "check_vector_store_attributes.py" -g "README-DIFF.md"
+rg --files -g "Project-Startup-and-Operation-Flow.md" -g "firebaseDoc.md"
+```
+
+Results:
+
+```text
+Both commands returned no stdout; `rg` exited 1.
+```
+
+### Deleted File Reference Scan
+
+Command:
+
+```powershell
+rg -n --hidden -S "Project-Startup-and-Operation-Flow\.md|firebaseDoc\.md|README-DIFF\.md|test_firebase\.py|test_cloud_llm\.py|test_update\.py|test_update_publish\.py|test_vec_base\.py|check_versions\.py|check_vector_store_attributes\.py" . -g "!docs/migration/phases/**" -g "!backend_py/.venv/**" -g "!frontend/node_modules/**" -g "!frontend/dist/**" -g "!.git/**"
+```
+
+Result summary:
+
+```text
+Matches remain only in `MIGRATION_PHASES.md`, where the canonical plan names obsolete docs/scripts as Phase 7 cleanup targets, and in `docs\skills\migration-reviewer\SKILL.md`, where a review prompt scans for stale audit/startup docs.
+```
+
+Interpretation: remaining references are canonical migration instructions or migration-reviewer scan prompts, not active workflows depending on the deleted files.
+
+### Backend Residue Classification Scan
+
+Command:
+
+```powershell
+rg -n "tenant|Tenant|organization|Organization|invite|Invite|X-Tenant-ID|include_organization" backend_py\app backend_py\alembic backend_py\tests -g "!backend_py/.venv/**"
+```
+
+Result:
+
+```text
+backend_py\tests\test_main.py:40:def test_cors_preflight_omits_legacy_tenant_header(monkeypatch):
+backend_py\tests\test_main.py:67:    assert "X-Tenant-ID" not in allowed_headers
+backend_py\app\api\vector_sync.py:19:    include_organization: bool = True
+```
+
+Interpretation: `backend_py/tests/test_main.py` remains an allowlisted negative CORS assertion. `backend_py/app/api/vector_sync.py` remains a Phase 9-deferred RAG/indexing stub and was intentionally not changed because this slice did not alter runtime API contracts.
+
+### Whitespace Check
+
+Command:
+
+```powershell
+git diff --check
+```
+
+Result:
+
+```text
+No stdout. Command exited 0.
+```
+
+### Browser Smoke Feasibility Check
+
+Command:
+
+```powershell
+docker compose ps
+```
+
+Result:
+
+```text
+Warnings: JWT_SECRET_KEY and DEEPSEEK_API_KEY were not set; docker-compose.yml `version` is obsolete.
+Failed to connect to the Docker API at npipe:////./pipe/dockerDesktopLinuxEngine. The system cannot find the file specified.
+Command exited 1.
+```
+
+Interpretation: browser smoke was not run because Docker Desktop's Linux engine is unavailable, leaving no live Docker/Postgres/backend/frontend environment or seeded credentials for a smoke session.
+
+### Skipped Checks
+
+- Script syntax checks: not run because obsolete scripts were deleted, and no current script was edited.
+- Frontend tests/lint/build: not run because no frontend runtime or test code changed in this slice.
+- Backend tests: not run because no backend runtime app code, maintained backend tests, database models, migrations, auth/session, ownership checks, or API contracts changed in this slice.
+- Browser smoke: not run and not claimed; `docker compose ps` could not connect to Docker Desktop's Linux engine pipe, leaving no live Docker/Postgres/backend/frontend environment with seeded credentials in this turn.
 
 ## Initial Planning Scan Summary
 

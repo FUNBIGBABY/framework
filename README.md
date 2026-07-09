@@ -1,443 +1,147 @@
-# Expert Framework Builder
+# Personal AI Framework Studio
 
-A full-stack application for creating, editing, and managing expert evaluation frameworks using AI assistance.
+A personal-use application for creating, editing, publishing, merging, and exporting expert evaluation frameworks with AI assistance.
 
-## Migration Status
-
-This repository is being migrated from the legacy customer project into a personal AI Agent + LLMWiki project. The canonical execution entry points are:
+This repository is in the middle of a staged migration from a legacy customer project to a personal AI Agent + LLMWiki + RAG architecture. The canonical migration plan and execution records are:
 
 - `MIGRATION_PHASES.md`
 - `docs/migration/README.md`
+- `docs/migration/phases/`
 
-Legacy startup, OpenAI-first, Firebase-first, and customer deployment notes may still exist in old documents while Phase 6/7 cleanup is pending; do not treat them as the migration plan.
+Historical migration records are retained for audit evidence. Current setup and operation should follow this README and the migration docs above.
 
-## 📋 Table of Contents
-- [Prerequisites](#prerequisites)
-- [Quick Start](#quick-start)
-- [Development Setup](#development-setup)
-- [Testing](#testing)
-- [Docker Deployment](#docker-deployment)
-- [Project Structure](#project-structure)
-- [Documentation](#documentation)
+## Current Boundaries
 
----
+- Personal-use app by default.
+- Public registration is disabled by default.
+- Users are created by an administrator or allowed through `ALLOWED_EMAILS`.
+- Backend JWT cookie sessions are the current auth boundary.
+- DeepSeek is the default LLM provider route.
+- Postgres with pgvector is the current database target.
+- Legacy local/Ollama/GCP LLM code is disabled unless `ENABLE_LEGACY_LLM=true` is set intentionally.
+- Browser smoke for the Phase 6/7 migration remains deferred until Docker/Postgres and seeded local credentials are available.
 
-## 🔧 Prerequisites
+Removed customer-specific setup paths are not current setup paths.
 
-For migration-specific setup and phase order, start with `MIGRATION_PHASES.md` and `docs/migration/README.md`.
-### Required Software
-- **Node.js**: 22.12.0 or higher (use nvm: `nvm use`)
-- **Python**: 3.11 or higher (`python --version`)
-- **Docker**: Latest version (for containerized deployment)
-- **DeepSeek API key**: Default LLM provider for the current migration route
+## Requirements
 
-### Installation
+- Node.js 22.12.0 or newer
+- Python 3.11 or newer
+- Docker, if running the compose stack
+- A DeepSeek API key for real LLM calls
+- Postgres/pgvector for the current backend database path
+
+## Environment
+
+Start from the templates:
+
 ```bash
-# Install Node.js using nvm
-nvm install 22.12.0
-nvm use 22.12.0
-
-# Verify Python
-python --version
-
-# Install Docker
-# Visit: https://docs.docker.com/get-docker/
+cp .env.example .env
+cp backend_py/.env.example backend_py/.env
+cp frontend/.env.example frontend/.env
 ```
 
----
+Important variables:
 
-## 🚀 Quick Start
+- `JWT_SECRET_KEY`: required backend signing secret.
+- `DATABASE_URL`: SQLAlchemy database URL.
+- `SUPER_ADMIN_EMAIL`: configured super-admin identity.
+- `SUPER_ADMIN_PASSWORD`: password used by the admin seed script.
+- `ALLOWED_EMAILS`: comma-separated registration allowlist.
+- `ENABLE_PUBLIC_REGISTER=false`: default public-registration guard.
+- `LLM_PROVIDER=deepseek`: default provider.
+- `DEEPSEEK_API_KEY`: required for real DeepSeek calls.
+- `DEEPSEEK_BASE_URL=https://api.deepseek.com`: do not append `/v1`.
+- `APP_NAME` and `VITE_APP_NAME`: app display name.
+- `APP_BASE_DOMAIN`, `FRONTEND_URL`, and `VITE_API_BASE_URL`: deployment routing and CORS configuration.
 
-### Using Docker (Recommended)
+## Local Development
+
+Install frontend dependencies and start Vite:
+
 ```bash
-# Build and run with Docker Compose
-docker-compose up --build
-docker-compose up -d
-# Access the application
-# Frontend: http://localhost:3000
-# Backend:  http://localhost:8000
-# API Docs: http://localhost:8000/docs
-```
-
-### Local Development
-```bash
-# Terminal 1: Frontend
 cd frontend
 npm install
 npm run dev
-# Access: http://localhost:5173
+```
 
-# Terminal 2: Backend
+Install backend dependencies and start FastAPI:
+
+```bash
 cd backend_py
 pip install -r requirements.txt
 python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
-# Access: http://localhost:8000
 ```
 
----
+The frontend defaults to `http://localhost:5173`. The backend defaults to `http://localhost:8000`.
 
-## 💻 Development Setup
+Seed the personal super-admin after configuring backend env and database access:
 
-### Frontend Setup
-```bash
-cd frontend
-
-# Install dependencies
-npm install
-
-# Copy environment file (if needed)
-cp .env.example .env
-
-# Start development server
-npm run dev
-```
-
-**Frontend will be available at:** `http://localhost:5173`
-
-**Environment Variables** (`.env`):
-- `VITE_API_BASE_URL`: Backend API URL
-- Firebase configuration is legacy compatibility until Phase 6 removes frontend Firebase dependencies.
-
-### Backend Setup
 ```bash
 cd backend_py
-
-# Install dependencies
-pip install -r requirements.txt --break-system-packages
-
-# Run development server
-python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
+python scripts/seed_admin.py
 ```
 
-**Backend will be available at:** `http://localhost:8000`
+## Docker
 
-**API Documentation:** `http://localhost:8000/docs`
-
-**Environment Variables** (`.env`):
-- `JWT_SECRET_KEY`: Required backend JWT signing secret
-- `SUPER_ADMIN_EMAIL` / `SUPER_ADMIN_PASSWORD`: Seeded administrator account
-- `ALLOWED_EMAILS`: Registration allowlist for disabled-by-default backend registration
-- `LLM_PROVIDER=deepseek`
-- `DEEPSEEK_API_KEY`: DeepSeek provider credential
-- `DEEPSEEK_BASE_URL=https://api.deepseek.com` without a `/v1` suffix
-- OpenAI and Firebase service-account settings are legacy/downstream cleanup items for Phase 6/7 unless explicitly selected as compatibility providers.
-
-### Legacy Local LLM Setup
-Local/Ollama generation is a guarded legacy path. It is disabled by default and should only be used when `ENABLE_LEGACY_LLM=true` is intentionally set for compatibility work.
-```bash
-# Install Ollama
-# Visit: https://ollama.ai/download
-
-# Pull the model
-ollama pull llama3.1:8b
-
-# Start Ollama service
-ollama serve
-```
-
----
-
-##  Testing
-
-We maintain comprehensive test coverage for both frontend and backend components.
-
-### Test Summary
-- **Total Tests**: 31
-- **Backend Tests**: 18 (pytest)
-- **Frontend Tests**: 13 (vitest)
-- **Pass Rate**: 100% ✅
-
-### Backend Tests (18 tests)
-
-**Test Coverage**:
-- File processing and validation
-- Data structure integrity
-- Business logic validation
-- Error handling
-- Mock external dependencies (Firebase/OpenAI compatibility paths and provider abstractions)
-
-**Run tests**:
-```bash
-cd backend_py
-
-# Run all tests
-pytest tests/ -v
-
-# Run with coverage report
-pytest tests/ --cov=app --cov-report=html --cov-report=term
-
-# View HTML coverage report
-open htmlcov/index.html  # Mac
-# or
-start htmlcov/index.html  # Windows
-```
-
-**Test Files**:
-- `tests/test_file_processing.py` - File handling and data validation (16 tests)
-- `tests/test_main.py` - Basic functionality (2 tests)
-
-**Coverage**: 99% for test modules
-
-### Frontend Tests (13 tests)
-
-**Test Coverage**:
-- Component rendering verification
-- User interaction handling (clicks, inputs, checkboxes)
-- Form validation logic
-- Conditional rendering
-- State management
-
-**Run tests**:
-```bash
-cd frontend
-
-# Run all tests
-npm test
-
-# Run tests with UI
-npm run test:ui
-
-# Run tests in watch mode
-npm run test:watch
-```
-
-**Test Files**:
-- `src/App.test.jsx` - Core component tests (13 tests)
-
-**Coverage**: 100% for test files
-
-### Testing Approach
-
-Our testing strategy follows industry best practices:
-
-1. **Unit Testing**: Individual functions and components tested in isolation
-2. **Mocking**: External dependencies (Firebase, OpenAI, file systems) are mocked to ensure:
-   - Fast, reliable test execution
-   - No dependency on external services
-   - Consistent, repeatable results
-3. **Coverage**: Both happy path and error cases tested
-4. **Separation**: Backend uses pytest, frontend uses Vitest + React Testing Library
-
-### Test Installation
-
-If tests are not working, install dependencies:
+The compose stack provides Postgres/pgvector and the app container:
 
 ```bash
-# Backend testing dependencies
-cd backend_py
-pip install pytest pytest-cov --break-system-packages
-
-# Frontend testing dependencies
-cd frontend
-npm install --save-dev @testing-library/react @testing-library/jest-dom vitest @vitest/ui jsdom
+docker compose up --build
 ```
 
-### CI/CD Integration
+The app is exposed on `http://localhost:8000`. The compose defaults use neutral `framework` database/user names. Existing local volumes created with older defaults may need explicit compatibility env values or an intentional volume reset after backing up any needed data.
 
-Tests can be integrated into CI/CD pipelines:
+## Tests And Checks
 
-```yaml
-# Example GitHub Actions workflow
-- name: Run Backend Tests
-  run: |
-    cd backend_py
-    pip install -r requirements.txt
-    pytest tests/ -v --cov
+Use targeted checks for the files you change. Common commands:
 
-- name: Run Frontend Tests
-  run: |
-    cd frontend
-    npm install
-    npm test
-```
-
----
-
-##  Docker Deployment
-
-### Build and Run
 ```bash
-# Build images
-docker-compose build --no-cache
-
-# Start services
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop services
-docker-compose down
-```
-
-### Docker Configuration
-
-**Services**:
-- `frontend`: React + Vite application (port 3000)
-- `backend`: FastAPI application (port 8000)
-
-**Volumes**:
-- Frontend source mounted for hot reload
-- Backend source mounted for development
-
-**Networks**:
-- Services communicate via internal Docker network
-
-### Production Deployment
-
-For production deployment (e.g., GCP):
-```bash
-# Pull latest code
-git pull origin main
-
-# Rebuild containers
-docker-compose down
-docker-compose build --no-cache
-
-# Start with production settings
-docker-compose up -d
-
-# Monitor
-docker-compose logs -f
-```
-
----
-
-##  Project Structure
-
-```
-capstone-project/
-├── frontend/                 # React + Vite frontend
-│   ├── src/
-│   │   ├── components/      # React components
-│   │   ├── contexts/        # React contexts (Auth, etc.)
-│   │   ├── lib/             # Utility libraries
-│   │   ├── App.test.jsx     # Frontend tests
-│   │   └── main.jsx         # Entry point
-│   ├── vitest.config.js     # Test configuration
-│   └── package.json
-│
-├── backend_py/              # FastAPI backend
-│   ├── app/
-│   │   ├── api/            # API routes
-│   │   │   └── frameworks.py  # Main framework API
-│   │   ├── services/       # Business logic
-│   │   └── models.py       # Data models
-│   ├── tests/              # Backend tests
-│   │   ├── test_file_processing.py
-│   │   └── test_main.py
-│   ├── llm_global.py       # Legacy compatibility helper pending cleanup
-│   ├── llm_local.py        # Guarded legacy local LLM helper
-│   ├── main.py             # FastAPI app entry
-│   └── requirements.txt
-│
-├── docker-compose.yml       # Docker orchestration
-├── .env.example            # Environment template
-└── README.md               # This file
-```
-
----
-
-##  Documentation
-
-### Quick Links
-- **Installation Guide**: See above sections
-- **API Documentation**: `http://localhost:8000/docs` (when backend is running)
-- **Migration Plan**: Start with `MIGRATION_PHASES.md` and `docs/migration/README.md`
-
-### Key Features
--  **AI-Powered Generation**: Create frameworks from text or files using the provider abstraction; DeepSeek is the default current provider
--  **Privacy Protection**: Backend JWT auth boundary with no public registration; local LLM is legacy guarded compatibility
--  **Framework Editor**: Rich editing experience with auto-save
--  **Framework Merging**: AI-powered or manual framework combination
--  **Export**: Download as Word (.docx) or Markdown (.md)
--  **Legacy Multi-Tenant Compatibility**: Organization and invitation flows remain until Phase 6/7 cleanup
--  **Legacy Library & Marketplace Compatibility**: Sharing flows remain until downstream cleanup aligns them with the personal-use boundary
-
-### Technology Stack
-
-**Frontend**:
-- React 18
-- Vite
-- Tailwind CSS
-- Firebase Auth/Firestore legacy compatibility pending Phase 6/7 cleanup
-- React Router
-
-**Backend**:
-- FastAPI
-- Python 3.11+
-- Provider abstraction with DeepSeek as the default LLM route
-- Firebase Admin SDK legacy compatibility pending Phase 6/7 cleanup
-- SQLAlchemy
-
-**Testing**:
-- Backend: pytest, pytest-cov
-- Frontend: Vitest, React Testing Library
-
-**Deployment**:
-- Docker & Docker Compose
-- Google Cloud Platform (GCP)
-
----
-
-## 🔍 Code Quality
-
-### Linting
-```bash
-# Frontend
 cd frontend
 npm run lint
-
-# Backend
-cd backend_py
-black .
-pylint main.py
-```
-
-### Building
-```bash
-# Frontend production build
-cd frontend
+npm test
 npm run build
-
-# Output will be in: frontend/dist/
 ```
 
----
-
-## 🐛 Troubleshooting
-
-### Common Issues
-
-**Port already in use:**
 ```bash
-# Check what's using the port
-lsof -i :3000  # Mac/Linux
-netstat -ano | findstr :3000  # Windows
-
-# Kill the process or change port in docker-compose.yml
-```
-
-**Docker build fails:**
-```bash
-# Clean Docker cache
-docker system prune -a
-docker-compose build --no-cache
-```
-
-**Tests failing:**
-```bash
-# Reinstall dependencies
 cd backend_py
-pip install -r requirements.txt --break-system-packages
-
-cd frontend
-rm -rf node_modules
-npm install
+.\.venv\Scripts\python.exe -m pytest -q
 ```
 
-**Firebase connection issues:**
-- Firebase is retained only as a legacy compatibility layer until Phase 6/7.
-- Backend-JWT-only sessions should continue to work for backend API calls without Firebase user state.
+```bash
+git diff --check
+```
 
----
+Do not treat obsolete top-level backend helper scripts as test coverage. Maintained backend tests live under `backend_py/tests/`.
+
+## Project Layout
+
+```text
+frontend/                         React + Vite frontend
+  src/components/                 UI components
+  src/contexts/                   Auth and app context
+  src/lib/                        API and app config helpers
+
+backend_py/                       FastAPI backend
+  app/api/                        API route modules
+  app/services/                   Provider and business services
+  app/models.py                   SQLAlchemy models
+  scripts/seed_admin.py           Admin account seed utility
+  tests/                          Maintained backend pytest tests
+
+docs/migration/                   Migration entry point and phase records
+docs/PERSONAL_USE_BOUNDARY.md     Personal-use boundary
+docker-compose.yml                Local compose stack
+```
+
+## Current Features
+
+- Backend-cookie authenticated personal framework list.
+- Framework creation from text or file.
+- Framework editing, local draft handling, and artefact child-resource UI.
+- Library publish/unpublish flow for authenticated users.
+- Admin user management for the configured super-admin.
+- Markdown and DOCX export.
+- Provider abstraction with DeepSeek as the current default LLM route.
+
+Phase 8+ features such as the Agent loop, Tool Registry, Chat UI, RAG retrieval, LLMWiki, and MCP-compatible adapter are planned migration work and should not be claimed as complete from the current README.

@@ -14,9 +14,8 @@ The new project adopts option A: self-hosted backend JWT, allowlist, and no publ
 
 ## Consequences
 
-- Frontend Firebase Auth will be removed in a later Phase.
+- Frontend Firebase Auth was removed from the active frontend route in Phase 6.
 - All private backend endpoints must derive `user_id` from JWT.
 - `localStorage` token storage will later migrate to an httpOnly cookie strategy.
 - Firebase ID Token is not the main route for the new project.
 - Phase 1 is responsible for Argon2id, allowlist registration, refresh token strategy, and blocking frontend-provided `user_id` permissions.
-

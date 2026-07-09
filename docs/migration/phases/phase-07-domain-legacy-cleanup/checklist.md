@@ -1,6 +1,6 @@
 # Phase 07 Checklist - Domain and Legacy Cleanup
 
-Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have evidence recorded in `phase-report.md` and `verification.md`. A requested deploy/nginx/docker naming cleanup pass was performed on 2026-07-02. Migration placeholder route/tool cleanup was performed on 2026-07-05. A frontend personal-route cleanup slice was performed on 2026-07-06. An unmounted frontend tenant/org/invite placeholder cleanup slice was performed on 2026-07-07. A frontend organization-sharing UI residue cleanup slice was performed on 2026-07-07. A frontend AuthContext tenant/org state cleanup slice was performed on 2026-07-08. A frontend API request-normalization cleanup slice was performed on 2026-07-08. Do not mark Phase 7 complete from this document; obsolete docs/scripts cleanup, browser smoke, and reviewer acceptance work remain pending. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
+Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have evidence recorded in `phase-report.md` and `verification.md`. A requested deploy/nginx/docker naming cleanup pass was performed on 2026-07-02. Migration placeholder route/tool cleanup was performed on 2026-07-05. A frontend personal-route cleanup slice was performed on 2026-07-06. An unmounted frontend tenant/org/invite placeholder cleanup slice was performed on 2026-07-07. A frontend organization-sharing UI residue cleanup slice was performed on 2026-07-07. A frontend AuthContext tenant/org state cleanup slice was performed on 2026-07-08. A frontend API request-normalization cleanup slice was performed on 2026-07-08. Obsolete current docs/scripts cleanup was performed on 2026-07-09. Do not mark Phase 7 complete from this document; browser smoke and reviewer acceptance work remain pending. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
 
 ## Required Context
 
@@ -23,7 +23,7 @@ Round 0/1 implementation status: fresh inventory and domain/brand active runtime
 - [x] Preserve personal-use auth boundaries: private routes require backend cookie-session auth and public signup remains disabled.
 - [x] Do not claim browser smoke unless a browser session was actually run against a live backend/Postgres environment.
 - [x] Preserve historical migration records unless an explicit owner decision allows rewriting them.
-- [ ] Apply the canonical active-surface acceptance rule: runtime source, config, deploy scripts, current README/user docs, and active tests must have zero forbidden legacy-string matches, except explicitly allowlisted security/negative assertion tests.
+- [x] Apply the canonical active-surface acceptance rule: runtime source, config, deploy scripts, current README/user docs, and active tests must have zero forbidden legacy-string matches, except explicitly allowlisted security/negative assertion tests.
 - [x] Allowlisted historical migration records and security/negative assertion tests must be recorded in both `phase-report.md` and `verification.md`, and the allowlist must not hide active runtime/config/deploy/current-doc residue.
 
 ## Round 0 - Fresh Inventory And Boundary Confirmation
@@ -142,21 +142,21 @@ Acceptance criteria:
 - [x] Delete `nginx-valorie.conf` or replace it with a neutral deployment template only if Phase 7 owns the replacement.
 - [x] Rewrite or delete `deploy.sh` so it no longer provisions Valorie domains or wildcard tenant subdomains.
 - [x] Remove `X-Tenant-ID` from CORS/preflight/deploy surfaces unless a current backend contract still requires it.
-- [ ] Inspect backend for tenant/org/invite route residue; delete only confirmed inert routes, and do not remove Phase 9-deferred RAG stubs by accident.
-- [ ] Review `backend_py/app/api/vector_sync.py` for organization naming residue while preserving its Phase 9-deferred behavior if still needed.
+- [x] Inspect backend for tenant/org/invite route residue; delete only confirmed inert routes, and do not remove Phase 9-deferred RAG stubs by accident.
+- [x] Review `backend_py/app/api/vector_sync.py` for organization naming residue while preserving its Phase 9-deferred behavior if still needed.
 
 Likely files:
 
 - [x] `docker-compose.yml`
 - [x] `docker-entrypoint.sh`
-- [ ] `Dockerfile`
-- [ ] `.env.example`
-- [ ] `backend_py/.env.example`
-- [ ] `backend_py/alembic.ini`
+- [x] `Dockerfile` inspected; no Phase 7 naming change needed in Round 4/5.
+- [x] `.env.example`
+- [x] `backend_py/.env.example`
+- [x] `backend_py/alembic.ini`
 - [x] `backend_py/main.py`
 - [x] `deploy.sh`
 - [x] `nginx-valorie.conf` deleted and replaced by `nginx-framework.conf`
-- [ ] `backend_py/app/api/vector_sync.py`
+- [x] `backend_py/app/api/vector_sync.py` reviewed and preserved as Phase 9-deferred RAG/indexing stub.
 
 Acceptance criteria:
 
@@ -166,35 +166,35 @@ Acceptance criteria:
 
 ## Round 5 - Obsolete Docs, Scripts, And Tests Cleanup
 
-- [ ] Delete or rewrite obsolete Firebase-first, Firestore-first, OpenAI Vector Store migration, and customer deployment docs.
-- [ ] Rewrite `README.md` to describe the current personal-use app state without inflated test/pass-rate claims.
-- [ ] Delete obsolete top-level backend helper scripts that are not pytest tests and are not current admin/deploy tooling.
-- [ ] Move any still-useful script into `backend_py/scripts/` only after rewriting it for the current backend/JWT/Postgres/DeepSeek contracts.
-- [ ] Keep real pytest tests under `backend_py/tests/`; update or delete tests that only cover removed route shims.
-- [ ] Preserve intentional provider compatibility files such as guarded legacy vectorstore code unless a later phase owns their removal.
+- [x] Delete or rewrite obsolete Firebase-first, Firestore-first, OpenAI Vector Store migration, and customer deployment docs.
+- [x] Rewrite `README.md` to describe the current personal-use app state without inflated test/pass-rate claims.
+- [x] Delete obsolete top-level backend helper scripts that are not pytest tests and are not current admin/deploy tooling.
+- [x] Move any still-useful script into `backend_py/scripts/` only after rewriting it for the current backend/JWT/Postgres/DeepSeek contracts; no moved script was needed in this slice.
+- [x] Keep real pytest tests under `backend_py/tests/`; update or delete tests that only cover removed route shims.
+- [x] Preserve intentional provider compatibility files such as guarded legacy vectorstore code unless a later phase owns their removal.
 
 Likely files:
 
-- [ ] `README.md`
-- [ ] `Project-Startup-and-Operation-Flow.md`
-- [ ] `firebaseDoc.md`
-- [ ] `backend_py/README-DIFF.md`
-- [ ] `docs/CN_DEPLOY.md`
-- [ ] `backend_py/test_firebase.py`
-- [ ] `backend_py/test_cloud_llm.py`
-- [ ] `backend_py/test_update.py`
-- [ ] `backend_py/test_update_publish.py`
-- [ ] `backend_py/test_vec_base.py`
-- [ ] `backend_py/check_versions.py`
-- [ ] `backend_py/check_vector_store_attributes.py`
-- [ ] `backend_py/diagnose_env.py`
-- [ ] frontend/backend tests affected by deleted routes or docs
+- [x] `README.md`
+- [x] `Project-Startup-and-Operation-Flow.md` deleted
+- [x] `firebaseDoc.md` deleted
+- [x] `backend_py/README-DIFF.md` deleted
+- [x] `docs/CN_DEPLOY.md` inspected and preserved as current DeepSeek deployment note
+- [x] `backend_py/test_firebase.py` deleted
+- [x] `backend_py/test_cloud_llm.py` deleted
+- [x] `backend_py/test_update.py` deleted
+- [x] `backend_py/test_update_publish.py` deleted
+- [x] `backend_py/test_vec_base.py` deleted
+- [x] `backend_py/check_versions.py` deleted
+- [x] `backend_py/check_vector_store_attributes.py` deleted
+- [x] `backend_py/diagnose_env.py` inspected and preserved as current DeepSeek/provider env diagnostic
+- [x] frontend/backend tests affected by deleted routes or docs; no maintained tests required changes in this slice
 
 Acceptance criteria:
 
-- [ ] Obsolete docs no longer instruct users to use Firebase, Firestore, tenant invites, Valorie domains, or OpenAI Vector Store sync as current behavior.
-- [ ] Obsolete helper scripts are deleted or rewritten into current `scripts/` tooling.
-- [ ] `README.md` accurately describes current capabilities and deferred browser smoke status.
+- [x] Obsolete docs no longer instruct users to use Firebase, Firestore, tenant invites, Valorie domains, or OpenAI Vector Store sync as current behavior.
+- [x] Obsolete helper scripts are deleted or rewritten into current `scripts/` tooling.
+- [x] `README.md` accurately describes current capabilities and deferred browser smoke status.
 
 ## Round 6 - Verification, Documentation Closeout, And Reviewer Handoff
 
