@@ -1,5 +1,11 @@
 # Phase 06 Round 0/1/2/3/4/5/6 Report - Frontend de-Firebase
 
+## Governance Reconciliation - 2026-07-10
+
+Historical owner handoff states `accepted_with_documented_deferral` for browser smoke on reviewed implementation commit `27679f8ff832a70a7f69782d8d45a52eab343525`. The repository does not retain the original reviewer identity, review date, or raw verdict artifact, so those fields are `artifact unavailable` and require focused re-review before the evidence is audit-grade. This does not downgrade the historical verdict.
+
+Browser smoke remains `not run`. The recorded blocker is an unavailable Docker Desktop Linux engine plus no live Postgres/pgvector, migrated schema, running backend/frontend, or seeded admin credentials. Migration Verification Owner owns the condition; trigger when the complete authorized environment becomes available, before a release relying on these browser flows, or as an explicit later reviewer condition. Missing smoke is not automatically a blocker.
+
 Round 0/1/2/3/4/5/6 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 2 core framework REST wiring, Round 2 review repairs, Round 3 Library plus publish/unpublish REST wiring, Round 4 Admin users REST wiring, Round 5 artefact child-resource UI wiring, and Round 6 Firebase SDK removal/Bearer closeout have been implemented with static scan, lint, unit-test, backend-test, and build verification. Phase 6 closeout was accepted by Migration Reviewer with browser smoke deferred because Docker/Postgres/seeded local environment was unavailable. Round 6 closeout was committed and pushed as `27679f8 Complete Phase 6 frontend de-Firebase closeout`.
 
 ## Status
@@ -11,7 +17,7 @@ Current Phase 6 status:
 - Planning package created: `checklist.md`, `phase-plan.md`, `verification.md`, and this `phase-report.md`.
 - Canonical auth route decision recorded: Phase 6 uses only the `/api/users/*` auth route family.
 - Round 0, Round 1, Round 2, Round 3, Round 4, Round 5, and Round 6 implementation is complete with recorded static scan, lint, test, backend-test, and build verification.
-- Phase 6 closeout accepted by Migration Reviewer.
+- Historical Phase 6 verdict is `accepted_with_documented_deferral`; original reviewer artifact is unavailable for independent audit.
 - Browser smoke remains deferred because Docker/Postgres/seeded local environment was unavailable; this report does not claim browser smoke was run.
 - Round 6 closeout commit: `27679f8 Complete Phase 6 frontend de-Firebase closeout`.
 - Current repair passes fix the Round 2 update payload, route-gate, tenant-modal, and verification wording review findings.

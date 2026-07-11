@@ -1,5 +1,18 @@
 # Phase 06 Verification - Frontend de-Firebase
 
+## Governance Reconciliation - 2026-07-10
+
+- Historical verdict: `accepted_with_documented_deferral`.
+- Reviewed implementation commit: `27679f8ff832a70a7f69782d8d45a52eab343525`.
+- Original reviewer identity/date/raw verdict artifact: `artifact unavailable`; focused re-review is required for audit-grade evidence, without downgrading the historical verdict.
+- Browser smoke status: `not run`, not passed.
+- Exact recorded blocker: Docker Desktop Linux engine unavailable; no live Postgres/pgvector, migrated schema, running backend/frontend, or seeded admin credentials.
+- Owner: Migration Verification Owner.
+- Trigger: the complete authorized environment becomes available, before a release relying on these browser flows, or as an explicit later reviewer condition.
+- Missing browser smoke is not automatically a blocker; a named reviewer may retain `accepted_with_documented_deferral` with explicit conditions, owner, and trigger.
+
+The historical commands/results below remain execution evidence and are not the missing reviewer artifact.
+
 Round 0/1/2/3/4/5/6 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 0/1 reviewer repairs, Round 2 core framework REST wiring, Round 2 review repairs, Round 3 Library plus publish/unpublish REST wiring, Round 4 Admin users REST wiring, Round 5 artefact child-resource UI wiring, and Round 6 Firebase SDK removal/Bearer closeout have static scan, lint, unit-test, backend-test, and build verification. Phase 6 closeout was accepted by Migration Reviewer with browser smoke deferred because Docker/Postgres/seeded local environment was unavailable. Round 6 closeout was committed and pushed as `27679f8 Complete Phase 6 frontend de-Firebase closeout`.
 
 ## Verification Principles

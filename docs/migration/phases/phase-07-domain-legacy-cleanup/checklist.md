@@ -1,6 +1,18 @@
 # Phase 07 Checklist - Domain and Legacy Cleanup
 
-Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have evidence recorded in `phase-report.md` and `verification.md`. A requested deploy/nginx/docker naming cleanup pass was performed on 2026-07-02. Migration placeholder route/tool cleanup was performed on 2026-07-05. A frontend personal-route cleanup slice was performed on 2026-07-06. An unmounted frontend tenant/org/invite placeholder cleanup slice was performed on 2026-07-07. A frontend organization-sharing UI residue cleanup slice was performed on 2026-07-07. A frontend AuthContext tenant/org state cleanup slice was performed on 2026-07-08. A frontend API request-normalization cleanup slice was performed on 2026-07-08. Obsolete current docs/scripts cleanup was performed on 2026-07-09. Do not mark Phase 7 complete from this document; browser smoke and reviewer acceptance work remain pending. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
+## Governance Reconciliation - 2026-07-10
+
+- [x] Record current verdict as `pending`.
+- [x] Record `fa97afd2de0fd9dea66fe86a519f440285717552` as a pushed candidate only, not an accepted closeout/commit.
+- [x] Keep browser smoke as `not run`, not passed. Historical blocker: unavailable Docker Desktop Linux engine plus no live Postgres/pgvector, migrated schema, running backend/frontend, or seeded credentials. Current additional static blocker: the Dockerfile's Node 18 builder is incompatible with the locked Vite 7.1.9 / React Router 7.9.3 engine requirements.
+- [x] Assign Container Runtime Owner to the build blocker, triggered by a separately reviewed compatible runtime candidate. Assign Migration Verification Owner to browser smoke, triggered after that correction and the complete authorized environment are available, before a release relying on these flows, or as an explicit later reviewer condition.
+- [x] Record that missing browser smoke is not automatically a blocker and that a named reviewer may use `accepted_with_documented_deferral` with explicit conditions/owner/trigger; `conditions=none` is not required.
+- [ ] Obtain the named reviewer verdict and append it to `docs/migration/REVIEW_LEDGER.md`.
+- [ ] Keep Phase 8 planning blocked until that ledger verdict is `accepted` or `accepted_with_documented_deferral`; do not implement Phase 8 before its planning package is reviewed.
+
+Focused Migration Reviewer attention only: Materials ownership and legacy `vector_sync` request fields. This docs-only repair does not change either implementation.
+
+Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have evidence recorded in `phase-report.md` and `verification.md`. A requested deploy/nginx/docker naming cleanup pass was performed on 2026-07-02. Migration placeholder route/tool cleanup was performed on 2026-07-05. A frontend personal-route cleanup slice was performed on 2026-07-06. An unmounted frontend tenant/org/invite placeholder cleanup slice was performed on 2026-07-07. A frontend organization-sharing UI residue cleanup slice was performed on 2026-07-07. A frontend AuthContext tenant/org state cleanup slice was performed on 2026-07-08. A frontend API request-normalization cleanup slice was performed on 2026-07-08. Obsolete current docs/scripts cleanup was performed on 2026-07-09. Do not mark Phase 7 complete from this document: the review verdict remains pending. Browser smoke is not run, but that absence is not automatically a blocker. Phase 7 execution relies on the corrected Phase 6 closeout docs recording the historical accepted-with-deferral status.
 
 ## Required Context
 
@@ -252,3 +264,5 @@ Acceptance criteria:
 - [ ] Personal-use boundary remains enforced.
 - [ ] No future-phase features were introduced.
 - [ ] Phase 7 is left pending reviewer acceptance, not self-completed.
+- [ ] The ledger entry names the reviewer/date and records `accepted` or `accepted_with_documented_deferral`; any deferral states exact conditions, owner, and trigger.
+- [ ] Phase 8 planning gate remains closed until that ledger record exists; no `conditions=none` requirement is imposed.

@@ -1,5 +1,16 @@
 # Phase 05 Report - Backend Firestore Business Logic
 
+## Governance Reconciliation - 2026-07-10
+
+- Current ledger verdict: `pending`.
+- `742f1e79f3fb71d44ce21284999e64ca76c5060f` is the implementation commit.
+- `a2115042771d9e91e9410cf5597031f3c78bee9a` added later status wording. Neither commit independently proves reviewer acceptance.
+- The original reviewer identity, date, and raw verdict artifact are unavailable; focused re-review is required.
+- `capability-inventory.md` is the superseding capability disposition for historical `firebase.js`.
+- Historical embedded artefacts are `conditional data reconciliation`, owned by Data Reconciliation Owner and triggered by legacy-data import, removal of the embedded fallback, any embedded-with-zero-child result, or any partial/count/identity mismatch. The existing SQL detects only non-empty embedded artefacts with zero child rows; a zero result cannot alone establish `not applicable`. Shape-aware count/identity comparison, or equivalent audit evidence with sampling and data-source provenance, is still required. This repair did not inspect a live database; status remains `not run`.
+
+The round-by-round report below remains historical execution evidence.
+
 ## Scope
 
 This report records Phase 5 Round 1, Round 2, Round 3, Round 4, Round 5, Round 6, and closeout repair status.
@@ -426,7 +437,7 @@ Previously untracked Phase 5 files now staged include:
 - `docs/migration/phases/phase-05-backend-firestore-business/phase-report.md`
 - `docs/migration/phases/phase-05-backend-firestore-business/verification.md`
 
-## Current Completion Status
+## Historical Implementation Completion Status
 
 Phase 5 Round 1 is complete.
 
@@ -442,4 +453,4 @@ Phase 5 Round 6 is complete.
 
 Phase 5 closeout repair implementation and Git staging are complete; staging now contains 28 Phase 5 files.
 
-Phase 5 final review accepted the closeout. The staged Phase 5 package was committed and pushed, and Phase 6 planning may proceed. The disabled-token review blocker is resolved: disabled users with already-issued valid JWTs are rejected by both full-user and ID-only private route dependencies. Real indexing/retrieval remains explicitly deferred to Phase 9. Frontend REST rewiring/Firebase removal remains Phase 6. Tenant/domain cleanup remains Phase 7. Agent, LLMWiki, Chat, and MCP were not started.
+Historical prose recorded Phase 5 as accepted, committed, and pushed. Because the original reviewer artifact is unavailable, that prose is not the current verdict; see `docs/migration/REVIEW_LEDGER.md`. The disabled-token implementation evidence remains part of this historical report. Real indexing/retrieval remains explicitly deferred to Phase 9. Frontend REST rewiring/Firebase removal remained Phase 6. Tenant/domain cleanup remained Phase 7. Agent, LLMWiki, Chat, and MCP were not started.

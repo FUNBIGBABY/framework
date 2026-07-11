@@ -1,10 +1,21 @@
 # Phase 06 Checklist - Frontend de-Firebase
 
+## Governance Reconciliation - 2026-07-10
+
+- [x] Preserve historical verdict `accepted_with_documented_deferral` for browser smoke; do not downgrade it to ordinary conditional status.
+- [x] Record reviewed implementation commit `27679f8ff832a70a7f69782d8d45a52eab343525`.
+- [x] Record original reviewer identity/date/raw verdict artifact as `artifact unavailable`; do not guess.
+- [x] Keep browser smoke as `not run`, not passed. Recorded blocker: unavailable Docker Desktop Linux engine plus no live Postgres/pgvector, migrated schema, running backend/frontend, or seeded admin credentials.
+- [x] Assign Migration Verification Owner; trigger when the complete authorized smoke environment is available, before a release relying on these browser flows, or as an explicit later reviewer condition.
+- [ ] Focused re-review attaches a named reviewer, date, raw verdict/evidence, conditions, owner, and trigger so the historical verdict becomes audit-grade. This unchecked evidence task does not downgrade the historical verdict.
+
+Missing browser smoke is not automatically a blocker; a named reviewer may retain the documented deferral.
+
 Round 0/1/2/3/4/5/6 implementation status: Round 0 inventory, Round 1 cookie-session/AuthContext foundation, Round 0/1 review repairs, Round 2 core framework REST wiring, Round 2 review repairs, Round 3 Library plus publish/unpublish REST wiring, Round 4 Admin users REST wiring, Round 5 artefact child-resource UI wiring, and Round 6 Firebase SDK removal/Bearer closeout are implemented with static scan, lint, unit-test, backend-test, and build verification. Phase 6 closeout was accepted by Migration Reviewer with browser smoke deferred because Docker/Postgres/seeded local environment was unavailable. Round 6 closeout was committed and pushed as `27679f8 Complete Phase 6 frontend de-Firebase closeout`.
 
 ## Closeout Status
 
-- [x] Phase 6 closeout accepted by Migration Reviewer.
+- [x] Phase 6 closeout historically accepted with documented browser-smoke deferral.
 - [x] Acceptance recorded with browser smoke deferred due to unavailable Docker/Postgres/seeded local environment.
 - [x] Round 6 closeout commit recorded: `27679f8 Complete Phase 6 frontend de-Firebase closeout`.
 - [x] Browser smoke is not claimed as run.

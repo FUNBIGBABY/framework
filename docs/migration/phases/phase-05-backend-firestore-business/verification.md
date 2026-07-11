@@ -1,5 +1,22 @@
 # Phase 05 Verification - Backend Firestore Business Logic
 
+## Governance Reconciliation - 2026-07-10
+
+- Current ledger verdict: `pending`; original reviewer identity/date/raw artifact: `artifact unavailable`.
+- Implementation commit: `742f1e79f3fb71d44ce21284999e64ca76c5060f`.
+- Later status-wording commit: `a2115042771d9e91e9410cf5597031f3c78bee9a`; it is not acceptance evidence.
+- Historical capability enumeration and disposition: `capability-inventory.md`.
+- Live Postgres artefact-history query: `not run` in this docs-only repair; no data result is claimed. The existing SQL checks only non-empty embedded artefacts with zero child rows, and a zero result alone cannot establish `not applicable`.
+- Focused reviewer attention only, with no implementation change here: Materials ownership and legacy `vector_sync` request fields.
+
+### Capability-matrix verification template
+
+The focused re-review must compare the named exports and internal artefact fan-out in `742f1e79f3fb71d44ce21284999e64ca76c5060f:frontend/src/lib/firebase.js` with `capability-inventory.md`, confirm exactly one approved disposition per row, and attach evidence for any claimed REST parity.
+
+### Artefact-history evidence template (not run)
+
+Data Reconciliation Owner records database/snapshot identity, Alembic revision, date, and the limited zero-child query result, then compares embedded artefact counts and identities with child rows or supplies an equivalent shape-aware audit with documented sampling and data-source provenance. A zero result from the limited query alone is insufficient. Any non-zero result or partial/count/identity mismatch triggers separately authorized reconciliation with backup/rollback notes.
+
 This verification records Phase 5 Round 1, Round 2, Round 3, Round 4, Round 5, Round 6, and closeout repair status.
 
 Round 2 verification is limited to the private Framework owner CRUD contract. It does not verify public library, publish/unpublish, artefact child resources, admin users, generation persistence migration, or Phase 9 RAG.
@@ -1261,6 +1278,6 @@ git diff --cached --stat
 
 Result: staged Phase 5 implementation, docs, tests, and migrations are present; 28 files changed, 5423 insertions(+), 816 deletions(-).
 
-## Closeout Status
+## Historical Closeout Status
 
-The disabled-token enforcement blocker is resolved and verified. Historical closeout verification recorded 28 staged Phase 5 files, `git status --short --untracked-files=all` showing no untracked Phase 5 files, `git diff --cached --check` passing, full backend pytest passing with 105 passed, and Alembic head `0003_phase5_admin_user_disabled`. Phase 5 final review accepted the closeout; the staged Phase 5 package was committed and pushed, and Phase 6 planning may proceed.
+The disabled-token enforcement blocker was resolved and verified. Historical closeout verification recorded 28 staged Phase 5 files, `git status --short --untracked-files=all` showing no untracked Phase 5 files, `git diff --cached --check` passing, full backend pytest passing with 105 passed, and Alembic head `0003_phase5_admin_user_disabled`. The historical acceptance prose is not independently supported by a retained reviewer artifact; use the current ledger verdict.

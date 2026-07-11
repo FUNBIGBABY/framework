@@ -2,6 +2,15 @@
 
 Historical planning status: documentation only. This plan did not implement backend or frontend code and did not mark Phase 6 complete when written; the current Phase 6 closeout status is accepted by Migration Reviewer after Round 6, with browser smoke deferred because Docker/Postgres/seeded local environment was unavailable.
 
+## Governance Reconciliation - 2026-07-10
+
+- Preserve the historical owner-handoff verdict exactly as `accepted_with_documented_deferral`; do not downgrade it to ordinary conditional status.
+- Reviewed implementation commit: `27679f8ff832a70a7f69782d8d45a52eab343525`.
+- Original reviewer identity, review date, and raw verdict artifact: `artifact unavailable`; none may be inferred from commit messages or later docs wording.
+- Browser smoke: `not run`. Exact recorded blocker: Docker Desktop Linux engine unavailable, with no live Postgres/pgvector, migrated schema, running backend/frontend, or seeded admin credentials.
+- Owner: Migration Verification Owner. Trigger: the complete authorized smoke environment becomes available, before a release that relies on these browser flows, or as an explicit later reviewer condition.
+- Missing browser smoke is not automatically a blocker. A focused re-review is required only to attach a named reviewer/date/evidence and make the historical verdict audit-grade.
+
 ## Recommended Plan
 
 Phase 6 should remove the active Firebase frontend runtime dependency and SDK usage by moving auth, framework data, public library, publish/unpublish, admin users, and artefact editing onto the backend REST contracts delivered by Phase 5.

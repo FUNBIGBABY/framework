@@ -1,6 +1,20 @@
 # Phase 07 Verification - Domain and Legacy Cleanup
 
-Round 0/1 implementation status: this document defines the verification contract, records initial planning scans, and records Round 0/1 implementation verification. A requested deploy/nginx/docker naming cleanup pass was verified on 2026-07-02. Migration placeholder route/tool cleanup was verified on 2026-07-05. Frontend personal-route cleanup was verified on 2026-07-06. Unmounted frontend tenant/org/invite placeholder cleanup was verified on 2026-07-07. Frontend organization-sharing UI residue cleanup was verified on 2026-07-07. Frontend AuthContext tenant/org state cleanup was verified on 2026-07-08. Frontend API request-normalization cleanup was verified on 2026-07-08. Obsolete current docs/scripts cleanup was verified on 2026-07-09. It does not mark Phase 7 complete. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
+## Governance Reconciliation - 2026-07-10
+
+- Current verdict: `pending`.
+- `fa97afd2de0fd9dea66fe86a519f440285717552` is a pushed candidate only; it is not an accepted closeout or accepted commit.
+- Browser smoke status: `not run`, not passed.
+- Exact blockers: historical Docker Desktop Linux engine unavailability plus no live Postgres/pgvector, migrated schema, running backend/frontend, or seeded credentials; current Dockerfile Node 18 builder incompatibility with the locked Vite 7.1.9 / React Router 7.9.3 engine requirements.
+- Owners: Container Runtime Owner for the build correction; Migration Verification Owner for browser smoke.
+- Triggers: a separately reviewed compatible runtime candidate, then the complete authorized environment; run before a release relying on these flows or carry as an explicit later reviewer condition.
+- Missing browser smoke is not automatically a blocker. A named reviewer may record `accepted` or `accepted_with_documented_deferral`; the latter requires explicit conditions, owner, and trigger and does not require `conditions=none`.
+- Phase 8 planning remains blocked until that ledger verdict exists. Phase 8 implementation remains prohibited until its planning package is reviewed.
+- Focused Migration Reviewer attention only: Materials ownership and legacy `vector_sync` request fields; no implementation change is part of this verification repair.
+
+The historical commands/results below remain execution evidence. This docs-only repair adds no browser, DeepSeek, or live-Postgres result.
+
+Round 0/1 implementation status: this document defines the verification contract, records initial planning scans, and records Round 0/1 implementation verification. A requested deploy/nginx/docker naming cleanup pass was verified on 2026-07-02. Migration placeholder route/tool cleanup was verified on 2026-07-05. Frontend personal-route cleanup was verified on 2026-07-06. Unmounted frontend tenant/org/invite placeholder cleanup was verified on 2026-07-07. Frontend organization-sharing UI residue cleanup was verified on 2026-07-07. Frontend AuthContext tenant/org state cleanup was verified on 2026-07-08. Frontend API request-normalization cleanup was verified on 2026-07-08. Obsolete current docs/scripts cleanup was verified on 2026-07-09. It does not mark Phase 7 complete; current verdict remains pending. Phase 7 execution relies on the corrected Phase 6 closeout docs recording the historical accepted-with-deferral status.
 
 ## Verification Principles
 

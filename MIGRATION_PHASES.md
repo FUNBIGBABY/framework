@@ -22,6 +22,16 @@
 
 ---
 
+## 治理权威与 review gate（2026-07-10 reconciliation）
+
+- `MIGRATION_PHASES.md` 仍是最高 canonical migration plan，定义 scope、依赖、owner 和验收门。
+- `docs/migration/REVIEW_LEDGER.md` 只作为 phase/slice review verdict 与 acceptance status 的权威索引，不能覆盖本 canonical plan。
+- 各 Phase 的 `checklist.md`、`phase-report.md`、`verification.md` 保留历史执行证据；提交标题、实现 commit、状态文字 commit 或 pushed ref 都不自动等于 reviewer acceptance。
+- 允许的 verdict 只有 `pending`、`rejected`、`accepted`、`accepted_with_documented_deferral`。缺少原 reviewer、日期或原始 verdict artifact 时不得猜填，必须记录 `artifact unavailable` 并安排 focused re-review。
+- 缺少 browser smoke 不自动构成 blocker。环境不可用时保持 `not run`，记录 exact blocker、owner 和 trigger；具名 reviewer 可按残余风险给出 `accepted_with_documented_deferral`。
+
+---
+
 ## Phase 总览
 
 | # | Phase | 关键产物 | 依赖 |
@@ -34,7 +44,7 @@
 | 5 | 后端接管 Firestore 业务逻辑 | 全部业务路由在后端，frameworks.py 拆分完成 | 2、4 |
 | 6 | 前端去 Firebase 化 | 移除前端 active Firebase runtime dependency / SDK imports；AuthContext / Library / Admin 全部走 REST | 5 |
 | 7 | 域名脱钩与遗留清理 | 语义清理 Valorie / domain / tenant / invite / migration 残留 | 6 |
-| 8 | Agent 核心循环 + Tool Registry | agent_runs / agent_messages / SSE / Tool Registry / ReAct | 3、4、5 |
+| 8 | Agent 核心循环 + Tool Registry | agent_runs / agent_messages / SSE / Tool Registry / ReAct | 3、4、5、7 |
 | 9 | RAG 证据检索层 | 上传 → chunk → embed → pgvector 检索 + citation | 4 |
 | 10 | LLMWiki 知识编译层 | wiki_pages / claims / links / eval questions | 3、4、9 |
 | 11 | Skill Registry + Chat UI | Skill Router / 工具 allowlist / Wiki/RAG 引用气泡 / Run History | 8、9、10 |
@@ -62,6 +72,8 @@
   ```
 - 跑 `gitleaks detect --source . --no-git -v`，确认没有其他遗留 secret。
 - **规则**：禁止再用 `git filter-repo` 之外的方式"留 commit history"。fork 项目的安全基线就是干净历史。
+- **手工证据要求**：由 Security Owner 保存脱敏的 GCP Disable/Delete 证据（key id、actor/time 或 audit-log reference），并由 Repository Owner 保存旧 remote/history 已清理、重写或退役的证据。
+- 当前 reachable Git/working tree 干净只能证明当前可达内容，不证明云端 key 已撤销，也不证明旧 remote 已清理。上述两类人工证据缺失时，`REVIEW_LEDGER.md` 必须保持 `pending` / unresolved external action。
 
 ### Step 0.2 硬编码密钥/默认值清零
 - `backend_py/app/auth.py:22` 的 `SECRET_KEY` → `os.environ["JWT_SECRET_KEY"]`，模块加载时缺则抛 `RuntimeError`。
@@ -124,11 +136,13 @@
 - 第一个管理员用 CLI 脚本创建：`python scripts/seed_admin.py`，不要暴露 `/api/users/seed` 这种 HTTP 初始化接口；管理员存在后，后续账号管理走 admin-only `/api/admin/users`。
 
 ### Step 1.4 Token 策略（最小可用）
-- access token 7d → 缩短到 1h；引入 refresh token（30d，httpOnly cookie）。
-- 提供 `/api/users/refresh`、`/api/users/logout`；Phase 6 统一使用 `/api/users/*` 鉴权路由族，不再引入并行的 `/api/auth/*` 契约。
-- localStorage 不再存 token；前端改用 cookie 自动携带。
-- **如果 Phase 6 还没开始**，先在后端实现完整，前端继续用 localStorage 兼容（用 Authorization header），Phase 6 一并切到 cookie。
-- **当前验收状态**：Phase 1-3 代码尚未实现 1h access + refresh token/httpOnly cookie；当前仍是 7d Bearer token + `localStorage` 的 Phase 6 前兼容债，不得标记为 token 策略已完成。
+- access token 有效期为 1h；refresh token 有效期为 30d；两者均通过 `httpOnly` cookie 传递。
+- 鉴权路由统一为 `/api/users/*`：`login`、`me`、`refresh`、`logout`；不得引入并行 `/api/auth/*` 契约。
+- 前端只在 React 内存中保留 user 对象，不在 `localStorage` 或 `sessionStorage` 存储 auth token；私有请求使用 `credentials: "include"`。
+- 受保护路由只接受 access cookie；`Authorization: Bearer` 不构成受保护路由凭据并必须被拒绝。
+- cookie 均为 `httpOnly`。生产进程必须设置 `ENV=production` / `APP_ENV=production`（或显式 truthy `AUTH_COOKIE_SECURE`），实现才会设置 `Secure`；`SameSite=Lax` 为默认值。cookie-authenticated 不安全方法受 Origin/Referer CSRF 校验保护。
+- **当前状态**：上述 cookie-only 契约已在 Phase 6 落地。
+- 历史过渡中的 7d Bearer/localStorage 兼容路径已移除；Phase 1 报告中的旧状态仍作为历史执行证据保留。
 
 ### Step 1.5 留给后续 Phase 的接口
 - 给 Phase 5 / Phase 8 的写接口提供统一 `current_user: User = Depends(get_current_user)` 依赖（包含 user 对象，而不只是 id）。
@@ -206,7 +220,8 @@
 - `response_format={"type":"json_object"}` 只在 `generate_json` / structured generation / WikiCompiler structured output 中使用；普通 chat / stream / tool loop 不默认启用。
 - 思考模式开关：通过 `extra_body={"thinking": {"type": "enabled"}}` / `extra_body={"thinking": {"type": "disabled"}}` 传递；DeepSeek thinking 默认是 enabled，所以 `DEEPSEEK_THINKING_MODE=false` 时必须显式传 disabled，不能只省略 `thinking`。复杂任务可同时传 `reasoning_effort="high"` 或 `"max"`。thinking 开启时 `temperature`、`top_p`、`presence_penalty`、`frequency_penalty` 等采样参数不生效，Provider 里不要把它们当成有效控制项。
 - `regenerate` / `ai-merge` 等高难度任务路由到 `deepseek-v4-pro` + thinking enabled；`generate-from-*` 用 `deepseek-v4-flash`。
-- thinking + tool calls 时，active run 内短期保存 `reasoning_content`，下一轮请求带回 API；UI 不默认展示，长期日志不保存完整 reasoning。
+- Phase 3 负责保留单次 provider 响应中的 `reasoning_content` 与 `tool_calls`。
+- active-run 内将短期 `reasoning_content` 带回下一轮 tool-call 请求，正式由 Phase 8 implementation/verification owner 实现和验证；它不是进入 Phase 8 前必须已经实现的 Phase 3 前置条件。
 
 ### Step 3.3 删除/替换原 LLM 客户端
 - `llm_local.py` 中的 GCP IP `34.87.13.228:8000` 直接删，整个 `LLMClient` 类降级为对 `LLMProvider` 的薄封装或直接删。
@@ -230,9 +245,10 @@
 
 ### 验收
 - `curl -X POST .../api/frameworks/generate-from-text` 实际调用 DeepSeek API 并返回。
+- **当前证据状态**：真实 DeepSeek API smoke 未运行，等待具备明确授权的 `DEEPSEEK_API_KEY` 环境；不得写成通过，本次 docs-only repair 也不调用 DeepSeek API。
 - 后端日志无 `gpt-4o` / `34.87.13.228` 字样。
 - 前端"深度思考"开关切换后，后端测试响应能看到 `reasoning_content` 或等价 reasoning 字段；产品界面默认只展示"正在思考/思考摘要"，不默认持久化完整 reasoning。
-- thinking + tool calls 的回归测试通过：下一轮请求包含短期 `reasoning_content`，不会触发 DeepSeek 400。
+- provider 回归测试证明单次 tool-call 响应中的 `reasoning_content` 与 `tool_calls` 被保留。下一轮 carry-back 回归由 Phase 8 验收，不属于 Phase 3 完成或 Phase 8 planning 的循环前置条件。
 
 ---
 
@@ -304,6 +320,8 @@
 - `tenants / invites / members` → **整套删除**（个人自用不需要）。
 - `admin` 白名单/屏蔽/全部用户 → `/api/admin/users`（仅 super-admin）。
 - `migrate-data` / `cleanupData` / `updateFrameworkTenants` → **不搬，Phase 7 整体删**。
+- 必须以历史 `frontend/src/lib/firebase.js` 为基线维护 `capability-inventory.md`。每一项只能归类为 `REST parity`、`intentional deletion`、`configuration replacement` 或 `conditional data reconciliation`，并给出当前 contract/evidence。
+- 历史 `createArtefactsForFramework` / `frameworks.artefacts_json` 属于 `conditional data reconciliation`：Data Reconciliation Owner 必须在导入旧数据、删除 legacy fallback，或发现 embedded/child 数据不一致时触发检查。现有 SQL 只检测 embedded artefacts 非空且 child rows 为零；结果为 0 不能单独证明整个 reconciliation `not applicable`。证据还必须比较 embedded artefact 与 child rows 的数量/身份，或提供等价的 shape-aware 审计、抽样和数据来源证明。非零结果或 partial/count/identity mismatch 仍触发单独授权的数据 reconciliation。
 
 ### Step 5.2 公共库（Library）后端化
 - 替换 `Library.jsx` 直接 `query(collection(db, 'frameworks'), where('isPublic', '==', true))`。
@@ -335,6 +353,8 @@
 - `frontend/src/lib/firebase.js` 中 Firestore CRUD 调用在后端均有等价 REST。
 - 后端权限：A 用户拿不到 B 用户的 framework（即便指定 id）。
 - `Library.jsx` 通过 `/api/frameworks/public` 拉到数据。
+- `capability-inventory.md` 覆盖历史 Firebase capability surface，并且每项只有一个允许的 disposition。
+- `frameworks.artefacts_json` 历史数据要么有 `not applicable` evidence，要么有明确 owner/trigger 的 `conditional data reconciliation` 记录。
 
 ---
 
@@ -343,6 +363,8 @@
 **目标**：彻底干掉前端 active Firebase runtime dependency 和 SDK usage；登录/数据全走 REST。
 
 **边界**：Phase 6 只负责为卸载 Firebase SDK 所必需的前端去 Firebase 化。若某些前端文件持续 import Firebase，Phase 6 可以删除或隔离这些文件以解除 active SDK dependency；但 Valorie/domain/tenant/invite/migration 残留的语义清理仍归 Phase 7，Phase 6 不扩展为 Phase 7 cleanup。
+
+**治理状态**：owner handoff 保留的历史 verdict 是 `accepted_with_documented_deferral`，reviewed implementation commit 为 `27679f8ff832a70a7f69782d8d45a52eab343525`，browser smoke 为 `not run`。原始 reviewer identity/date/raw verdict artifact 在仓库中不可独立验证，必须 focused re-review 才能升级为 audit-grade evidence；这不把历史 verdict 降级为普通 conditional。
 
 ### Step 6.1 AuthContext 重写
 - 删 `onAuthStateChanged` / `signInWithEmailAndPassword`。
@@ -378,6 +400,8 @@
 ## Phase 7 · 域名脱钩与遗留清理
 
 **目标**：仓库里看不到 valorie / UNSW / 客户专属字符串；删除一次性脚本和不需要的多租户路径。
+
+**当前治理状态**：verdict 为 `pending`。`fa97afd2de0fd9dea66fe86a519f440285717552` 只能记录为 pushed candidate，不是 accepted closeout 或 accepted commit。
 
 ### Step 7.1 域名/品牌 env 化
 - 新 env：`APP_BASE_DOMAIN=your-domain.com`、`APP_NAME=YourAgent`、`SUPER_ADMIN_EMAIL=you@your-domain.com`。
@@ -416,12 +440,22 @@
 - allowlist 不得掩盖 runtime source、config、deploy scripts、当前 README/用户文档或 active tests 中的残留。
 - `frontend/src/migrate-data.js` 不存在。
 - 前端构建产物中无 firebase chunk。
+- Browser smoke 当前为 `not run` 时不得虚报。缺失 smoke 不自动构成 blocker；若 Docker/Postgres、已迁移 schema、backend/frontend 或 seeded credentials 不可用，必须记录 exact blocker、Migration Verification Owner 和 trigger。
+- 具名 reviewer 可以给出 `accepted` 或 `accepted_with_documented_deferral`；后者必须记录明确 conditions、owner 和 trigger，不要求 `conditions=none`。
 
 ---
 
 ## Phase 8 · Agent 核心循环 + Tool Registry
 
 **目标**：从"一次性输入 → 一次性输出"升级为"多轮规划 + 受控工具调用 + 流式响应 + 持久化"。本 Phase 要先落 Tool Registry，Skill Registry 放到 Phase 11。
+
+### Phase 8 入口治理门
+
+- 正式依赖为 Phase 3、4、5、7。
+- Phase 8 planning 只能在 `docs/migration/REVIEW_LEDGER.md` 记录 Phase 7 被具名 reviewer 判为 `accepted` 或 `accepted_with_documented_deferral` 后开始。
+- `accepted_with_documented_deferral` 必须包含明确 conditions、deferral owner 和 trigger；不要求 `conditions=none`。
+- `fa97afd2de0fd9dea66fe86a519f440285717552` 当前只是 Phase 7 pushed candidate，不能解除入口门。
+- Phase 8 planning package 被 review 前，禁止实现任何 Phase 8 runtime 功能。本 governance repair 不启动、设计或实现 Phase 8 功能。
 
 ### Step 8.1 Agent 数据模型
 - 用 Phase 4 已建好的 `agent_runs / agent_messages / agent_tool_invocations` 表。
@@ -433,6 +467,7 @@
   - 实现 ReAct 风格循环：`plan → act(tool) → observe → plan ...`，最大步数（默认 12）。
   - 短期记忆：从 `agent_messages` 拉当前 run 全部消息（含 tool 输出截断）。
   - 用 `LLMProvider.tool_call()` 接 DeepSeek 的 OpenAI 兼容工具调用。
+  - thinking + tool calls 时，在当前 active run 中短期保留 `reasoning_content`，并在下一轮 provider 请求中带回；不得把完整 reasoning 写入长期日志。
 - 工具注册器 `app/services/agent/tools/registry.py`：声明 schema + 处理函数 + 权限策略。
 - Tool metadata 必须包含：`name`、`tool_version`、`description`、`input_schema`、`output_schema`、`input_schema_version`、`output_schema_version`、`scope(read/write/dangerous)`、`timeout_ms`、`requires_confirmation`、`handler`、`audit_policy`。
 
@@ -467,6 +502,7 @@
 - `agent_runs` / `agent_messages` 表有数据。
 - 一次跑使用 mock tool（如 `echo`）能产生 `tool_call` + `tool_result` 事件。
 - Tool Registry 单元测试覆盖 read/write/dangerous 权限、timeout、requires_confirmation。
+- thinking + tool-call 回归测试证明下一轮 provider 请求带回当前 active run 的短期 `reasoning_content`，且长期日志不保存完整 reasoning。
 
 ---
 
@@ -762,5 +798,3 @@
 7. 个人自用边界提到 Phase 0 就锁死（白名单 + 不开放注册），并在 Phase 13 收尾合规。
 8. 新增 LLMWiki：项目定位从普通 RAG Chat 升级为“个人 AI Agent + LLMWiki 知识编译层 + RAG 证据检索层”。
 9. 新增 Tool Registry / Skill Registry / MCP-compatible adapter：MVP 先做内部工具和技能编排，MCP 作为 read-only 可选兼容层。
-
-

@@ -6,9 +6,10 @@ This repository is in the middle of a staged migration from a legacy customer pr
 
 - `MIGRATION_PHASES.md`
 - `docs/migration/README.md`
+- `docs/migration/REVIEW_LEDGER.md`
 - `docs/migration/phases/`
 
-Historical migration records are retained for audit evidence. Current setup and operation should follow this README and the migration docs above.
+`MIGRATION_PHASES.md` remains the canonical plan. The review ledger indexes verdict/acceptance status only, and phase reports remain historical evidence. Current setup and operation should follow this README and the migration docs above.
 
 ## Current Boundaries
 
@@ -17,11 +18,20 @@ Historical migration records are retained for audit evidence. Current setup and 
 - Users are created by an administrator or allowed through `ALLOWED_EMAILS`.
 - Backend JWT cookie sessions are the current auth boundary.
 - DeepSeek is the default LLM provider route.
-- Postgres with pgvector is the current database target.
+- Postgres with pgvector is the current backend database path; SQLite is not a supported substitute for the current schema.
 - Legacy local/Ollama/GCP LLM code is disabled unless `ENABLE_LEGACY_LLM=true` is set intentionally.
-- Browser smoke for the Phase 6/7 migration remains deferred until Docker/Postgres and seeded local credentials are available.
+- Phase 6/7 browser smoke is recorded as `not run`. The historical environment blocker was an unavailable Docker Desktop Linux engine plus no live Postgres/pgvector, migrated schema, running backend/frontend, or seeded credentials; the current Compose app path also has the Node-builder incompatibility documented below. Missing browser smoke is not automatically a blocker when a named reviewer records an explicit documented deferral, owner, and trigger.
 
 Removed customer-specific setup paths are not current setup paths.
+
+## Authentication Contract
+
+- `POST /api/users/login` establishes a 1h access cookie and a 30d refresh cookie.
+- Both cookies are `httpOnly`; `Secure` is set when `ENV` / `APP_ENV` declares production or `AUTH_COOKIE_SECURE` is truthy, and `SameSite=Lax` is the default.
+- Session restore uses `/api/users/me`; `/api/users/refresh` reissues the session cookies, and `/api/users/logout` clears them and revokes the current refresh-session version when possible.
+- The frontend stores no auth token in `localStorage` or `sessionStorage` and sends private requests with `credentials: "include"`.
+- Protected routes accept the access cookie only and reject `Authorization: Bearer` as a protected-route credential.
+- Cookie-authenticated unsafe methods require an allowed Origin or Referer.
 
 ## Requirements
 
@@ -33,13 +43,13 @@ Removed customer-specific setup paths are not current setup paths.
 
 ## Environment
 
-Start from the templates:
+Use the templates as a variable inventory, but keep the host and Compose paths separate. For Compose substitution, create the repository-root file:
 
-```bash
-cp .env.example .env
-cp backend_py/.env.example backend_py/.env
-cp frontend/.env.example frontend/.env
+```powershell
+Copy-Item .env.example .env
 ```
+
+For a host-run backend, export a host-reachable `DATABASE_URL` in the process as shown below; the root template's `db:5432` hostname is Compose-only and wins over `backend_py/.env` when both files exist. The seed script does not load either file. Do not create `backend_py/.env` before a Docker build: the current `.dockerignore` does not exclude it and the current Dockerfile copies `backend_py/` into the image. Frontend `.env` files must contain public `VITE_*` values only.
 
 Important variables:
 
@@ -54,6 +64,7 @@ Important variables:
 - `DEEPSEEK_BASE_URL=https://api.deepseek.com`: do not append `/v1`.
 - `APP_NAME` and `VITE_APP_NAME`: app display name.
 - `APP_BASE_DOMAIN`, `FRONTEND_URL`, and `VITE_API_BASE_URL`: deployment routing and CORS configuration.
+- `ENV=production` / `APP_ENV=production` or truthy `AUTH_COOKIE_SECURE`: enables `Secure`; `AUTH_COOKIE_SAMESITE` is clamped to `lax` or `strict`.
 
 ## Local Development
 
@@ -65,32 +76,39 @@ npm install
 npm run dev
 ```
 
-Install backend dependencies and start FastAPI:
+Install backend dependencies, export process environment, then migrate, seed, and start FastAPI:
 
-```bash
+```powershell
 cd backend_py
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
+$env:DATABASE_URL = 'postgresql+psycopg://framework:<password>@localhost:5432/framework'
+$env:JWT_SECRET_KEY = '<strong-signing-secret>'
+$env:SUPER_ADMIN_EMAIL = 'you@example.com'
+$env:SUPER_ADMIN_PASSWORD = '<set-a-strong-password>'
+alembic -c alembic.ini upgrade head
+python scripts/seed_admin.py
 python -m uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
+The required order is Postgres/pgvector available → environment loaded → Alembic upgraded → admin seeded → Uvicorn started. `seed_admin.py` reads process environment directly, so make `DATABASE_URL`, `JWT_SECRET_KEY`, `SUPER_ADMIN_EMAIL`, and `SUPER_ADMIN_PASSWORD` available to that process. See `backend_py/SETUP.md` for host and Compose variants.
+
 The frontend defaults to `http://localhost:5173`. The backend defaults to `http://localhost:8000`.
-
-Seed the personal super-admin after configuring backend env and database access:
-
-```bash
-cd backend_py
-python scripts/seed_admin.py
-```
 
 ## Docker
 
-The compose stack provides Postgres/pgvector and the app container:
+The Compose file declares Postgres/pgvector and the app container, but the app image is not currently a verified runnable path: `Dockerfile` uses Node 18 while the locked Vite 7.1.9 requires Node `^20.19.0 || >=22.12.0` and React Router 7.9.3 requires Node `>=20.0.0`. `docker compose build app` is therefore a static blocker until the Container Runtime Owner supplies and reviews a compatible runtime change. After that trigger, the intended order is:
 
-```bash
-docker compose up --build
+```powershell
+docker compose build app
+docker compose up -d db
+docker compose ps db
+docker compose run --rm --entrypoint alembic app -c alembic.ini upgrade head
+$env:SUPER_ADMIN_PASSWORD = '<set-a-strong-password>'
+docker compose run --rm -e SUPER_ADMIN_PASSWORD --entrypoint python app scripts/seed_admin.py
+docker compose up -d app
 ```
 
-The app is exposed on `http://localhost:8000`. The compose defaults use neutral `framework` database/user names. Existing local volumes created with older defaults may need explicit compatibility env values or an intentional volume reset after backing up any needed data.
+Do not run Alembic until `docker compose ps db` reports the database healthy. The intended app endpoint is `http://localhost:8000`. Compose does not automatically run Alembic or seed the administrator. Its `db` service is not published on the host, so a host-run Uvicorn process needs a separately reachable Postgres/pgvector instance or an explicitly authorized port override. The compose defaults use neutral `framework` database/user names. Existing local volumes created with older defaults may need explicit compatibility values or an intentional, backed-up reset. The supplied Compose environment also does not map `ENV` / `APP_ENV`, `AUTH_COOKIE_*`, `ALLOWED_EMAILS`, or `ENABLE_PUBLIC_REGISTER`; a root `.env` entry alone does not inject an unmapped variable. Treat this as a local contract, not a production deployment recipe.
 
 ## Tests And Checks
 
@@ -144,4 +162,4 @@ docker-compose.yml                Local compose stack
 - Markdown and DOCX export.
 - Provider abstraction with DeepSeek as the current default LLM route.
 
-Phase 8+ features such as the Agent loop, Tool Registry, Chat UI, RAG retrieval, LLMWiki, and MCP-compatible adapter are planned migration work and should not be claimed as complete from the current README.
+Phase 8+ features such as the Agent loop, Tool Registry, Chat UI, RAG retrieval, LLMWiki, and MCP-compatible adapter are planned and not implemented. Phase 8 planning is also gated by the canonical dependency/review rules; this roadmap is not authorization to start it.

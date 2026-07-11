@@ -1,5 +1,9 @@
 # Phase 03 Report - DeepSeek V4
 
+## Governance Reconciliation - 2026-07-10
+
+The historical implementation and offline/provider test evidence below are retained. They do not establish final reviewer acceptance. The current ledger verdict is `pending` because the real DeepSeek smoke is still `not run`. Provider response preservation belongs to Phase 3. Active-run next-round `reasoning_content` carry-back belongs to Phase 8 implementation/verification and is not a pre-Phase-8 implementation condition.
+
 ## Scope
 
 Phase 3 switches the default LLM path from legacy OpenAI/GCP/Ollama assumptions to the DeepSeek provider created in Phase 2. It does not implement pgvector, RAG, Agent, LLMWiki, Postgres migration, or the frontend Firebase removal phases.

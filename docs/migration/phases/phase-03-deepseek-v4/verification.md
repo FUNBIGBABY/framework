@@ -1,5 +1,25 @@
 # Phase 03 Verification - DeepSeek V4
 
+## Governance Reconciliation - 2026-07-10
+
+- Current ledger verdict: `pending`.
+- Provider-level response preservation evidence is Phase 3 evidence.
+- Real DeepSeek API smoke remains `not run`; no pass is claimed and this docs-only repair did not use an API key.
+- Active-run next-round `reasoning_content` carry-back is owned and verified by Phase 8. It is not a Phase 3 acceptance item that must be implemented before Phase 8 planning.
+
+### Real-smoke evidence template (not run)
+
+When an authorized environment becomes available, Migration Verification Owner records:
+
+- named reviewer/verifier and RFC 3339 date;
+- full reviewed commit;
+- `LLM_PROVIDER=deepseek`, sanitized base URL, selected model/thinking mode, `ENV`/`dry_run=false`, and legacy path disabled;
+- the authenticated `/api/frameworks/generate-from-text` request surface used;
+- non-mock proof and a sanitized request/trace identifier;
+- status/result and error summary without API key, full prompt, or full reasoning content.
+
+Trigger: before Phase 3 final re-review and after a change to DeepSeek base URL, model, thinking policy, SDK, or provider call path.
+
 ## Syntax Check
 
 Command:

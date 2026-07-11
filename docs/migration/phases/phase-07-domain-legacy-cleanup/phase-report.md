@@ -1,6 +1,16 @@
 # Phase 07 Report - Domain and Legacy Cleanup
 
-Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have been performed. A requested deploy/nginx/docker naming cleanup pass was performed on 2026-07-02. Migration placeholder route/tool cleanup was performed on 2026-07-05. Frontend personal-route cleanup was performed on 2026-07-06. Unmounted frontend tenant/org/invite placeholder cleanup was performed on 2026-07-07. Frontend organization-sharing UI residue cleanup was performed on 2026-07-07. Frontend AuthContext tenant/org state cleanup was performed on 2026-07-08. Frontend API request-normalization cleanup was performed on 2026-07-08. Obsolete current docs/scripts cleanup was performed on 2026-07-09. Phase 7 is not complete, and browser smoke plus reviewer acceptance remain pending. Phase 7 execution relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
+## Governance Reconciliation - 2026-07-10
+
+Current verdict is `pending`. Commit `fa97afd2de0fd9dea66fe86a519f440285717552` is a pushed candidate, not an accepted closeout or accepted commit.
+
+Browser smoke remains `not run`. The historical blocker is an unavailable Docker Desktop Linux engine plus no live Postgres/pgvector, migrated schema, running backend/frontend, or seeded credentials. The current Dockerfile's Node 18 builder is also incompatible with the locked Vite 7.1.9 / React Router 7.9.3 engine requirements. Container Runtime Owner owns the build correction, triggered by a separately reviewed compatible runtime candidate; Migration Verification Owner owns browser smoke, triggered after that correction and the complete authorized environment are available, before a release relying on these flows, or as an explicit later reviewer condition. Missing smoke is not automatically a blocker.
+
+A named reviewer may record `accepted` or `accepted_with_documented_deferral`; the latter must state exact conditions, owner, and trigger and does not require `conditions=none`. Phase 8 planning remains blocked until that ledger verdict exists, and Phase 8 implementation cannot begin before its planning package is reviewed.
+
+Focused Migration Reviewer attention only: Materials ownership and legacy `vector_sync` request fields. No implementation change is authorized by this governance repair.
+
+Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have been performed. A requested deploy/nginx/docker naming cleanup pass was performed on 2026-07-02. Migration placeholder route/tool cleanup was performed on 2026-07-05. Frontend personal-route cleanup was performed on 2026-07-06. Unmounted frontend tenant/org/invite placeholder cleanup was performed on 2026-07-07. Frontend organization-sharing UI residue cleanup was performed on 2026-07-07. Frontend AuthContext tenant/org state cleanup was performed on 2026-07-08. Frontend API request-normalization cleanup was performed on 2026-07-08. Obsolete current docs/scripts cleanup was performed on 2026-07-09. Phase 7 is not complete and its review verdict remains pending. Browser smoke remains not run but is not automatically a blocker. Phase 7 execution relies on the corrected Phase 6 closeout docs recording the historical accepted-with-deferral status.
 
 ## Status
 
@@ -675,3 +685,6 @@ Verification should record exact commands and outputs in `verification.md` after
 - The reviewer should receive a final changed/deleted/rewritten file list and all remaining allowed legacy-string matches.
 - If browser smoke is unavailable, the handoff must state the exact blocker and leave browser evidence unchecked.
 - Any retained compatibility or historical match must be documented instead of hidden.
+- `fa97afd2de0fd9dea66fe86a519f440285717552` must remain a pushed candidate until a named reviewer appends a ledger verdict.
+- A browser-smoke deferral is permitted only with exact blocker, owner, and trigger; it does not require `conditions=none`.
+- Materials ownership and legacy `vector_sync` request fields require focused reviewer attention only; do not silently fix them in this phase report.

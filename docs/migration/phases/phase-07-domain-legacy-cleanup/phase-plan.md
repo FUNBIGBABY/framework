@@ -2,6 +2,15 @@
 
 Planning status: documentation only. This plan does not implement backend, frontend, test, migration, deployment, or documentation cleanup, and it does not mark Phase 7 complete. Phase 7 planning relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
 
+## Governance Reconciliation - 2026-07-10
+
+- Current verdict: `pending`.
+- `fa97afd2de0fd9dea66fe86a519f440285717552` is a pushed candidate only; it is not an accepted closeout or accepted commit.
+- Browser smoke: `not run`. Historical blocker: Docker Desktop Linux engine unavailable, with no live Postgres/pgvector, migrated schema, running backend/frontend, or seeded credentials. Current additional static blocker: the Dockerfile's Node 18 builder is incompatible with the locked Vite 7.1.9 / React Router 7.9.3 engine requirements.
+- Owners/triggers: Container Runtime Owner supplies a separately reviewed compatible runtime candidate; Migration Verification Owner runs browser smoke after that correction and the complete authorized environment are available, before a release relying on these flows, or as an explicit later reviewer condition.
+- Missing browser smoke is not automatically a blocker. A named reviewer may record `accepted` or `accepted_with_documented_deferral`; the latter must state explicit conditions, owner, and trigger and does not require `conditions=none`.
+- Phase 8 planning remains blocked until the ledger contains that named Phase 7 verdict. Phase 8 implementation remains prohibited until its planning package is reviewed.
+
 ## Recommended Plan
 
 Phase 7 should clean the semantic residue intentionally left after Phase 6: Valorie/domain naming, tenant/org/invite route shells, one-time migration placeholders, obsolete docs, obsolete helper scripts/tests, and legacy deployment naming. The recommended sequence is six implementation rounds after a fresh inventory round:

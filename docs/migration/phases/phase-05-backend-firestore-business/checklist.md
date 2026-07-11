@@ -1,5 +1,16 @@
 # Phase 05 Checklist - Backend Firestore Business Logic
 
+## Governance Reconciliation - 2026-07-10
+
+- [x] Create `capability-inventory.md` from historical `frontend/src/lib/firebase.js` and restrict every item to one approved disposition.
+- [x] Record `742f1e79f3fb71d44ce21284999e64ca76c5060f` as the implementation commit.
+- [x] Record `a2115042771d9e91e9410cf5597031f3c78bee9a` as later status wording only; neither commit proves reviewer acceptance.
+- [x] Assign historical embedded `frameworks.artefacts_json` to `conditional data reconciliation` with Data Reconciliation Owner and an explicit trigger.
+- [ ] Attach dated database/snapshot evidence comparing embedded artefact counts and identities with child rows, or an equivalent shape-aware audit with documented sampling and data-source provenance. The existing zero-child SQL result alone cannot prove `not applicable`; any non-zero result or partial/count/identity mismatch requires separately authorized data reconciliation. Status for this docs-only repair: `not run`.
+- [ ] Focused Migration Reviewer re-review records a named reviewer/date/verdict against the capability matrix and evidence. Current ledger verdict: `pending`; original reviewer artifact: `artifact unavailable`.
+
+Historical round checkmarks and closeout prose below remain execution evidence and do not override the ledger.
+
 ## Round 1 - vector_sync Quarantine
 
 - [x] Read `MIGRATION_PHASES.md` Phase 5 Step 5.3.
@@ -395,9 +406,9 @@
 - [x] Do not implement RAG/Agent/LLMWiki/Chat/MCP.
 - [x] Do not commit.
 
-## Closeout Note
+## Historical Closeout Note (not the current ledger verdict)
 
-- Phase 5 final review accepted the closeout; the staged Phase 5 package was committed and pushed, and Phase 6 planning may proceed.
+- Historical prose states that Phase 5 final review accepted the closeout and the package was committed/pushed. No original reviewer identity/date/raw verdict artifact is retained, so this statement does not establish the current ledger verdict.
 
 ## Remaining Deferred After Closeout
 - [ ] Phase 9 RAG indexing/retrieval, embedding, pgvector upsert/search, and citation retrieval.
