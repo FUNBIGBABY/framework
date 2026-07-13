@@ -58,7 +58,7 @@ def detect_kind_mime(
 @router.post("/upload-file")
 async def upload_file(
     file: UploadFile = File(...),
-    _current_user_id: str = Depends(get_current_user_id),
+    current_user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
     # Basic checks
@@ -97,6 +97,7 @@ async def upload_file(
         filename=file.filename,
         mime=mime,
         sizebyte=size,
+        owner_id=current_user_id,
     )
     db.add(mat)
     db.commit()
@@ -107,10 +108,14 @@ async def upload_file(
 @router.get("/{material_id}")
 def get_material(
     material_id: str,
-    _current_user_id: str = Depends(get_current_user_id),
+    current_user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
-    mat = db.query(Material).filter_by(id=material_id).first()
+    mat = (
+        db.query(Material)
+        .filter(Material.id == material_id, Material.owner_id == current_user_id)
+        .first()
+    )
     if not mat:
         raise HTTPException(status_code=404, detail="not found")
     return mat
@@ -127,7 +132,7 @@ class TextIn(BaseModel):
 @router.post("/ingest-text")
 def ingest_text(
     body: TextIn,
-    _current_user_id: str = Depends(get_current_user_id),
+    current_user_id: str = Depends(get_current_user_id),
     db: Session = Depends(get_db),
 ):
     text = (body.text or "").strip()
@@ -151,6 +156,7 @@ def ingest_text(
         filename=None,
         mime="text/plain",
         sizebyte=meta["chars"],
+        owner_id=current_user_id,
     )
     db.add(mat)
     db.commit()

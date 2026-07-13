@@ -31,6 +31,17 @@ class Material(Base):
     sizebyte = sa.Column(sa.Integer, nullable=True)
     contentbytes = sa.Column(sa.LargeBinary, nullable=True)
 
+    # Nullable only to quarantine pre-ownership rows. All active creation paths
+    # set this from the authenticated user, and authenticated retrieval excludes
+    # rows without an owner.
+    owner_id = sa.Column(
+        sa.String,
+        sa.ForeignKey("users.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+    )
+    owner = relationship("User", back_populates="materials")
+
     created = sa.Column(sa.DateTime(timezone=True), server_default=sa.func.now())
 
 
@@ -55,6 +66,7 @@ class User(Base):
     frameworks = relationship(
         "Framework", back_populates="creator", cascade="all, delete-orphan"
     )
+    materials = relationship("Material", back_populates="owner", passive_deletes=True)
 
 
 class Framework(Base):
