@@ -6,7 +6,7 @@
 - [x] Record `742f1e79f3fb71d44ce21284999e64ca76c5060f` as the implementation commit.
 - [x] Record `a2115042771d9e91e9410cf5597031f3c78bee9a` as later status wording only; neither commit proves reviewer acceptance.
 - [x] Assign historical embedded `frameworks.artefacts_json` to `conditional data reconciliation` with Data Reconciliation Owner and an explicit trigger.
-- [ ] Attach dated database/snapshot evidence comparing embedded artefact counts and identities with child rows, or an equivalent shape-aware audit with documented sampling and data-source provenance. The existing zero-child SQL result alone cannot prove `not applicable`; any non-zero result or partial/count/identity mismatch requires separately authorized data reconciliation. Status for this docs-only repair: `not run`.
+- [ ] Attach dated database/snapshot evidence comparing embedded artefact counts and identities with child rows, or an equivalent shape-aware audit with documented sampling and data-source provenance. The existing zero-child SQL result alone cannot prove `not applicable`; any non-zero result or partial/count/identity mismatch requires separately authorized data reconciliation. Status for this corrective remediation: `not run`.
 - [ ] Focused Migration Reviewer re-review records a named reviewer/date/verdict against the capability matrix and evidence. Current ledger verdict: `pending`; original reviewer artifact: `artifact unavailable`.
 
 Historical round checkmarks and closeout prose below remain execution evidence and do not override the ledger.

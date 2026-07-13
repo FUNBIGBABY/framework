@@ -10,11 +10,34 @@
 - Triggers: a separately reviewed compatible runtime candidate, then the complete authorized environment; run before a release relying on these flows or carry as an explicit later reviewer condition.
 - Missing browser smoke is not automatically a blocker. A named reviewer may record `accepted` or `accepted_with_documented_deferral`; the latter requires explicit conditions, owner, and trigger and does not require `conditions=none`.
 - Phase 8 planning remains blocked until that ledger verdict exists. Phase 8 implementation remains prohibited until its planning package is reviewed.
-- Focused Migration Reviewer attention only: Materials ownership and legacy `vector_sync` request fields; no implementation change is part of this verification repair.
+- Materials ownership is a P1 remediation, not reviewer-attention-only. Pre-existing rows remain ownerless without arbitrary backfill or deletion and are quarantined from authenticated retrieval. Security Owner + Backend Owner must approve verified legacy-owner mapping/disposition before Phase 7 acceptance or any multi-user/production use; unquarantine remains blocked until then. Legacy `vector_sync` HTTP 501 shells are quarantined deferred compatibility surfaces rather than parity; Phase 9 RAG Replacement Owner owns any future replacement.
+- Dormant legacy/security cleanup removed `backend_py/app/api/test.py` only after repository-wide scans found no import, mount, explicit path reference, or router auto-discovery. It was an unauthenticated duplicate that could have revived the Materials IDOR if mounted, but no current reachability is claimed. Post-deletion prefix scans leave only `app.api.materials`.
 
-The historical commands/results below remain execution evidence. This docs-only repair adds no browser, DeepSeek, or live-Postgres result.
+The historical commands/results below remain execution evidence. This corrective remediation adds no Docker, browser, real DeepSeek, or live-Postgres result.
 
-Round 0/1 implementation status: this document defines the verification contract, records initial planning scans, and records Round 0/1 implementation verification. A requested deploy/nginx/docker naming cleanup pass was verified on 2026-07-02. Migration placeholder route/tool cleanup was verified on 2026-07-05. Frontend personal-route cleanup was verified on 2026-07-06. Unmounted frontend tenant/org/invite placeholder cleanup was verified on 2026-07-07. Frontend organization-sharing UI residue cleanup was verified on 2026-07-07. Frontend AuthContext tenant/org state cleanup was verified on 2026-07-08. Frontend API request-normalization cleanup was verified on 2026-07-08. Obsolete current docs/scripts cleanup was verified on 2026-07-09. It does not mark Phase 7 complete; current verdict remains pending. Phase 7 execution relies on the corrected Phase 6 closeout docs recording the historical accepted-with-deferral status.
+Round 0/1 implementation status: this document defines the verification contract, records initial planning scans, and records Round 0/1 implementation verification. A requested deploy/nginx/docker naming cleanup pass was verified on 2026-07-02. Migration placeholder route/tool cleanup was verified on 2026-07-05. Frontend personal-route cleanup was verified on 2026-07-06. Unmounted frontend tenant/org/invite placeholder cleanup was verified on 2026-07-07. Frontend organization-sharing UI residue cleanup was verified on 2026-07-07. Frontend AuthContext tenant/org state cleanup was verified on 2026-07-08. Frontend API request-normalization cleanup was verified on 2026-07-08. Obsolete current docs/scripts cleanup was verified on 2026-07-09. It does not mark Phase 7 complete; current verdict remains pending. Historical Phase 7 execution relied on the Phase 6 accepted-with-deferral handoff that `P6-DEFIREBASE-CORRECTION-01` now supersedes for current audit status; the historical execution evidence remains unchanged.
+
+## 2026-07-13 Dormant Materials Router Verification
+
+Before deletion, the tracked-tree search excluded the dormant file itself and found no import or mount reference:
+
+```powershell
+git grep -n -E 'app\.api\.test|api\.test|include_router.*test|test.*include_router' HEAD -- '*.py' ':(exclude)backend_py/app/api/test.py'
+```
+
+Result: no matches (`git grep` exit `1`). A repository-wide scan also found no `import_module`, `__import__`, `walk_packages`, `iter_modules`, or entry-point router discovery. `backend_py/main.py` imported and mounted `app.api.materials` only. This establishes dormancy, not current reachability.
+
+After deletion, the application-router prefix scan returned exactly one definition:
+
+```powershell
+rg -n 'APIRouter.*materials' backend_py/app -g '*.py'
+```
+
+```text
+backend_py/app\api\materials.py:14:router = APIRouter(prefix="/materials", tags=["materials"])
+```
+
+The final Python import/mount scan returned `NO_PYTHON_IMPORT_OR_MOUNT_MATCHES`, and the dynamic-discovery scan returned `NO_DYNAMIC_ROUTER_DISCOVERY_PRIMITIVES`. The focused auth/Materials/DeepSeek/provider command passed `50` tests, and the full backend command passed `128` tests. Python compilation of the changed backend, smoke, test, and migration files exited `0`.
 
 ## Verification Principles
 

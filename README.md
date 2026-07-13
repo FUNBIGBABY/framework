@@ -100,15 +100,15 @@ The Compose file declares Postgres/pgvector and the app container, but the app i
 
 ```powershell
 docker compose build app
-docker compose up -d db
-docker compose ps db
+docker compose up -d --wait --wait-timeout 120 db
 docker compose run --rm --entrypoint alembic app -c alembic.ini upgrade head
 $env:SUPER_ADMIN_PASSWORD = '<set-a-strong-password>'
 docker compose run --rm -e SUPER_ADMIN_PASSWORD --entrypoint python app scripts/seed_admin.py
-docker compose up -d app
+docker compose up -d --wait --wait-timeout 180 app
+Invoke-WebRequest -UseBasicParsing http://localhost:8000/health
 ```
 
-Do not run Alembic until `docker compose ps db` reports the database healthy. The intended app endpoint is `http://localhost:8000`. Compose does not automatically run Alembic or seed the administrator. Its `db` service is not published on the host, so a host-run Uvicorn process needs a separately reachable Postgres/pgvector instance or an explicitly authorized port override. The compose defaults use neutral `framework` database/user names. Existing local volumes created with older defaults may need explicit compatibility values or an intentional, backed-up reset. The supplied Compose environment also does not map `ENV` / `APP_ENV`, `AUTH_COOKIE_*`, `ALLOWED_EMAILS`, or `ENABLE_PUBLIC_REGISTER`; a root `.env` entry alone does not inject an unmapped variable. Treat this as a local contract, not a production deployment recipe.
+`docker compose up --wait` must report the database healthy before Alembic and the app healthy before `/health`; a timeout is a failure, not readiness. This sequence was not run by the remediation and is not Docker, live-PostgreSQL, or endpoint evidence. The intended app endpoint is `http://localhost:8000`. Compose does not automatically run Alembic or seed the administrator. Its `db` service is not published on the host, so a host-run Uvicorn process needs a separately reachable Postgres/pgvector instance or an explicitly authorized port override. The compose defaults use neutral `framework` database/user names. Existing local volumes created with older defaults may need explicit compatibility values or an intentional, backed-up reset. The supplied Compose environment also does not map `ENV` / `APP_ENV`, `AUTH_COOKIE_*`, `ALLOWED_EMAILS`, or `ENABLE_PUBLIC_REGISTER`; a root `.env` entry alone does not inject an unmapped variable. Treat this as a local contract, not a production deployment recipe.
 
 ## Tests And Checks
 

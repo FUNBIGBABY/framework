@@ -1,13 +1,24 @@
 # Phase 05 Verification - Backend Firestore Business Logic
 
+## Current Corrective Status
+
+The earlier reviewer-attention-only statement below is superseded. Materials
+ownership is a P1 remediation: authenticated writes now retain ownership,
+retrieval filters by material id and owner, and pre-existing ownerless rows
+remain quarantined without arbitrary backfill or deletion. Security Owner and
+Backend Owner must approve a verified legacy-data disposition before Phase 7
+acceptance or any multi-user/production use. The authenticated legacy
+`vector_sync` HTTP 501 shells are quarantined deferred compatibility surfaces,
+not functional parity; Phase 9 RAG Replacement Owner owns any future replacement.
+
 ## Governance Reconciliation - 2026-07-10
 
 - Current ledger verdict: `pending`; original reviewer identity/date/raw artifact: `artifact unavailable`.
 - Implementation commit: `742f1e79f3fb71d44ce21284999e64ca76c5060f`.
 - Later status-wording commit: `a2115042771d9e91e9410cf5597031f3c78bee9a`; it is not acceptance evidence.
 - Historical capability enumeration and disposition: `capability-inventory.md`.
-- Live Postgres artefact-history query: `not run` in this docs-only repair; no data result is claimed. The existing SQL checks only non-empty embedded artefacts with zero child rows, and a zero result alone cannot establish `not applicable`.
-- Focused reviewer attention only, with no implementation change here: Materials ownership and legacy `vector_sync` request fields.
+- Live Postgres artefact-history query: `not run` in this corrective remediation; no data result is claimed. The existing SQL checks only non-empty embedded artefacts with zero child rows, and a zero result alone cannot establish `not applicable`.
+- Superseded historical entry: this record previously assigned Materials ownership and legacy `vector_sync` request fields to focused review only, with no implementation change. The Current Corrective Status above is authoritative.
 
 ### Capability-matrix verification template
 

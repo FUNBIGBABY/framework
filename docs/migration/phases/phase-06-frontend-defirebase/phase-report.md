@@ -1,5 +1,14 @@
 # Phase 06 Round 0/1/2/3/4/5/6 Report - Frontend de-Firebase
 
+## Current Audit Correction
+
+`P6-DEFIREBASE-CORRECTION-01` supersedes the status assertions below without
+deleting their historical evidence. The current audit-grade verdict is
+`pending`; `27679f8ff832a70a7f69782d8d45a52eab343525` is an implementation
+candidate only, `accepted_commit` is absent, and reviewer identity, reviewed
+SHA, review date, and raw verdict artifact remain unavailable. Phase 7 remains
+`pending`, so the Phase 8 gate remains closed.
+
 ## Governance Reconciliation - 2026-07-10
 
 Historical owner handoff states `accepted_with_documented_deferral` for browser smoke on reviewed implementation commit `27679f8ff832a70a7f69782d8d45a52eab343525`. The repository does not retain the original reviewer identity, review date, or raw verdict artifact, so those fields are `artifact unavailable` and require focused re-review before the evidence is audit-grade. This does not downgrade the historical verdict.

@@ -1,6 +1,6 @@
 # Phase 07 Plan - Domain and Legacy Cleanup
 
-Planning status: documentation only. This plan does not implement backend, frontend, test, migration, deployment, or documentation cleanup, and it does not mark Phase 7 complete. Phase 7 planning relies on the corrected Phase 6 closeout docs recording Migration Reviewer acceptance.
+Planning status: documentation only. This plan did not implement backend, frontend, test, migration, deployment, or documentation cleanup, and it did not mark Phase 7 complete. Historical planning relied on a Phase 6 acceptance record that `P6-DEFIREBASE-CORRECTION-01` now supersedes for current audit status; the historical planning evidence remains unchanged and the current Phase 7 verdict is `pending`.
 
 ## Governance Reconciliation - 2026-07-10
 
@@ -10,6 +10,7 @@ Planning status: documentation only. This plan does not implement backend, front
 - Owners/triggers: Container Runtime Owner supplies a separately reviewed compatible runtime candidate; Migration Verification Owner runs browser smoke after that correction and the complete authorized environment are available, before a release relying on these flows, or as an explicit later reviewer condition.
 - Missing browser smoke is not automatically a blocker. A named reviewer may record `accepted` or `accepted_with_documented_deferral`; the latter must state explicit conditions, owner, and trigger and does not require `conditions=none`.
 - Phase 8 planning remains blocked until the ledger contains that named Phase 7 verdict. Phase 8 implementation remains prohibited until its planning package is reviewed.
+- Materials ownership is a P1 remediation. Pre-existing ownerless rows remain quarantined from authenticated retrieval with no arbitrary backfill or deletion; Security Owner + Backend Owner must approve verified legacy-owner mapping/disposition before Phase 7 acceptance or any multi-user/production use.
 
 ## Recommended Plan
 

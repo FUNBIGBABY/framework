@@ -29,6 +29,7 @@
 - 各 Phase 的 `checklist.md`、`phase-report.md`、`verification.md` 保留历史执行证据；提交标题、实现 commit、状态文字 commit 或 pushed ref 都不自动等于 reviewer acceptance。
 - 允许的 verdict 只有 `pending`、`rejected`、`accepted`、`accepted_with_documented_deferral`。缺少原 reviewer、日期或原始 verdict artifact 时不得猜填，必须记录 `artifact unavailable` 并安排 focused re-review。
 - 缺少 browser smoke 不自动构成 blocker。环境不可用时保持 `not run`，记录 exact blocker、owner 和 trigger；具名 reviewer 可按残余风险给出 `accepted_with_documented_deferral`。
+- **当前纠正状态**：`c32bb88ce21eabde2141712499713e3c9569b4cd` 已被拒绝；`origin/main@c32bb88ce21eabde2141712499713e3c9569b4cd` 只证明 transport state。Phase 6 当前 audit-grade verdict 为 `pending`，Phase 7 仍为 `pending`，Phase 8 planning/implementation gate 关闭。详见 append-only `REVIEW_LEDGER.md` 的 corrective records。
 
 ---
 
@@ -221,7 +222,7 @@
 - 思考模式开关：通过 `extra_body={"thinking": {"type": "enabled"}}` / `extra_body={"thinking": {"type": "disabled"}}` 传递；DeepSeek thinking 默认是 enabled，所以 `DEEPSEEK_THINKING_MODE=false` 时必须显式传 disabled，不能只省略 `thinking`。复杂任务可同时传 `reasoning_effort="high"` 或 `"max"`。thinking 开启时 `temperature`、`top_p`、`presence_penalty`、`frequency_penalty` 等采样参数不生效，Provider 里不要把它们当成有效控制项。
 - `regenerate` / `ai-merge` 等高难度任务路由到 `deepseek-v4-pro` + thinking enabled；`generate-from-*` 用 `deepseek-v4-flash`。
 - Phase 3 负责保留单次 provider 响应中的 `reasoning_content` 与 `tool_calls`。
-- active-run 内将短期 `reasoning_content` 带回下一轮 tool-call 请求，正式由 Phase 8 implementation/verification owner 实现和验证；它不是进入 Phase 8 前必须已经实现的 Phase 3 前置条件。
+- Phase 8 的未来 active-run replay contract：thinking-mode assistant tool-call message 产生后，在该 active run 内每个适用的后续 provider request（包括由更后续用户交互触发的请求）中重放该 assistant message 时，都必须继续完整携带 provider 要求的 `reasoning_content`；每次 replay serialization 都必须保证 assistant `content` 非 null（provider 原始值缺失时仅在该边界规范化为 `""`）。Phase 8 active-run regressions 必须跨越紧接其后的首次请求，验证更后续的适用重放。Phase 3 保持单次 provider 原始响应字段不变；这是未来 replay handoff，不是 Phase 3 完成声明，也不是已经实现的行为。完整 reasoning 只允许短期存在于 active run，不得写入长期日志。
 
 ### Step 3.3 删除/替换原 LLM 客户端
 - `llm_local.py` 中的 GCP IP `34.87.13.228:8000` 直接删，整个 `LLMClient` 类降级为对 `LLMProvider` 的薄封装或直接删。
@@ -245,10 +246,10 @@
 
 ### 验收
 - `curl -X POST .../api/frameworks/generate-from-text` 实际调用 DeepSeek API 并返回。
-- **当前证据状态**：真实 DeepSeek API smoke 未运行，等待具备明确授权的 `DEEPSEEK_API_KEY` 环境；不得写成通过，本次 docs-only repair 也不调用 DeepSeek API。
+- **当前证据状态**：真实 DeepSeek API smoke 未运行，等待具备明确授权的 `DEEPSEEK_API_KEY` 环境；不得写成通过，本次 corrective remediation 也不调用 DeepSeek API。
 - 后端日志无 `gpt-4o` / `34.87.13.228` 字样。
 - 前端"深度思考"开关切换后，后端测试响应能看到 `reasoning_content` 或等价 reasoning 字段；产品界面默认只展示"正在思考/思考摘要"，不默认持久化完整 reasoning。
-- provider 回归测试证明单次 tool-call 响应中的 `reasoning_content` 与 `tool_calls` 被保留。下一轮 carry-back 回归由 Phase 8 验收，不属于 Phase 3 完成或 Phase 8 planning 的循环前置条件。
+- provider 回归测试证明单次 tool-call 响应中的原始 `reasoning_content`、可能为 null 的 `content` 与 `tool_calls` 被保留。Phase 8 active-run 回归必须另行跨越紧接其后的首次请求，证明该 active run 内每个适用的后续 provider request（包括由更后续用户交互触发的请求）都继续重放该 thinking-mode assistant tool-call message 的完整所需 `reasoning_content`，并在每次 replay serialization 保证 assistant `content` 非 null（缺失时规范化为 `""`）；完整 reasoning 仅作短期 active-run state，不得写入长期日志。这些未来 replay 条件尚未实现，也不属于 Phase 3 完成或 Phase 8 planning 的循环前置条件。
 
 ---
 
@@ -320,7 +321,7 @@
 - `tenants / invites / members` → **整套删除**（个人自用不需要）。
 - `admin` 白名单/屏蔽/全部用户 → `/api/admin/users`（仅 super-admin）。
 - `migrate-data` / `cleanupData` / `updateFrameworkTenants` → **不搬，Phase 7 整体删**。
-- 必须以历史 `frontend/src/lib/firebase.js` 为基线维护 `capability-inventory.md`。每一项只能归类为 `REST parity`、`intentional deletion`、`configuration replacement` 或 `conditional data reconciliation`，并给出当前 contract/evidence。
+- 必须以历史 `frontend/src/lib/firebase.js` 为基线维护 `capability-inventory.md`。每一项只能归类为 `REST parity`、`intentional deletion`、`configuration replacement`、`conditional data reconciliation` 或 `quarantined deferred compatibility surface`，并给出当前 contract/evidence。HTTP 501 route shell 不能作为 functional REST parity。
 - 历史 `createArtefactsForFramework` / `frameworks.artefacts_json` 属于 `conditional data reconciliation`：Data Reconciliation Owner 必须在导入旧数据、删除 legacy fallback，或发现 embedded/child 数据不一致时触发检查。现有 SQL 只检测 embedded artefacts 非空且 child rows 为零；结果为 0 不能单独证明整个 reconciliation `not applicable`。证据还必须比较 embedded artefact 与 child rows 的数量/身份，或提供等价的 shape-aware 审计、抽样和数据来源证明。非零结果或 partial/count/identity mismatch 仍触发单独授权的数据 reconciliation。
 
 ### Step 5.2 公共库（Library）后端化
@@ -332,7 +333,8 @@
 - `frameworks.py:2664-2870` 的 `sync_library` / `push-framework` / `log-event`：
   - Phase 5 负责 quarantine Firestore REST / Identity Toolkit / OpenAI Vector Store active paths；
   - 保留 `RAGIndexingService.index_framework(...)` 作为认证后的 stub/501，响应中说明 indexing/retrieval deferred to Phase 9。
-- 真正的 embedding、pgvector upsert/search、`frameworks` / `documents` 索引和 citation retrieval 属于 Phase 9，不在 Phase 5 实现。
+- 这三个历史 active sync 能力的成功行为属于 `intentional deletion`；保留的认证 HTTP 501 route shells 只属于 `quarantined deferred compatibility surface`，不是功能 parity，也不证明 indexing、retrieval 或 event logging 成功。
+- Phase 9 RAG Replacement Owner 单独负责未来 embedding、pgvector upsert/search、`frameworks` / `documents` 索引和 citation retrieval 的设计、实现与验收；Phase 9 不必保留这些 legacy route names 或 request schemas。本纠正不实现 Phase 9。
 - legacy OpenAI Vector Store 实现保留为只读，仅作为可选迁出工具。
 
 ### Step 5.4 frameworks.py 第二次拆分（业务级）
@@ -364,7 +366,7 @@
 
 **边界**：Phase 6 只负责为卸载 Firebase SDK 所必需的前端去 Firebase 化。若某些前端文件持续 import Firebase，Phase 6 可以删除或隔离这些文件以解除 active SDK dependency；但 Valorie/domain/tenant/invite/migration 残留的语义清理仍归 Phase 7，Phase 6 不扩展为 Phase 7 cleanup。
 
-**治理状态**：owner handoff 保留的历史 verdict 是 `accepted_with_documented_deferral`，reviewed implementation commit 为 `27679f8ff832a70a7f69782d8d45a52eab343525`，browser smoke 为 `not run`。原始 reviewer identity/date/raw verdict artifact 在仓库中不可独立验证，必须 focused re-review 才能升级为 audit-grade evidence；这不把历史 verdict 降级为普通 conditional。
+**当前治理状态**：audit-grade verdict 为 `pending`。`P6-DEFIREBASE-CORRECTION-01` 已 supersede 不受 artifact 支持的 acceptance record（只 supersede 当前状态，不改写历史记录）；`27679f8ff832a70a7f69782d8d45a52eab343525` 只能作为 implementation candidate。`accepted_commit` 缺失。Browser smoke 仍为 `not run`，等待具备授权的完整环境和 focused review。
 
 ### Step 6.1 AuthContext 重写
 - 删 `onAuthStateChanged` / `signInWithEmailAndPassword`。
@@ -401,7 +403,7 @@
 
 **目标**：仓库里看不到 valorie / UNSW / 客户专属字符串；删除一次性脚本和不需要的多租户路径。
 
-**当前治理状态**：verdict 为 `pending`。`fa97afd2de0fd9dea66fe86a519f440285717552` 只能记录为 pushed candidate，不是 accepted closeout 或 accepted commit。
+**当前治理状态**：verdict 为 `pending`。`fa97afd2de0fd9dea66fe86a519f440285717552` 只能记录为 pushed candidate，不是 accepted closeout 或 accepted commit。Materials object-level authorization 是 P1 remediation：新 ownership 允许历史行保持 ownerless，不做任意 backfill 或删除；ownerless rows 必须从 authenticated retrieval 隔离。Security Owner + Backend Owner 必须在 Phase 7 acceptance 或任何 multi-user/production use 前给出可验证的 legacy-owner mapping 或其他明确 disposition；在此之前 unquarantine 是 blocker。
 
 ### Step 7.1 域名/品牌 env 化
 - 新 env：`APP_BASE_DOMAIN=your-domain.com`、`APP_NAME=YourAgent`、`SUPER_ADMIN_EMAIL=you@your-domain.com`。
@@ -456,6 +458,7 @@
 - `accepted_with_documented_deferral` 必须包含明确 conditions、deferral owner 和 trigger；不要求 `conditions=none`。
 - `fa97afd2de0fd9dea66fe86a519f440285717552` 当前只是 Phase 7 pushed candidate，不能解除入口门。
 - Phase 8 planning package 被 review 前，禁止实现任何 Phase 8 runtime 功能。本 governance repair 不启动、设计或实现 Phase 8 功能。
+- **当前门状态**：closed；Phase 7 仍为 `pending`，本 corrective remediation 不启动 Phase 8 planning 或 implementation。
 
 ### Step 8.1 Agent 数据模型
 - 用 Phase 4 已建好的 `agent_runs / agent_messages / agent_tool_invocations` 表。
@@ -467,7 +470,7 @@
   - 实现 ReAct 风格循环：`plan → act(tool) → observe → plan ...`，最大步数（默认 12）。
   - 短期记忆：从 `agent_messages` 拉当前 run 全部消息（含 tool 输出截断）。
   - 用 `LLMProvider.tool_call()` 接 DeepSeek 的 OpenAI 兼容工具调用。
-  - thinking + tool calls 时，在当前 active run 中短期保留 `reasoning_content`，并在下一轮 provider 请求中带回；不得把完整 reasoning 写入长期日志。
+  - thinking + tool calls 时，只在当前 active run 中短期保留 provider 要求的完整 `reasoning_content`。某个 thinking-mode assistant tool-call message 产生后，在该 active run 内每个适用的后续 provider request（包括由更后续用户交互触发的请求）中重放该 assistant message 时，都必须继续完整携带该值；每次 replay serialization 都必须保证 assistant `content` 非 null（provider 原始值缺失时仅在该边界规范化为 `""`）。不得把完整 reasoning 写入长期日志。
 - 工具注册器 `app/services/agent/tools/registry.py`：声明 schema + 处理函数 + 权限策略。
 - Tool metadata 必须包含：`name`、`tool_version`、`description`、`input_schema`、`output_schema`、`input_schema_version`、`output_schema_version`、`scope(read/write/dangerous)`、`timeout_ms`、`requires_confirmation`、`handler`、`audit_policy`。
 
@@ -502,13 +505,15 @@
 - `agent_runs` / `agent_messages` 表有数据。
 - 一次跑使用 mock tool（如 `echo`）能产生 `tool_call` + `tool_result` 事件。
 - Tool Registry 单元测试覆盖 read/write/dangerous 权限、timeout、requires_confirmation。
-- thinking + tool-call 回归测试证明下一轮 provider 请求带回当前 active run 的短期 `reasoning_content`，且长期日志不保存完整 reasoning。
+- thinking + tool-call active-run 回归测试必须跨越紧接 tool call 后的首次 provider request，并证明：该 active run 内每个适用的后续 provider request（包括由更后续用户交互触发的请求）都重放该 assistant message 的完整 provider-required `reasoning_content`；每次 replay serialization 的 assistant `content` 都非 null（缺失时为 `""`）；长期日志不保存完整 reasoning。
 
 ---
 
 ## Phase 9 · RAG 证据检索层
 
 **目标**：上传文档 → 拆块 → embedding → pgvector，形成可追溯的证据检索层；LLMWiki 会在 Phase 10 基于这层证据编译知识页。
+
+**Replacement ownership**：Phase 9 RAG Replacement Owner 负责替代 Phase 5 已 intentional-delete/quarantine 的 `sync-library`、`push-framework`、`log-event` 历史能力。Replacement 以当前 documents/framework ownership、indexing、retrieval 和 citation contract 为准，不把 Phase 5 的认证 HTTP 501 shells 解释为 parity，也不要求复用 legacy route names/request fields。本文档纠正不启动或实现 Phase 9。
 
 ### Step 9.1 上传链路（隔离 worker）
 - `POST /api/documents/upload`：multipart，限制 50MB，扩展名白名单（`pdf, docx, md, txt, html`）+ 服务端 MIME sniffing。

@@ -48,18 +48,17 @@ Do not commit `.env` files or real secrets.
 
 ### Option A: Compose app + Compose database
 
-This is the intended path that uses the supplied internal `db:5432` hostname. It was not run by this docs-only repair and currently has an exact static build blocker: `Dockerfile` uses `node:18-alpine`, while the locked Vite 7.1.9 requires Node `^20.19.0 || >=22.12.0` and React Router 7.9.3 requires Node `>=20.0.0`. Container Runtime Owner owns the correction; the trigger is a separately reviewed runtime candidate that makes the declared builder compatible. Do not treat the following sequence as run evidence before that blocker is resolved.
+This is the intended path that uses the supplied internal `db:5432` hostname. It was not run by this corrective remediation and currently has an exact static build blocker: `Dockerfile` uses `node:18-alpine`, while the locked Vite 7.1.9 requires Node `^20.19.0 || >=22.12.0` and React Router 7.9.3 requires Node `>=20.0.0`. Container Runtime Owner owns the correction; the trigger is a separately reviewed runtime candidate that makes the declared builder compatible. Do not treat the following sequence as run evidence before that blocker is resolved.
 
 From the repository root:
 
 ```powershell
 docker compose build app
-docker compose up -d db
-docker compose ps db
+docker compose up -d --wait --wait-timeout 120 db
 docker compose run --rm --entrypoint alembic app -c alembic.ini upgrade head
 ```
 
-Wait until `docker compose ps db` reports the database healthy before running Alembic; `up -d` and the current short-form `depends_on` do not establish readiness.
+`docker compose up --wait` blocks until the database healthcheck passes and returns non-zero on timeout. Do not replace it with plain `up -d`; the current short-form `depends_on` does not establish readiness.
 
 The entrypoint does not run Alembic automatically. Confirm the database is at the repository head before starting the app:
 
@@ -79,9 +78,11 @@ docker compose run --rm -e SUPER_ADMIN_PASSWORD -e SEED_ADMIN_RESET_PASSWORD --e
 Then start the application:
 
 ```powershell
-docker compose up -d app
+docker compose up -d --wait --wait-timeout 180 app
 Invoke-WebRequest -UseBasicParsing http://localhost:8000/health
 ```
+
+The app `/health` request comes only after Compose reports the app container healthy. These commands are an intended sequence, not evidence that Docker, live PostgreSQL, or the endpoint was verified in this remediation.
 
 Compose does not automatically migrate or seed the database. Existing volumes created with old database/user defaults may require explicit compatibility values or an intentional, backed-up local reset. The supplied app environment does not map `ENV` / `APP_ENV`, `AUTH_COOKIE_SECURE`, `AUTH_COOKIE_SAMESITE`, `ALLOWED_EMAILS`, or `ENABLE_PUBLIC_REGISTER`; putting those names in the root `.env` does not inject unmapped variables. The supplied Compose file is therefore not a production deployment recipe.
 
@@ -93,8 +94,11 @@ Apply Alembic before seed/start:
 
 ```powershell
 cd backend_py
+$env:DATABASE_URL = 'postgresql+psycopg://framework:<password>@localhost:5432/framework'
 .\.venv\Scripts\alembic.exe -c alembic.ini upgrade head
+$env:DATABASE_URL = 'postgresql+psycopg://framework:<password>@localhost:5432/framework'
 .\.venv\Scripts\alembic.exe -c alembic.ini current
+$env:DATABASE_URL = 'postgresql+psycopg://framework:<password>@localhost:5432/framework'
 .\.venv\Scripts\alembic.exe -c alembic.ini heads
 ```
 
@@ -147,13 +151,17 @@ cd backend_py
 When a migration changes, also run Alembic history/offline generation and an authorized live Postgres upgrade before claiming live migration evidence:
 
 ```powershell
+$env:DATABASE_URL = 'postgresql+psycopg://framework:<password>@localhost:5432/framework'
 .\.venv\Scripts\alembic.exe -c alembic.ini history --verbose
+$env:DATABASE_URL = 'postgresql+psycopg://framework:<password>@localhost:5432/framework'
 .\.venv\Scripts\alembic.exe -c alembic.ini upgrade head --sql
 ```
 
+The URL above is a placeholder and must be replaced with an authorized host-reachable PostgreSQL/pgvector endpoint. It is repeated immediately before every host Alembic invocation so a copied command cannot inherit the Compose-only `db:5432` value. Do not infer a live-database pass from offline SQL generation.
+
 Browser smoke requires a running migrated Postgres database, backend, frontend, and seeded credentials. If any prerequisite is unavailable, record the check as `not run` with the exact blocker, owner, and trigger. Do not turn static/unit evidence into a browser-smoke claim.
 
-Real DeepSeek smoke likewise requires explicit authorization and a real `DEEPSEEK_API_KEY`; do not claim it from mocked provider tests.
+Real DeepSeek smoke likewise requires explicit authorization, a real `DEEPSEEK_API_KEY`, the official `https://api.deepseek.com` endpoint, and a direct-transport preflight in which `urllib.request.getproxies()` returns no non-empty `http`, `https`, or `all` entry. This covers the environment and Windows registry/macOS SystemConfiguration sources consulted by the default httpx/OpenAI transport when they are returned by that function; the smoke rejects before provider construction and never prints proxy values. Localhost and mock responses do not qualify. Do not claim a real-provider pass from mocked provider tests.
 
 ## 6. Common failures
 

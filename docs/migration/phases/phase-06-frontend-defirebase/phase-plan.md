@@ -1,5 +1,13 @@
 # Phase 06 Plan - Frontend de-Firebase
 
+## Current Audit Correction
+
+`P6-DEFIREBASE-CORRECTION-01` supersedes the status assertions below without
+deleting their historical evidence. The current audit-grade verdict is
+`pending`; `27679f8ff832a70a7f69782d8d45a52eab343525` is an implementation
+candidate only, `accepted_commit` is absent, and reviewer identity, reviewed
+SHA, review date, and raw verdict artifact remain unavailable.
+
 Historical planning status: documentation only. This plan did not implement backend or frontend code and did not mark Phase 6 complete when written; the current Phase 6 closeout status is accepted by Migration Reviewer after Round 6, with browser smoke deferred because Docker/Postgres/seeded local environment was unavailable.
 
 ## Governance Reconciliation - 2026-07-10

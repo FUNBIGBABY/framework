@@ -1,5 +1,14 @@
 # Phase 06 Verification - Frontend de-Firebase
 
+## Current Audit Correction
+
+`P6-DEFIREBASE-CORRECTION-01` supersedes the status assertions below without
+deleting their historical evidence. The current audit-grade verdict is
+`pending`; `27679f8ff832a70a7f69782d8d45a52eab343525` is an implementation
+candidate only, `accepted_commit` is absent, and reviewer identity, reviewed
+SHA, review date, and raw verdict artifact remain unavailable. Browser smoke
+remains `not run`.
+
 ## Governance Reconciliation - 2026-07-10
 
 - Historical verdict: `accepted_with_documented_deferral`.

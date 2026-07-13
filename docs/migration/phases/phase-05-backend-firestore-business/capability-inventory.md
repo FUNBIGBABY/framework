@@ -10,6 +10,9 @@ Every historical item uses exactly one disposition:
 - `intentional deletion`
 - `configuration replacement`
 - `conditional data reconciliation`
+- `quarantined deferred compatibility surface`
+
+An authenticated HTTP 501 route shell is never functional `REST parity`. Where a historical successful behavior was removed but its route name remains temporarily registered, the behavior and compatibility shell are listed separately.
 
 The current review verdict remains in `docs/migration/REVIEW_LEDGER.md`.
 
@@ -71,17 +74,18 @@ These items were not named exports of `firebase.js`, but they were part of the s
 | Surface | Disposition | Current contract and evidence | Status |
 |---|---|---|---|
 | Direct Firestore public-Library query and publish UI | `REST parity` | Authenticated `GET /api/frameworks/public`, `POST /api/frameworks/{id}/publish`, and `POST /api/frameworks/{id}/unpublish`; see `frameworks_public.py` and Phase 5 publish/public tests. | Backend contract implemented; frontend REST wiring recorded in Phase 6. |
-| `sync-library`, `push-framework`, and `log-event` active external sync paths | `REST parity` | The route names remain authenticated and return documented HTTP 501 quarantine responses; real indexing/retrieval remains Phase 9. | Contract parity is the authenticated deferred response, not successful vector indexing. |
+| `sync-library`, `push-framework`, and `log-event` successful external-sync behavior | `intentional deletion` | The active Firestore/Identity Toolkit/OpenAI Vector Store behavior was removed. No current route performs successful indexing, retrieval, synchronization, or event logging. | Intentionally absent; no functional parity is claimed. |
+| Authenticated HTTP 501 shells retaining the three legacy route names | `quarantined deferred compatibility surface` | The route names remain authenticated and return documented HTTP 501 responses from the quarantine service. | Not functional parity. Phase 9 RAG Replacement Owner owns any later replacement indexing/retrieval/citation contract and need not preserve these route names or legacy request fields; this correction does not implement Phase 9. |
 
 ## Historical artefact data condition
 
-Current status is **not run**, not “not applicable.” This docs-only repair did not start Postgres or inspect live data.
+Current status is **not run**, not “not applicable.” This corrective remediation did not start Postgres or inspect live data.
 
 - Owner: `Data Reconciliation Owner`.
 - Trigger: before importing legacy Firebase/framework rows; before deleting the embedded artefact fallback; or when an audit finds non-empty `frameworks.artefacts_json` without child rows or any partial/count/identity mismatch between embedded artefacts and child rows.
 - SQL limitation: the query below detects only frameworks with non-empty embedded artefacts and zero child rows. It does not compare embedded artefact counts or identities with existing child rows, so a zero result alone cannot establish that the whole reconciliation is `not applicable`.
 - Evidence needed for `not applicable`: dated evidence tied to the review candidate and database/snapshot identities that compares embedded artefact counts and identities with child rows, or an equivalent shape-aware audit with documented sampling and data-source provenance.
-- If the limited query result is non-zero or any partial/count/identity mismatch exists: keep `conditional data reconciliation`, obtain separate authorization, define backup/rollback, and reconcile data outside this docs-only repair.
+- If the limited query result is non-zero or any partial/count/identity mismatch exists: keep `conditional data reconciliation`, obtain separate authorization, define backup/rollback, and reconcile data outside this corrective remediation.
 
 Limited evidence query template (zero-child case only):
 
@@ -96,7 +100,7 @@ WHERE COALESCE(f.artefacts_json, '{}'::jsonb) NOT IN ('{}'::jsonb, '[]'::jsonb)
   );
 ```
 
-## Focused reviewer attention
+## Current remediation and deferred ownership
 
-- Materials ownership: focused Migration Reviewer attention only. The reviewer should inspect the absence of an owner/user foreign key on `Material` and the current material routes' ownership behavior. No implementation change is authorized by this inventory.
-- Legacy `vector_sync` request fields: focused Migration Reviewer attention only. The authenticated 501 schemas still retain legacy request concepts such as project/API/token/vector-store/organization inputs. Phase 9 owns any later API re-shaping. This inventory does not change the authenticated 501/deferred behavior.
+- Materials ownership is a P1 remediation, not reviewer-attention-only. The current policy adds nullable ownership for new writes, leaves pre-existing rows ownerless without arbitrary backfill or deletion, and filters authenticated retrieval by both material id and owner so ownerless rows remain quarantined. Security Owner and Backend Owner jointly own a verified legacy-owner mapping or other explicit disposition; the trigger is before Phase 7 acceptance or any multi-user/production use. Ownerless-row unquarantine remains blocked until that decision.
+- Legacy `vector_sync` request fields remain only on authenticated HTTP 501 compatibility shells and may still include project/API/token/vector-store/organization concepts. Phase 9 RAG Replacement Owner owns later API design and may delete or replace those schemas rather than treating them as parity. This inventory does not implement Phase 9.

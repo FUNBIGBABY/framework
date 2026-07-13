@@ -153,3 +153,47 @@ This append-oriented ledger is the authoritative index for migration phase/slice
 - `pushed_ref`: `—`
 - `evidence`: `MIGRATION_PHASES.md`; `P3-DEEPSEEK-20260710-01`; `P4-POSTGRES-20260710-01`; `P5-FIRESTORE-20260710-01`; `P7-LEGACY-20260710-01`
 - `artifact_status`: `gate closed; no Phase 8 artifact exists`
+
+## Corrective review records
+
+### GOV-C32BB88-REJECTION-01
+
+- `review_id`: `GOV-C32BB88-REJECTION-01`
+- `phase_slice`: `Phase 1-7 governance repair candidate`
+- `reviewer`: `artifact unavailable; the supplied brief identifies only the Migration Reviewer role`
+- `review_date`: `artifact unavailable`
+- `reviewed_commit`: `c32bb88ce21eabde2141712499713e3c9569b4cd`
+- `verdict`: `rejected`
+- `conditions`: The supplied findings require all of the following corrective work: (A) append this rejection without altering `GOV-20260710-01`, supersede the unsupported Phase 6 acceptance record with current verdict `pending`, treat `27679f8ff832a70a7f69782d8d45a52eab343525` as an implementation candidate only, keep Phase 7 pending, and keep the Phase 8 gate closed; (B) remediate Materials as a P1 object-authorization defect with authenticated ownership on both creation paths, owner-filtered non-enumerating retrieval, two-user isolation tests, and an explicit ownerless-row policy owned by Security Owner and Backend Owner; (C) ensure DeepSeek thinking-mode tool calls never send `tool_choice`, preserve non-thinking behavior and response fields, replace the contrary unit assertion, and retain real-provider smoke as not run unless authorized evidence exists; (D) export a host-reachable `DATABASE_URL` before every host Alembic command, use placeholders, and make Compose startup health-aware before `/health`, without claiming unrun Docker/live-Postgres checks; and (E) classify `sync-library`, `push-framework`, and `log-event` as intentionally deleted successful behavior with quarantined deferred compatibility shells, not REST parity, while assigning any RAG replacement to Phase 9 without implementing it.
+- `accepted_commit`: `—; absent`
+- `pushed_ref`: `origin/main@c32bb88ce21eabde2141712499713e3c9569b4cd; transport state only, not acceptance`
+- `evidence`: supplied corrective-remediation brief; the full raw reviewer artifact is not preserved as a repository file
+- `artifact_status`: `reviewed SHA, transport state, role, verdict, and findings supplied; reviewer identity, review date, and raw artifact unavailable`
+
+### P6-DEFIREBASE-CORRECTION-01
+
+- `review_id`: `P6-DEFIREBASE-CORRECTION-01`
+- `phase_slice`: `Phase 6 frontend de-Firebase current audit status correction`
+- `reviewer`: `artifact unavailable; focused Migration Reviewer review required`
+- `review_date`: `artifact unavailable`
+- `reviewed_commit`: `—; 27679f8ff832a70a7f69782d8d45a52eab343525 is an implementation candidate only`
+- `verdict`: `pending`
+- `conditions`: This record supersedes `P6-DEFIREBASE-20260710-01` for current audit status without altering that historical record. No preserved artifact identifies a reviewer identity, review date, reviewed SHA, and verdict for the asserted acceptance. Browser smoke remains `not run`; Migration Verification Owner owns it, triggered when an authorized environment has live Postgres/pgvector, migrated schema, running backend/frontend, and seeded credentials, before a release relying on those flows or as an explicit condition in a future named review.
+- `accepted_commit`: `—; absent`
+- `pushed_ref`: `origin/main contains 27679f8ff832a70a7f69782d8d45a52eab343525; transport evidence only`
+- `evidence`: `P6-DEFIREBASE-20260710-01`; `docs/migration/phases/phase-06-frontend-defirebase/` historical execution records
+- `artifact_status`: `correction recorded; current verdict pending; reviewer identity/date/raw verdict artifact unavailable`
+
+### P3-DEEPSEEK-CONTRACT-CORRECTION-01
+
+- `review_id`: `P3-DEEPSEEK-CONTRACT-CORRECTION-01`
+- `phase_slice`: `Phase 3 DeepSeek status and future Phase 8 replay-contract wording correction`
+- `reviewer`: `artifact unavailable`
+- `review_date`: `artifact unavailable`
+- `reviewed_commit`: `artifact unavailable`
+- `verdict`: `pending`
+- `conditions`: This record explicitly supersedes only the Phase 8 replay-condition wording in `P3-DEEPSEEK-20260710-01`; it does not supersede any other wording or evidence in that record, and the Phase 3 verdict remains `pending`. Real DeepSeek smoke remains not run. The future continuing active-run contract is: every applicable subsequent provider request, including requests triggered by later user interactions, replays the required `reasoning_content`; assistant `content` is non-null at every replay serialization; regressions span beyond the immediately following request; and full reasoning remains short-lived and is excluded from long-term logs. This Phase 8 behavior is not implemented, and the Phase 8 gate remains closed.
+- `accepted_commit`: `artifact unavailable; no acceptance claimed`
+- `pushed_ref`: `artifact unavailable`
+- `evidence`: `P3-DEEPSEEK-20260710-01`; `P8-PLANNING-GATE-20260710-01`; supplied contract-correction requirements
+- `artifact_status`: `correction recorded; Phase 3 verdict pending; real DeepSeek smoke not run; Phase 8 behavior not implemented; Phase 8 gate closed; no acceptance claimed`
