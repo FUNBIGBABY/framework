@@ -125,6 +125,11 @@ class DeepSeekProvider(LLMProvider):
     ) -> Optional[dict[str, Any]]:
         extra_body = dict(existing or {})
 
+        if reasoning_enabled:
+            # DeepSeek rejects tool_choice anywhere in a thinking request,
+            # including values supplied through the SDK's extra_body escape hatch.
+            extra_body.pop("tool_choice", None)
+
         extra_body["thinking"] = {
             "type": "enabled" if reasoning_enabled else "disabled"
         }
@@ -163,7 +168,10 @@ class DeepSeekProvider(LLMProvider):
             request["response_format"] = {"type": "json_object"}
         if tools is not None:
             request["tools"] = list(tools)
-        if tool_choice is not None:
+        # DeepSeek V4 rejects tool_choice when thinking mode is enabled. Omit a
+        # caller-supplied value for that branch, but preserve the existing
+        # OpenAI-compatible behavior when thinking is disabled.
+        if tool_choice is not None and not reasoning_enabled:
             request["tool_choice"] = tool_choice
         if reasoning_enabled and (reasoning is True or reasoning_effort):
             request["reasoning_effort"] = reasoning_effort or "high"
@@ -278,6 +286,10 @@ class DeepSeekProvider(LLMProvider):
         if not isinstance(data, Mapping):
             data = {}
 
+        request_id = _get_value(response, "_request_id")
+        if request_id is None:
+            request_id = _get_value(response, "request_id")
+
         return {
             "role": data.get("role", _get_value(message, "role", "assistant")),
             "content": data.get("content", _get_value(message, "content")),
@@ -285,6 +297,8 @@ class DeepSeekProvider(LLMProvider):
                 "reasoning_content", _get_value(message, "reasoning_content")
             ),
             "tool_calls": data.get("tool_calls", _get_value(message, "tool_calls")),
+            "response_id": _get_value(response, "id"),
+            "request_id": request_id,
         }
 
     def generate_json(

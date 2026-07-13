@@ -3,9 +3,21 @@ from types import SimpleNamespace
 import pytest
 
 import app.services.llm.deepseek as deepseek_module
+import scripts.smoke_deepseek_thinking_tool_call as smoke_script
 from app.services.llm import LLMProviderConfigurationError
 from app.services.llm.deepseek import DeepSeekProvider
 from app.services.llm.model_policy import sanitize_model_for_provider
+from scripts.smoke_deepseek_thinking_tool_call import (
+    _official_endpoint_host,
+    _require_direct_transport,
+    _safe_evidence_value,
+)
+
+
+def _clear_proxy_environment(monkeypatch):
+    for name in ("HTTP_PROXY", "HTTPS_PROXY", "ALL_PROXY", "NO_PROXY"):
+        monkeypatch.delenv(name, raising=False)
+        monkeypatch.delenv(name.lower(), raising=False)
 
 
 def _install_fake_openai(monkeypatch, *, content='{"ok": true}'):
@@ -20,16 +32,12 @@ def _install_fake_openai(monkeypatch, *, content='{"ok": true}'):
                     [
                         SimpleNamespace(
                             choices=[
-                                SimpleNamespace(
-                                    delta=SimpleNamespace(content="hel")
-                                )
+                                SimpleNamespace(delta=SimpleNamespace(content="hel"))
                             ]
                         ),
                         SimpleNamespace(
                             choices=[
-                                SimpleNamespace(
-                                    delta=SimpleNamespace(content="lo")
-                                )
+                                SimpleNamespace(delta=SimpleNamespace(content="lo"))
                             ]
                         ),
                     ]
@@ -41,7 +49,11 @@ def _install_fake_openai(monkeypatch, *, content='{"ok": true}'):
                 reasoning_content="kept reasoning",
                 tool_calls=[{"id": "call_1", "type": "function"}],
             )
-            return SimpleNamespace(choices=[SimpleNamespace(message=message)])
+            return SimpleNamespace(
+                id="chatcmpl_1",
+                _request_id="req_1",
+                choices=[SimpleNamespace(message=message)],
+            )
 
     class FakeOpenAI:
         def __init__(self, **kwargs):
@@ -69,6 +81,62 @@ def test_deepseek_base_url_rejects_v1_suffix():
             api_key="test-key",
             base_url="https://api.deepseek.com/v1/",
         )
+
+
+def test_real_smoke_accepts_only_official_https_endpoint():
+    assert _official_endpoint_host("https://api.deepseek.com") == "api.deepseek.com"
+
+    for base_url in (
+        "http://api.deepseek.com",
+        "https://localhost:8000",
+        "https://deepseek.example.com",
+        "https://api.deepseek.com.evil.example",
+    ):
+        with pytest.raises(SystemExit, match="official HTTPS endpoint"):
+            _official_endpoint_host(base_url)
+
+
+def test_real_smoke_allows_transport_without_proxy(monkeypatch):
+    _clear_proxy_environment(monkeypatch)
+    monkeypatch.setattr(smoke_script.urllib_request, "getproxies", lambda: {})
+
+    _require_direct_transport()
+
+
+def test_real_smoke_rejects_proxy_environment(monkeypatch):
+    _clear_proxy_environment(monkeypatch)
+    monkeypatch.setenv(
+        "HTTPS_PROXY",
+        "http://proxy-user:proxy-secret@localhost:8080",
+    )
+
+    with pytest.raises(SystemExit, match="proxy configuration") as exc_info:
+        _require_direct_transport()
+
+    assert "proxy-secret" not in str(exc_info.value)
+    assert "localhost:8080" not in str(exc_info.value)
+
+
+def test_real_smoke_rejects_simulated_system_registry_proxy(monkeypatch):
+    _clear_proxy_environment(monkeypatch)
+    monkeypatch.setattr(
+        smoke_script.urllib_request,
+        "getproxies",
+        lambda: {"https": "http://registry-user:registry-secret@proxy.invalid:8080"},
+    )
+
+    with pytest.raises(SystemExit, match="proxy configuration") as exc_info:
+        _require_direct_transport()
+
+    assert "registry-secret" not in str(exc_info.value)
+    assert "proxy.invalid" not in str(exc_info.value)
+
+
+def test_real_smoke_rejects_unsafe_evidence_values():
+    assert _safe_evidence_value("call_1", label="test identifier") == "call_1"
+
+    with pytest.raises(RuntimeError, match="unsafe or missing"):
+        _safe_evidence_value("call_1\nleak", label="test identifier")
 
 
 def test_generate_json_uses_json_response_format(monkeypatch):
@@ -143,7 +211,7 @@ def test_reasoning_true_uses_pro_model_and_enabled_high_thinking(monkeypatch):
     assert "temperature" not in requests[0]
 
 
-def test_tool_call_preserves_reasoning_content_and_tool_calls(monkeypatch):
+def test_thinking_tool_call_omits_tool_choice_and_preserves_response(monkeypatch):
     monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
     requests, _clients = _install_fake_openai(monkeypatch, content=None)
 
@@ -158,10 +226,48 @@ def test_tool_call_preserves_reasoning_content_and_tool_calls(monkeypatch):
     assert requests[0]["tools"] == [
         {"type": "function", "function": {"name": "lookup"}}
     ]
-    assert requests[0]["tool_choice"] == "auto"
+    assert "tool_choice" not in requests[0]
+    assert requests[0]["extra_body"] == {"thinking": {"type": "enabled"}}
     assert message["content"] is None
     assert message["reasoning_content"] == "kept reasoning"
     assert message["tool_calls"] == [{"id": "call_1", "type": "function"}]
+    assert message["response_id"] == "chatcmpl_1"
+    assert message["request_id"] == "req_1"
+
+
+def test_thinking_extra_body_omits_tool_choice_and_preserves_other_fields(monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    requests, _clients = _install_fake_openai(monkeypatch, content=None)
+
+    provider = DeepSeekProvider()
+    provider.tool_call(
+        [{"role": "user", "content": "call tool"}],
+        tools=[{"type": "function", "function": {"name": "lookup"}}],
+        reasoning=True,
+        extra_body={"tool_choice": "auto", "harmless_field": "preserved"},
+    )
+
+    assert "tool_choice" not in requests[0]
+    assert requests[0]["extra_body"] == {
+        "harmless_field": "preserved",
+        "thinking": {"type": "enabled"},
+    }
+
+
+def test_non_thinking_tool_call_forwards_tool_choice(monkeypatch):
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "test-key")
+    requests, _clients = _install_fake_openai(monkeypatch, content=None)
+
+    provider = DeepSeekProvider()
+    provider.tool_call(
+        [{"role": "user", "content": "call tool"}],
+        tools=[{"type": "function", "function": {"name": "lookup"}}],
+        tool_choice="auto",
+        reasoning=False,
+    )
+
+    assert requests[0]["tool_choice"] == "auto"
+    assert requests[0]["extra_body"] == {"thinking": {"type": "disabled"}}
 
 
 def test_stream_yields_text_deltas(monkeypatch):
