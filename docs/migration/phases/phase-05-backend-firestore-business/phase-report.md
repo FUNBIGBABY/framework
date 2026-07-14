@@ -1,11 +1,19 @@
 # Phase 05 Report - Backend Firestore Business Logic
 
+## Current Reviewer Transcription - 2026-07-13
+
+- Review event `MR-2EC4192-20260713-01` records verdict `accepted_with_documented_deferral` at reviewed/accepted commit `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`.
+- Condition: historical embedded artefact versus child-row reconciliation remains `not run`; the three legacy sync routes remain authenticated HTTP 501 quarantine shells.
+- Residual risk: legacy artefact count/identity mismatches could exist; successful indexing/retrieval/logging is intentionally unavailable.
+- Owners/triggers: Data Reconciliation Owner acts before importing legacy rows, deleting the embedded fallback, or on any mismatch; Phase 9 RAG Replacement Owner acts only after that phase is authorized.
+- This accepted-with-deferral verdict does not claim a live data inspection and does not authorize or implement Phase 9.
+
 ## Governance Reconciliation - 2026-07-10
 
-- Current ledger verdict: `pending`.
+- At the 2026-07-10 reconciliation, the ledger verdict was `pending`; the 2026-07-13 named review transcription above supersedes that statement for current status without deleting this historical record.
 - `742f1e79f3fb71d44ce21284999e64ca76c5060f` is the implementation commit.
 - `a2115042771d9e91e9410cf5597031f3c78bee9a` added later status wording. Neither commit independently proves reviewer acceptance.
-- The original reviewer identity, date, and raw verdict artifact are unavailable; focused re-review is required.
+- At the 2026-07-10 reconciliation, the original reviewer identity, date, and raw verdict artifact were unavailable and focused re-review was required; `MR-2EC4192-20260713-01` now supplies the current named re-review artifact.
 - `capability-inventory.md` is the superseding capability disposition for historical `firebase.js`.
 - Historical embedded artefacts are `conditional data reconciliation`, owned by Data Reconciliation Owner and triggered by legacy-data import, removal of the embedded fallback, any embedded-with-zero-child result, or any partial/count/identity mismatch. The existing SQL detects only non-empty embedded artefacts with zero child rows; a zero result cannot alone establish `not applicable`. Shape-aware count/identity comparison, or equivalent audit evidence with sampling and data-source provenance, is still required. This repair did not inspect a live database; status remains `not run`.
 

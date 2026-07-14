@@ -1,12 +1,19 @@
 # Phase 06 Checklist - Frontend de-Firebase
 
-## Current Audit Correction
+## Current Reviewer Transcription - 2026-07-13
 
-`P6-DEFIREBASE-CORRECTION-01` supersedes the status assertions below without
-deleting their historical evidence. The current audit-grade verdict is
-`pending`; `27679f8ff832a70a7f69782d8d45a52eab343525` is an implementation
-candidate only, `accepted_commit` is absent, and reviewer identity, reviewed
-SHA, review date, and raw verdict artifact remain unavailable.
+Review event `MR-2EC4192-20260713-01` records Phase 6 as
+`accepted_with_documented_deferral` at reviewed/accepted commit
+`2ec41926ab6b9910e7b05f60839ba24c8b5cb236`. The historical implementation
+commit `27679f8ff832a70a7f69782d8d45a52eab343525` remains a candidate rather than
+this review's accepted commit. Authenticated browser smoke was not run because
+the complete live environment is unavailable and the Docker builder remains
+incompatible. Residual risk is that host unit/static evidence may miss
+browser-cookie, live REST, or container integration defects. Container Runtime
+Owner owns the compatible builder and Migration Verification Owner owns browser
+smoke; the trigger is a separately reviewed Node-compatible builder plus
+authorized live Postgres/pgvector, migrated schema, backend/frontend, and seeded
+credentials, before a release relying on these flows.
 
 ## Governance Reconciliation - 2026-07-10
 
@@ -15,7 +22,7 @@ SHA, review date, and raw verdict artifact remain unavailable.
 - [x] Record original reviewer identity/date/raw verdict artifact as `artifact unavailable`; do not guess.
 - [x] Keep browser smoke as `not run`, not passed. Recorded blocker: unavailable Docker Desktop Linux engine plus no live Postgres/pgvector, migrated schema, running backend/frontend, or seeded admin credentials.
 - [x] Assign Migration Verification Owner; trigger when the complete authorized smoke environment is available, before a release relying on these browser flows, or as an explicit later reviewer condition.
-- [ ] Focused re-review attaches a named reviewer, date, raw verdict/evidence, conditions, owner, and trigger so the historical verdict becomes audit-grade. This unchecked evidence task does not downgrade the historical verdict.
+- [x] Focused re-review `MR-2EC4192-20260713-01` attaches reviewer `Migration Reviewer Agent`, timestamp `2026-07-13T21:44:01.9648007+08:00`, reviewed/accepted commit `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`, verdict, condition, residual risk, owners, and trigger. The older artifact-unavailable record remains historical evidence.
 
 Missing browser smoke is not automatically a blocker; a named reviewer may retain the documented deferral.
 

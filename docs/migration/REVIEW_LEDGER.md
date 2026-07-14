@@ -197,3 +197,155 @@ This append-oriented ledger is the authoritative index for migration phase/slice
 - `pushed_ref`: `artifact unavailable`
 - `evidence`: `P3-DEEPSEEK-20260710-01`; `P8-PLANNING-GATE-20260710-01`; supplied contract-correction requirements
 - `artifact_status`: `correction recorded; Phase 3 verdict pending; real DeepSeek smoke not run; Phase 8 behavior not implemented; Phase 8 gate closed; no acceptance claimed`
+
+## Review event MR-2EC4192-20260713-01
+
+The six entries below are verdict slices transcribed from the single review event `MR-2EC4192-20260713-01`; they are not six independent reviews. Findings labelled P0/P1/P2/P3 in the source artifact are finding priorities, not migration Phase numbers. The transcription source is `docs/migration/review-artifacts/MR-2EC4192-20260713-01.md`.
+
+### GOV-MR-2EC4192-20260713-01
+
+- `verdict_slice_id`: `GOV-MR-2EC4192-20260713-01`
+- `review_id`: `MR-2EC4192-20260713-01`
+- `phase_slice`: `Three-commit corrective remediation as a whole`
+- `reviewer`: `Migration Reviewer Agent`
+- `review_date`: `2026-07-13T21:44:01.9648007+08:00`
+- `timezone`: `China Standard Time — (UTC+08:00) Beijing, Chongqing, Hong Kong, Urumqi`
+- `base_commit`: `c32bb88ce21eabde2141712499713e3c9569b4cd`
+- `reviewed_HEAD`: `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`
+- `reviewed_commits`: `23831f2545ec715418348f1dc5e7aa711e339b60` — Fix material ownership authorization; `e902205f198540cc7a3abcc6b802ef285f45554f` — Harden DeepSeek thinking tool calls; `2ec41926ab6b9910e7b05f60839ba24c8b5cb236` — Record corrective migration governance.
+- `reviewed_commit`: `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`
+- `verdict`: `accepted`
+- `conditions`: Accepts the corrective code and governance package; it does not override the separate pending/deferral phase verdicts below.
+- `residual_risks`: No separate residual-risk field was stated for the overall slice; the Phase 3, 5, 6, 7, and 8 conditions and risks recorded in the other slices remain in force.
+- `owners`: No separate owner was stated for the overall slice; the named owners in the phase slices remain responsible for their conditions.
+- `triggers`: No separate trigger was stated for the overall slice; the named triggers in the phase slices remain in force.
+- `blockers`: None for acceptance of the corrective remediation as a whole; separate Phase 3 and Phase 7 blockers and the closed Phase 8 gate are not cleared by this verdict.
+- `accepted_commit`: `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`
+- `scope_note`: The source finding `P0: None` applies only to this three-commit review scope and does not establish completion of the historical Phase 0 external GCP-key or reachable-history evidence. The source's priority-P3 Materials assertion finding is non-blocking and is not a Phase 3 verdict or blocker.
+- `pushed_ref`: At the review timestamp, local `main` at `2ec41926ab6b9910e7b05f60839ba24c8b5cb236` was three commits ahead of the locally tracked `origin/main` at `c32bb88ce21eabde2141712499713e3c9569b4cd`. The reviewer did not query the remote or push during the review.
+- `verification_performed`: The reviewer recorded focused backend `52 passed`, `29 warnings`, `8.04s` and complete backend `130 passed`, `219 warnings`, `16.16s`; the warnings were existing Pydantic v2 and `datetime.utcnow()` deprecations. Seven existing changed Python files compiled in memory with exit `0`. Alembic `heads` returned `0005_material_owner (head)`; offline `upgrade head --sql` exited `0`, produced `372` lines with SHA-256 `b3556584cf1f1ee6aab78f70dab47afcab257cb05df04d2a98323f29cc6c7674`, and contained `owner_id`, `ON DELETE SET NULL` FK, and index DDL. Frontend lint exited `0`; Vitest reported `10` files and `56 passed` in `9.47s`; the out-of-tree production build exited `0` with `135` modules in `6.59s` and retained the stated stale-browser-data and `850.25 kB` chunk warnings. The reviewer recorded `42` Markdown files, `0` local links, `10` external links, and `0` broken local links; the route/vendor/legacy/router/Phase 8-9 scans stated in the artifact; exact parent-chain and three-commit checks; clean worktree/index before and after; and aggregate/worktree/index diff checks exiting `0`.
+- `verification_not_performed`: Docker build/runtime, browser smoke, live PostgreSQL upgrade/current/FK inspection or live `ON DELETE SET NULL` exercise, real DeepSeek, external GCP/key evidence, remote-server query, and push were not performed; `DEEPSEEK_API_KEY=NOT SET`.
+- `artifact`: `docs/migration/review-artifacts/MR-2EC4192-20260713-01.md`
+- `artifact_status`: `named reviewer artifact preserved; this record is a transcription of that artifact, not a new review`
+
+### P3-MR-2EC4192-20260713-01
+
+- `verdict_slice_id`: `P3-MR-2EC4192-20260713-01`
+- `review_id`: `MR-2EC4192-20260713-01`
+- `phase_slice`: `Phase 3 DeepSeek provider`
+- `reviewer`: `Migration Reviewer Agent`
+- `review_date`: `2026-07-13T21:44:01.9648007+08:00`
+- `timezone`: `China Standard Time — (UTC+08:00) Beijing, Chongqing, Hong Kong, Urumqi`
+- `base_commit`: `c32bb88ce21eabde2141712499713e3c9569b4cd`
+- `reviewed_HEAD`: `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`
+- `reviewed_commits`: `23831f2545ec715418348f1dc5e7aa711e339b60` — Fix material ownership authorization; `e902205f198540cc7a3abcc6b802ef285f45554f` — Harden DeepSeek thinking tool calls; `2ec41926ab6b9910e7b05f60839ba24c8b5cb236` — Record corrective migration governance.
+- `reviewed_commit`: `e902205f198540cc7a3abcc6b802ef285f45554f`, as represented at reviewed HEAD.
+- `verdict`: `pending`
+- `conditions`: Missing evidence is an authorized real `DeepSeekProvider.tool_call()` smoke against the official endpoint.
+- `residual_risks`: The real provider call path has not been evidenced by the required authorized smoke.
+- `owners`: LLM Provider Owner for readiness; Migration Verification Owner for execution.
+- `triggers`: Authorized key, reachable official endpoint, non-dev/non-dry-run configuration, and reviewed candidate; rerun after base URL, model, thinking policy, SDK/default transport, or provider call-path changes.
+- `blockers`: The authorized real `DeepSeekProvider.tool_call()` smoke against the official endpoint is absent.
+- `pushed_ref`: At the review timestamp, local `main` at `2ec41926ab6b9910e7b05f60839ba24c8b5cb236` was three commits ahead of the locally tracked `origin/main` at `c32bb88ce21eabde2141712499713e3c9569b4cd`. The reviewer did not query the remote or push during the review.
+- `verification_performed`: The reviewer recorded focused backend `52 passed`, `29 warnings`, `8.04s` and complete backend `130 passed`, `219 warnings`, `16.16s`; the warnings were existing Pydantic v2 and `datetime.utcnow()` deprecations. Seven existing changed Python files compiled in memory with exit `0`. Alembic `heads` returned `0005_material_owner (head)`; offline `upgrade head --sql` exited `0`, produced `372` lines with SHA-256 `b3556584cf1f1ee6aab78f70dab47afcab257cb05df04d2a98323f29cc6c7674`, and contained `owner_id`, `ON DELETE SET NULL` FK, and index DDL. Frontend lint exited `0`; Vitest reported `10` files and `56 passed` in `9.47s`; the out-of-tree production build exited `0` with `135` modules in `6.59s` and retained the stated stale-browser-data and `850.25 kB` chunk warnings. The reviewer recorded `42` Markdown files, `0` local links, `10` external links, and `0` broken local links; the route/vendor/legacy/router/Phase 8-9 scans stated in the artifact; exact parent-chain and three-commit checks; clean worktree/index before and after; and aggregate/worktree/index diff checks exiting `0`.
+- `verification_not_performed`: Docker build/runtime, browser smoke, live PostgreSQL upgrade/current/FK inspection or live `ON DELETE SET NULL` exercise, real DeepSeek, external GCP/key evidence, remote-server query, and push were not performed; `DEEPSEEK_API_KEY=NOT SET`.
+- `artifact`: `docs/migration/review-artifacts/MR-2EC4192-20260713-01.md`
+- `artifact_status`: `named reviewer artifact preserved; pending verdict transcribed without an accepted_commit`
+
+### P5-MR-2EC4192-20260713-01
+
+- `verdict_slice_id`: `P5-MR-2EC4192-20260713-01`
+- `review_id`: `MR-2EC4192-20260713-01`
+- `phase_slice`: `Phase 5 capability/governance`
+- `reviewer`: `Migration Reviewer Agent`
+- `review_date`: `2026-07-13T21:44:01.9648007+08:00`
+- `timezone`: `China Standard Time — (UTC+08:00) Beijing, Chongqing, Hong Kong, Urumqi`
+- `base_commit`: `c32bb88ce21eabde2141712499713e3c9569b4cd`
+- `reviewed_HEAD`: `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`
+- `reviewed_commits`: `23831f2545ec715418348f1dc5e7aa711e339b60` — Fix material ownership authorization; `e902205f198540cc7a3abcc6b802ef285f45554f` — Harden DeepSeek thinking tool calls; `2ec41926ab6b9910e7b05f60839ba24c8b5cb236` — Record corrective migration governance.
+- `reviewed_commit`: `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`
+- `verdict`: `accepted_with_documented_deferral`
+- `conditions`: Historical embedded artefact versus child-row reconciliation remains `not run`; the three legacy sync routes remain authenticated 501 quarantine shells.
+- `residual_risks`: Legacy artefact count/identity mismatches could exist; successful indexing/retrieval/logging is intentionally unavailable.
+- `owners`: Data Reconciliation Owner; Phase 9 RAG Replacement Owner.
+- `triggers`: Before importing legacy rows, deleting the embedded fallback, or on any mismatch; Phase 9 replacement only after that phase is authorized.
+- `blockers`: No blocker to this documented-deferral acceptance; the recorded condition and residual risk remain, and this verdict does not authorize Phase 9.
+- `accepted_commit`: `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`
+- `pushed_ref`: At the review timestamp, local `main` at `2ec41926ab6b9910e7b05f60839ba24c8b5cb236` was three commits ahead of the locally tracked `origin/main` at `c32bb88ce21eabde2141712499713e3c9569b4cd`. The reviewer did not query the remote or push during the review.
+- `verification_performed`: The reviewer recorded focused backend `52 passed`, `29 warnings`, `8.04s` and complete backend `130 passed`, `219 warnings`, `16.16s`; the warnings were existing Pydantic v2 and `datetime.utcnow()` deprecations. Seven existing changed Python files compiled in memory with exit `0`. Alembic `heads` returned `0005_material_owner (head)`; offline `upgrade head --sql` exited `0`, produced `372` lines with SHA-256 `b3556584cf1f1ee6aab78f70dab47afcab257cb05df04d2a98323f29cc6c7674`, and contained `owner_id`, `ON DELETE SET NULL` FK, and index DDL. Frontend lint exited `0`; Vitest reported `10` files and `56 passed` in `9.47s`; the out-of-tree production build exited `0` with `135` modules in `6.59s` and retained the stated stale-browser-data and `850.25 kB` chunk warnings. The reviewer recorded `42` Markdown files, `0` local links, `10` external links, and `0` broken local links; the route/vendor/legacy/router/Phase 8-9 scans stated in the artifact; exact parent-chain and three-commit checks; clean worktree/index before and after; and aggregate/worktree/index diff checks exiting `0`.
+- `verification_not_performed`: Docker build/runtime, browser smoke, live PostgreSQL upgrade/current/FK inspection or live `ON DELETE SET NULL` exercise, real DeepSeek, external GCP/key evidence, remote-server query, and push were not performed; `DEEPSEEK_API_KEY=NOT SET`.
+- `artifact`: `docs/migration/review-artifacts/MR-2EC4192-20260713-01.md`
+- `artifact_status`: `named reviewer artifact preserved; documented-deferral acceptance transcribed`
+
+### P6-MR-2EC4192-20260713-01
+
+- `verdict_slice_id`: `P6-MR-2EC4192-20260713-01`
+- `review_id`: `MR-2EC4192-20260713-01`
+- `phase_slice`: `Phase 6 focused re-review`
+- `reviewer`: `Migration Reviewer Agent`
+- `review_date`: `2026-07-13T21:44:01.9648007+08:00`
+- `timezone`: `China Standard Time — (UTC+08:00) Beijing, Chongqing, Hong Kong, Urumqi`
+- `base_commit`: `c32bb88ce21eabde2141712499713e3c9569b4cd`
+- `reviewed_HEAD`: `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`
+- `reviewed_commits`: `23831f2545ec715418348f1dc5e7aa711e339b60` — Fix material ownership authorization; `e902205f198540cc7a3abcc6b802ef285f45554f` — Harden DeepSeek thinking tool calls; `2ec41926ab6b9910e7b05f60839ba24c8b5cb236` — Record corrective migration governance.
+- `reviewed_commit`: `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`
+- `verdict`: `accepted_with_documented_deferral`
+- `conditions`: Authenticated browser smoke was not run because the complete live environment is unavailable and the Docker builder remains incompatible.
+- `residual_risks`: Host unit/static evidence may miss browser-cookie, live REST, or container integration defects.
+- `owners`: Container Runtime Owner for the compatible builder; Migration Verification Owner for browser smoke.
+- `triggers`: Separately reviewed Node-compatible builder plus authorized live Postgres/pgvector, migrated schema, backend/frontend, and seeded credentials; before release relying on these flows.
+- `blockers`: No blocker to this documented-deferral acceptance; the recorded browser/live-environment and builder condition remains.
+- `accepted_commit`: `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`
+- `pushed_ref`: At the review timestamp, local `main` at `2ec41926ab6b9910e7b05f60839ba24c8b5cb236` was three commits ahead of the locally tracked `origin/main` at `c32bb88ce21eabde2141712499713e3c9569b4cd`. The reviewer did not query the remote or push during the review.
+- `verification_performed`: The reviewer recorded focused backend `52 passed`, `29 warnings`, `8.04s` and complete backend `130 passed`, `219 warnings`, `16.16s`; the warnings were existing Pydantic v2 and `datetime.utcnow()` deprecations. Seven existing changed Python files compiled in memory with exit `0`. Alembic `heads` returned `0005_material_owner (head)`; offline `upgrade head --sql` exited `0`, produced `372` lines with SHA-256 `b3556584cf1f1ee6aab78f70dab47afcab257cb05df04d2a98323f29cc6c7674`, and contained `owner_id`, `ON DELETE SET NULL` FK, and index DDL. Frontend lint exited `0`; Vitest reported `10` files and `56 passed` in `9.47s`; the out-of-tree production build exited `0` with `135` modules in `6.59s` and retained the stated stale-browser-data and `850.25 kB` chunk warnings. The reviewer recorded `42` Markdown files, `0` local links, `10` external links, and `0` broken local links; the route/vendor/legacy/router/Phase 8-9 scans stated in the artifact; exact parent-chain and three-commit checks; clean worktree/index before and after; and aggregate/worktree/index diff checks exiting `0`.
+- `verification_not_performed`: Docker build/runtime, browser smoke, live PostgreSQL upgrade/current/FK inspection or live `ON DELETE SET NULL` exercise, real DeepSeek, external GCP/key evidence, remote-server query, and push were not performed; `DEEPSEEK_API_KEY=NOT SET`.
+- `artifact`: `docs/migration/review-artifacts/MR-2EC4192-20260713-01.md`
+- `artifact_status`: `named reviewer artifact preserved; documented-deferral acceptance transcribed`
+
+### P7-MR-2EC4192-20260713-01
+
+- `verdict_slice_id`: `P7-MR-2EC4192-20260713-01`
+- `review_id`: `MR-2EC4192-20260713-01`
+- `phase_slice`: `Phase 7 closeout`
+- `reviewer`: `Migration Reviewer Agent`
+- `review_date`: `2026-07-13T21:44:01.9648007+08:00`
+- `timezone`: `China Standard Time — (UTC+08:00) Beijing, Chongqing, Hong Kong, Urumqi`
+- `base_commit`: `c32bb88ce21eabde2141712499713e3c9569b4cd`
+- `reviewed_HEAD`: `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`
+- `reviewed_commits`: `23831f2545ec715418348f1dc5e7aa711e339b60` — Fix material ownership authorization; `e902205f198540cc7a3abcc6b802ef285f45554f` — Harden DeepSeek thinking tool calls; `2ec41926ab6b9910e7b05f60839ba24c8b5cb236` — Record corrective migration governance.
+- `reviewed_commit`: `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`
+- `verdict`: `pending`
+- `conditions`: Browser smoke may later be carried as a documented deferral; it is not independently the acceptance blocker. Existing ownerless Materials rows remain safely quarantined, so the absent ownership disposition is not an active IDOR, but it still blocks Phase 7 acceptance.
+- `residual_risks`: Legacy Materials ownership has no approved final disposition; Alembic head `0005_material_owner` lacks live PostgreSQL constraint/behavior evidence; and the Node-incompatible builder prevents the reviewed compatible container path needed for later live/browser evidence.
+- `owners`: Security Owner and Backend Owner for legacy-owner mapping/disposition; Database Migration Owner for live `0005`/FK/index/`SET NULL` evidence; Container Runtime Owner for the reviewed Node-compatible builder; Migration Verification Owner for any later browser smoke.
+- `triggers`: Legacy-owner disposition is required before Phase 7 acceptance or any multi-user/production use. The new Alembic head triggered live upgrade/current, FK/index inspection, owning-user deletion with `owner_id=NULL`, and authenticated 404 retrieval evidence. The builder requires a separately reviewed Node-compatible candidate; browser smoke follows that correction and the complete authorized environment.
+- `blockers`: Security Owner + Backend Owner legacy-owner mapping/disposition approval is absent; Database Migration Owner live `0005`/FK/index/`SET NULL` evidence is absent; Container Runtime Owner has not supplied the reviewed Node-compatible builder.
+- `pushed_ref`: At the review timestamp, local `main` at `2ec41926ab6b9910e7b05f60839ba24c8b5cb236` was three commits ahead of the locally tracked `origin/main` at `c32bb88ce21eabde2141712499713e3c9569b4cd`. The reviewer did not query the remote or push during the review.
+- `verification_performed`: The reviewer recorded focused backend `52 passed`, `29 warnings`, `8.04s` and complete backend `130 passed`, `219 warnings`, `16.16s`; the warnings were existing Pydantic v2 and `datetime.utcnow()` deprecations. Seven existing changed Python files compiled in memory with exit `0`. Alembic `heads` returned `0005_material_owner (head)`; offline `upgrade head --sql` exited `0`, produced `372` lines with SHA-256 `b3556584cf1f1ee6aab78f70dab47afcab257cb05df04d2a98323f29cc6c7674`, and contained `owner_id`, `ON DELETE SET NULL` FK, and index DDL. Frontend lint exited `0`; Vitest reported `10` files and `56 passed` in `9.47s`; the out-of-tree production build exited `0` with `135` modules in `6.59s` and retained the stated stale-browser-data and `850.25 kB` chunk warnings. The reviewer recorded `42` Markdown files, `0` local links, `10` external links, and `0` broken local links; the route/vendor/legacy/router/Phase 8-9 scans stated in the artifact; exact parent-chain and three-commit checks; clean worktree/index before and after; and aggregate/worktree/index diff checks exiting `0`.
+- `verification_not_performed`: Docker build/runtime, browser smoke, live PostgreSQL upgrade/current/FK inspection or live `ON DELETE SET NULL` exercise, real DeepSeek, external GCP/key evidence, remote-server query, and push were not performed; `DEEPSEEK_API_KEY=NOT SET`.
+- `artifact`: `docs/migration/review-artifacts/MR-2EC4192-20260713-01.md`
+- `artifact_status`: `named reviewer artifact preserved; pending verdict transcribed without an accepted_commit`
+
+### P8-MR-2EC4192-20260713-01
+
+- `verdict_slice_id`: `P8-MR-2EC4192-20260713-01`
+- `review_id`: `MR-2EC4192-20260713-01`
+- `phase_slice`: `Phase 8 gate`
+- `reviewer`: `Migration Reviewer Agent`
+- `review_date`: `2026-07-13T21:44:01.9648007+08:00`
+- `timezone`: `China Standard Time — (UTC+08:00) Beijing, Chongqing, Hong Kong, Urumqi`
+- `base_commit`: `c32bb88ce21eabde2141712499713e3c9569b4cd`
+- `reviewed_HEAD`: `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`
+- `reviewed_commits`: `23831f2545ec715418348f1dc5e7aa711e339b60` — Fix material ownership authorization; `e902205f198540cc7a3abcc6b802ef285f45554f` — Harden DeepSeek thinking tool calls; `2ec41926ab6b9910e7b05f60839ba24c8b5cb236` — Record corrective migration governance.
+- `verdict`: `pending`
+- `state`: `closed`
+- `conditions`: No Phase 8 planning or implementation artifact exists.
+- `residual_risks`: Phase 8 has no reviewed planning package and cannot be treated as started or complete.
+- `owners`: No separate Phase 8 gate owner was stated in the artifact; the named owners and triggers on the prerequisite phase conditions remain responsible.
+- `triggers`: Phase 7 must first receive a named `accepted` or `accepted_with_documented_deferral` ledger verdict with exact owners/triggers, all canonical dependencies must be acceptable, and the Phase 8 planning package must itself be reviewed before implementation.
+- `blockers`: Phase 7 remains pending; all canonical dependencies must be acceptable; and no reviewed Phase 8 planning package exists.
+- `pushed_ref`: At the review timestamp, local `main` at `2ec41926ab6b9910e7b05f60839ba24c8b5cb236` was three commits ahead of the locally tracked `origin/main` at `c32bb88ce21eabde2141712499713e3c9569b4cd`. The reviewer did not query the remote or push during the review.
+- `verification_performed`: The reviewer recorded focused backend `52 passed`, `29 warnings`, `8.04s` and complete backend `130 passed`, `219 warnings`, `16.16s`; the warnings were existing Pydantic v2 and `datetime.utcnow()` deprecations. Seven existing changed Python files compiled in memory with exit `0`. Alembic `heads` returned `0005_material_owner (head)`; offline `upgrade head --sql` exited `0`, produced `372` lines with SHA-256 `b3556584cf1f1ee6aab78f70dab47afcab257cb05df04d2a98323f29cc6c7674`, and contained `owner_id`, `ON DELETE SET NULL` FK, and index DDL. Frontend lint exited `0`; Vitest reported `10` files and `56 passed` in `9.47s`; the out-of-tree production build exited `0` with `135` modules in `6.59s` and retained the stated stale-browser-data and `850.25 kB` chunk warnings. The reviewer recorded `42` Markdown files, `0` local links, `10` external links, and `0` broken local links; the route/vendor/legacy/router/Phase 8-9 scans stated in the artifact; exact parent-chain and three-commit checks; clean worktree/index before and after; and aggregate/worktree/index diff checks exiting `0`.
+- `verification_not_performed`: Docker build/runtime, browser smoke, live PostgreSQL upgrade/current/FK inspection or live `ON DELETE SET NULL` exercise, real DeepSeek, external GCP/key evidence, remote-server query, and push were not performed; `DEEPSEEK_API_KEY=NOT SET`.
+- `artifact`: `docs/migration/review-artifacts/MR-2EC4192-20260713-01.md`
+- `artifact_status`: `named reviewer artifact preserved; pending closed-gate verdict transcribed without a slice-specific reviewed_commit or accepted_commit`

@@ -1,5 +1,13 @@
 # Phase 07 Checklist - Domain and Legacy Cleanup
 
+## Current Reviewer Transcription - 2026-07-13
+
+- [x] Named review event `MR-2EC4192-20260713-01` records Phase 7 as `pending` at reviewed commit `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`, with no `accepted_commit`. The overall corrective-remediation acceptance does not make Phase 7 complete.
+- [ ] Security Owner + Backend Owner legacy-owner mapping/disposition approval is absent. Ownerless rows remain safely quarantined and are not an active IDOR, but the approval is still required before Phase 7 acceptance or any multi-user/production use.
+- [ ] Database Migration Owner live `0005` upgrade/current, FK/index inspection, actual `ON DELETE SET NULL`, and authenticated 404 retrieval evidence is absent.
+- [ ] Container Runtime Owner has not supplied the reviewed Node-compatible builder.
+- Browser smoke may later be carried as a documented deferral; it is not independently the acceptance blocker. Migration Verification Owner retains the later complete-authorized-environment trigger.
+
 ## Governance Reconciliation - 2026-07-10
 
 - [x] Record current verdict as `pending`.
@@ -7,14 +15,14 @@
 - [x] Keep browser smoke as `not run`, not passed. Historical blocker: unavailable Docker Desktop Linux engine plus no live Postgres/pgvector, migrated schema, running backend/frontend, or seeded credentials. Current additional static blocker: the Dockerfile's Node 18 builder is incompatible with the locked Vite 7.1.9 / React Router 7.9.3 engine requirements.
 - [x] Assign Container Runtime Owner to the build blocker, triggered by a separately reviewed compatible runtime candidate. Assign Migration Verification Owner to browser smoke, triggered after that correction and the complete authorized environment are available, before a release relying on these flows, or as an explicit later reviewer condition.
 - [x] Record that missing browser smoke is not automatically a blocker and that a named reviewer may use `accepted_with_documented_deferral` with explicit conditions/owner/trigger; `conditions=none` is not required.
-- [ ] Obtain the named reviewer verdict and append it to `docs/migration/REVIEW_LEDGER.md`.
-- [ ] Keep Phase 8 planning blocked until that ledger verdict is `accepted` or `accepted_with_documented_deferral`; do not implement Phase 8 before its planning package is reviewed.
+- [x] Obtain the named reviewer verdict and append it to `docs/migration/REVIEW_LEDGER.md`. `MR-2EC4192-20260713-01` supplies a named `pending` verdict; this completes the transcription task, not Phase 7 acceptance.
+- [ ] Keep Phase 8 planning blocked until Phase 7 has a named reviewer `accepted` or `accepted_with_documented_deferral` verdict with explicit conditions, owners, and triggers and all canonical dependencies—Phases 3, 4, 5, and 7—are acceptable, each supported by a named reviewer `accepted` or `accepted_with_documented_deferral` verdict; do not implement Phase 8 before its planning package is reviewed.
 
 Materials ownership is a P1 remediation, not reviewer-attention-only. The remediation leaves pre-existing rows ownerless without arbitrary backfill or deletion and quarantines them from authenticated retrieval. Security Owner + Backend Owner must approve a verified legacy-owner mapping or other explicit disposition before Phase 7 acceptance or any multi-user/production use; ownerless-row unquarantine remains blocked until then. The legacy `vector_sync` HTTP 501 shells are quarantined deferred compatibility surfaces, not parity; Phase 9 RAG Replacement Owner owns any future replacement without implementation in this correction.
 
 - [x] Dormant legacy/security cleanup: repository-wide import, mount, and dynamic-discovery scans found `backend_py/app/api/test.py` unreferenced and unmounted, so the unauthenticated duplicate `/materials` router was deleted. This records removal of a dormant reactivation risk, not a claim that the router was currently reachable; `app.api.materials` remains the sole application router defining that prefix.
 
-Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have evidence recorded in `phase-report.md` and `verification.md`. A requested deploy/nginx/docker naming cleanup pass was performed on 2026-07-02. Migration placeholder route/tool cleanup was performed on 2026-07-05. A frontend personal-route cleanup slice was performed on 2026-07-06. An unmounted frontend tenant/org/invite placeholder cleanup slice was performed on 2026-07-07. A frontend organization-sharing UI residue cleanup slice was performed on 2026-07-07. A frontend AuthContext tenant/org state cleanup slice was performed on 2026-07-08. A frontend API request-normalization cleanup slice was performed on 2026-07-08. Obsolete current docs/scripts cleanup was performed on 2026-07-09. Do not mark Phase 7 complete from this document: the review verdict remains pending. Browser smoke is not run, but that absence is not automatically a blocker. Historical Phase 7 execution relied on the Phase 6 accepted-with-deferral handoff that is now superseded for current audit status by `P6-DEFIREBASE-CORRECTION-01`; the historical execution evidence remains unchanged.
+Round 0/1 implementation status: fresh inventory and domain/brand active runtime naming cleanup have evidence recorded in `phase-report.md` and `verification.md`. A requested deploy/nginx/docker naming cleanup pass was performed on 2026-07-02. Migration placeholder route/tool cleanup was performed on 2026-07-05. A frontend personal-route cleanup slice was performed on 2026-07-06. An unmounted frontend tenant/org/invite placeholder cleanup slice was performed on 2026-07-07. A frontend organization-sharing UI residue cleanup slice was performed on 2026-07-07. A frontend AuthContext tenant/org state cleanup slice was performed on 2026-07-08. A frontend API request-normalization cleanup slice was performed on 2026-07-08. Obsolete current docs/scripts cleanup was performed on 2026-07-09. Do not mark Phase 7 complete from this document: the review verdict remains pending. Browser smoke is not run, but that absence is not automatically a blocker. Historical Phase 7 execution relied on the Phase 6 accepted-with-deferral handoff; `P6-DEFIREBASE-CORRECTION-01` later corrected its unsupported audit status, and `MR-2EC4192-20260713-01` now provides the current named Phase 6 accepted-with-deferral re-review. The historical execution evidence remains unchanged, and none of those Phase 6 records completes Phase 7.
 
 ## Required Context
 
@@ -267,4 +275,4 @@ Acceptance criteria:
 - [ ] No future-phase features were introduced.
 - [ ] Phase 7 is left pending reviewer acceptance, not self-completed.
 - [ ] The ledger entry names the reviewer/date and records `accepted` or `accepted_with_documented_deferral`; any deferral states exact conditions, owner, and trigger.
-- [ ] Phase 8 planning gate remains closed until that ledger record exists; no `conditions=none` requirement is imposed.
+- [ ] Phase 8 planning gate remains closed until Phase 7 has a named reviewer `accepted` or `accepted_with_documented_deferral` verdict with explicit conditions, owners, and triggers and all canonical dependencies—Phases 3, 4, 5, and 7—are acceptable, each supported by a named reviewer `accepted` or `accepted_with_documented_deferral` verdict; Phase 8 implementation waits until its planning package is reviewed, and no `conditions=none` requirement is imposed.

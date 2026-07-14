@@ -29,7 +29,9 @@
 - 各 Phase 的 `checklist.md`、`phase-report.md`、`verification.md` 保留历史执行证据；提交标题、实现 commit、状态文字 commit 或 pushed ref 都不自动等于 reviewer acceptance。
 - 允许的 verdict 只有 `pending`、`rejected`、`accepted`、`accepted_with_documented_deferral`。缺少原 reviewer、日期或原始 verdict artifact 时不得猜填，必须记录 `artifact unavailable` 并安排 focused re-review。
 - 缺少 browser smoke 不自动构成 blocker。环境不可用时保持 `not run`，记录 exact blocker、owner 和 trigger；具名 reviewer 可按残余风险给出 `accepted_with_documented_deferral`。
-- **当前纠正状态**：`c32bb88ce21eabde2141712499713e3c9569b4cd` 已被拒绝；`origin/main@c32bb88ce21eabde2141712499713e3c9569b4cd` 只证明 transport state。Phase 6 当前 audit-grade verdict 为 `pending`，Phase 7 仍为 `pending`，Phase 8 planning/implementation gate 关闭。详见 append-only `REVIEW_LEDGER.md` 的 corrective records。
+- **当前 Reviewer transcription（`MR-2EC4192-20260713-01`）**：三提交 corrective remediation 整体在 `2ec41926ab6b9910e7b05f60839ba24c8b5cb236` 被 `accepted`；Phase 3 为 `pending`；Phase 5 与 Phase 6 为 `accepted_with_documented_deferral`，其 `accepted_commit` 均为 `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`；Phase 7 为 `pending`；Phase 8 的 verdict 为 `pending`、gate state 为 `closed`。原始 artifact 保存在 `docs/migration/review-artifacts/MR-2EC4192-20260713-01.md`，六个 slice 是同一 review event 的转录。
+- Corrective remediation 整体被接受不等于 Phase 7 complete，也不覆盖任何独立的 pending/deferral verdict。`c32bb88ce21eabde2141712499713e3c9569b4cd` 的 rejection 仍是历史记录；在 review timestamp，本地 `main@2ec4192` 相对 locally tracked `origin/main@c32bb88` ahead 3，Reviewer 未查询远端服务器也未 push。
+- Artifact 的 `P0: None` 只表示本次三提交 review scope 内无 P0 finding，不证明历史 Phase 0 的 GCP key 与 reachable-history 外部证据已经完成。
 
 ---
 
@@ -246,7 +248,7 @@
 
 ### 验收
 - `curl -X POST .../api/frameworks/generate-from-text` 实际调用 DeepSeek API 并返回。
-- **当前证据状态**：真实 DeepSeek API smoke 未运行，等待具备明确授权的 `DEEPSEEK_API_KEY` 环境；不得写成通过，本次 corrective remediation 也不调用 DeepSeek API。
+- **当前治理与证据状态**：`MR-2EC4192-20260713-01` 对 Phase 3 的 verdict 为 `pending`。真实 DeepSeek API smoke 未运行，等待具备明确授权的 `DEEPSEEK_API_KEY`、可达官方端点、non-dev/non-dry-run 配置和 reviewed candidate；不得写成通过，本次 transcription 也未调用 DeepSeek API。
 - 后端日志无 `gpt-4o` / `34.87.13.228` 字样。
 - 前端"深度思考"开关切换后，后端测试响应能看到 `reasoning_content` 或等价 reasoning 字段；产品界面默认只展示"正在思考/思考摘要"，不默认持久化完整 reasoning。
 - provider 回归测试证明单次 tool-call 响应中的原始 `reasoning_content`、可能为 null 的 `content` 与 `tool_calls` 被保留。Phase 8 active-run 回归必须另行跨越紧接其后的首次请求，证明该 active run 内每个适用的后续 provider request（包括由更后续用户交互触发的请求）都继续重放该 thinking-mode assistant tool-call message 的完整所需 `reasoning_content`，并在每次 replay serialization 保证 assistant `content` 非 null（缺失时规范化为 `""`）；完整 reasoning 仅作短期 active-run state，不得写入长期日志。这些未来 replay 条件尚未实现，也不属于 Phase 3 完成或 Phase 8 planning 的循环前置条件。
@@ -313,6 +315,8 @@
 
 **目标**：`frontend/src/lib/firebase.js` 1692 行所有"业务规则"全部搬到 FastAPI；前端只读 REST。
 
+**当前治理状态**：`MR-2EC4192-20260713-01` 的 verdict 为 `accepted_with_documented_deferral`，reviewed/accepted commit 均为 `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`。历史 embedded artefact 与 child-row reconciliation 仍为 `not run`，三个 legacy sync routes 仍是 authenticated HTTP 501 quarantine shells；legacy count/identity mismatch 仍可能存在，成功 indexing/retrieval/logging 被有意设为不可用。Data Reconciliation Owner 在导入 legacy rows、删除 embedded fallback 或发现 mismatch 前触发 reconciliation；Phase 9 RAG Replacement Owner 只能在 Phase 9 获授权后推进 replacement。
+
 ### Step 5.1 业务能力清单（按 firebase.js 文件区段）
 逐项搬到 `app/api/`，对应 endpoint 命名：
 - `users` 相关 → `/api/users/me`、`/api/admin/users`；第一个管理员只允许通过 `scripts/seed_admin.py` 创建。
@@ -366,7 +370,7 @@
 
 **边界**：Phase 6 只负责为卸载 Firebase SDK 所必需的前端去 Firebase 化。若某些前端文件持续 import Firebase，Phase 6 可以删除或隔离这些文件以解除 active SDK dependency；但 Valorie/domain/tenant/invite/migration 残留的语义清理仍归 Phase 7，Phase 6 不扩展为 Phase 7 cleanup。
 
-**当前治理状态**：audit-grade verdict 为 `pending`。`P6-DEFIREBASE-CORRECTION-01` 已 supersede 不受 artifact 支持的 acceptance record（只 supersede 当前状态，不改写历史记录）；`27679f8ff832a70a7f69782d8d45a52eab343525` 只能作为 implementation candidate。`accepted_commit` 缺失。Browser smoke 仍为 `not run`，等待具备授权的完整环境和 focused review。
+**当前治理状态**：`MR-2EC4192-20260713-01` 的 verdict 为 `accepted_with_documented_deferral`，reviewed/accepted commit 均为 `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`；`27679f8ff832a70a7f69782d8d45a52eab343525` 仍只是历史 implementation candidate。Authenticated browser smoke 未运行，因为完整 live environment 不可用且 Docker builder 仍不兼容；host unit/static evidence 可能漏掉 browser-cookie、live REST 或 container integration 缺陷。Container Runtime Owner 负责 compatible builder，Migration Verification Owner 负责 browser smoke；trigger 是 separately reviewed Node-compatible builder 加 authorized live Postgres/pgvector、migrated schema、backend/frontend 和 seeded credentials，并在依赖这些 flows 的 release 前执行。
 
 ### Step 6.1 AuthContext 重写
 - 删 `onAuthStateChanged` / `signInWithEmailAndPassword`。
@@ -403,7 +407,7 @@
 
 **目标**：仓库里看不到 valorie / UNSW / 客户专属字符串；删除一次性脚本和不需要的多租户路径。
 
-**当前治理状态**：verdict 为 `pending`。`fa97afd2de0fd9dea66fe86a519f440285717552` 只能记录为 pushed candidate，不是 accepted closeout 或 accepted commit。Materials object-level authorization 是 P1 remediation：新 ownership 允许历史行保持 ownerless，不做任意 backfill 或删除；ownerless rows 必须从 authenticated retrieval 隔离。Security Owner + Backend Owner 必须在 Phase 7 acceptance 或任何 multi-user/production use 前给出可验证的 legacy-owner mapping 或其他明确 disposition；在此之前 unquarantine 是 blocker。
+**当前治理状态**：`MR-2EC4192-20260713-01` 在 reviewed commit `2ec41926ab6b9910e7b05f60839ba24c8b5cb236` 给出的 verdict 仍为 `pending`，没有 `accepted_commit`；`fa97afd2de0fd9dea66fe86a519f440285717552` 只是较早的 pushed candidate。三个 blocker 必须全部保留：(1) Security Owner + Backend Owner 的 legacy-owner mapping/disposition approval 缺失；历史 ownerless rows 虽安全 quarantine、不是 active IDOR，但不得因此解除 blocker；(2) Database Migration Owner 的 live `0005` upgrade/current、FK/index inspection 和实际 `ON DELETE SET NULL` evidence 缺失；(3) Container Runtime Owner 尚未提供 reviewed Node-compatible builder。Browser smoke 可在以后作为 documented deferral 携带，但它本身不是独立 acceptance blocker。Corrective remediation accepted 不等于 Phase 7 complete。
 
 ### Step 7.1 域名/品牌 env 化
 - 新 env：`APP_BASE_DOMAIN=your-domain.com`、`APP_NAME=YourAgent`、`SUPER_ADMIN_EMAIL=you@your-domain.com`。
@@ -454,11 +458,11 @@
 ### Phase 8 入口治理门
 
 - 正式依赖为 Phase 3、4、5、7。
-- Phase 8 planning 只能在 `docs/migration/REVIEW_LEDGER.md` 记录 Phase 7 被具名 reviewer 判为 `accepted` 或 `accepted_with_documented_deferral` 后开始。
+- Phase 8 planning 必须保持 blocked，直到 Phase 7 获得具名 reviewer 的 `accepted` 或 `accepted_with_documented_deferral` verdict、该 verdict 明确记录 conditions、owners 和 triggers，且所有正式 canonical dependencies（Phase 3、Phase 4、Phase 5、Phase 7）均处于 acceptable 状态并各自由具名 reviewer 的 `accepted` 或 `accepted_with_documented_deferral` verdict 支持；Phase 8 planning package 被 review 前，Phase 8 implementation 仍然禁止。
 - `accepted_with_documented_deferral` 必须包含明确 conditions、deferral owner 和 trigger；不要求 `conditions=none`。
-- `fa97afd2de0fd9dea66fe86a519f440285717552` 当前只是 Phase 7 pushed candidate，不能解除入口门。
+- `fa97afd2de0fd9dea66fe86a519f440285717552` 是较早的 Phase 7 pushed candidate；`MR-2EC4192-20260713-01` 在 reviewed HEAD `2ec41926ab6b9910e7b05f60839ba24c8b5cb236` 仍给出 Phase 7 `pending`，二者都不能解除入口门。
 - Phase 8 planning package 被 review 前，禁止实现任何 Phase 8 runtime 功能。本 governance repair 不启动、设计或实现 Phase 8 功能。
-- **当前门状态**：closed；Phase 7 仍为 `pending`，本 corrective remediation 不启动 Phase 8 planning 或 implementation。
+- **当前 verdict / 门状态**：`pending` / `closed`；Phase 7 仍为 `pending`，没有 Phase 8 planning 或 implementation artifact，本 transcription 不启动 Phase 8 planning 或 implementation。
 
 ### Step 8.1 Agent 数据模型
 - 用 Phase 4 已建好的 `agent_runs / agent_messages / agent_tool_invocations` 表。

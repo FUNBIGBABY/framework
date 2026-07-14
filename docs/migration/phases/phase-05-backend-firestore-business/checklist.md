@@ -1,5 +1,11 @@
 # Phase 05 Checklist - Backend Firestore Business Logic
 
+## Current Reviewer Transcription - 2026-07-13
+
+- [x] Review event `MR-2EC4192-20260713-01` records `accepted_with_documented_deferral` for Phase 5 at reviewed/accepted commit `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`.
+- [ ] Historical embedded artefact versus child-row reconciliation remains `not run`; the three legacy sync routes remain authenticated HTTP 501 quarantine shells. Legacy count/identity mismatches could exist, while successful indexing/retrieval/logging remains intentionally unavailable.
+- [ ] Data Reconciliation Owner triggers the reconciliation before importing legacy rows, deleting the embedded fallback, or on any mismatch. Phase 9 RAG Replacement Owner may act only after Phase 9 is authorized. These unchecked deferred conditions do not change the recorded accepted-with-deferral verdict.
+
 ## Governance Reconciliation - 2026-07-10
 
 - [x] Create `capability-inventory.md` from historical `frontend/src/lib/firebase.js` and restrict every item to one approved disposition.
@@ -7,7 +13,7 @@
 - [x] Record `a2115042771d9e91e9410cf5597031f3c78bee9a` as later status wording only; neither commit proves reviewer acceptance.
 - [x] Assign historical embedded `frameworks.artefacts_json` to `conditional data reconciliation` with Data Reconciliation Owner and an explicit trigger.
 - [ ] Attach dated database/snapshot evidence comparing embedded artefact counts and identities with child rows, or an equivalent shape-aware audit with documented sampling and data-source provenance. The existing zero-child SQL result alone cannot prove `not applicable`; any non-zero result or partial/count/identity mismatch requires separately authorized data reconciliation. Status for this corrective remediation: `not run`.
-- [ ] Focused Migration Reviewer re-review records a named reviewer/date/verdict against the capability matrix and evidence. Current ledger verdict: `pending`; original reviewer artifact: `artifact unavailable`.
+- [x] Focused Migration Reviewer re-review was later recorded by `MR-2EC4192-20260713-01`: reviewer `Migration Reviewer Agent`, timestamp `2026-07-13T21:44:01.9648007+08:00`, verdict `accepted_with_documented_deferral`, and reviewed/accepted commit `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`. At the 2026-07-10 reconciliation this evidence had been pending and unavailable.
 
 Historical round checkmarks and closeout prose below remain execution evidence and do not override the ledger.
 

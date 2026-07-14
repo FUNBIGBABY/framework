@@ -1,5 +1,16 @@
 # Phase 03 Verification - DeepSeek V4
 
+## Current Reviewer Transcription - 2026-07-13
+
+- `review_id`: `MR-2EC4192-20260713-01`
+- `verdict`: `pending`
+- `reviewed_commit`: `e902205f198540cc7a3abcc6b802ef285f45554f`, as represented at reviewed HEAD `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`
+- `accepted_commit`: absent
+- Missing evidence: authorized real `DeepSeekProvider.tool_call()` smoke against the official endpoint.
+- `owners`: LLM Provider Owner for readiness; Migration Verification Owner for execution.
+- `triggers`: authorized key; reachable official endpoint; non-dev/non-dry-run configuration; reviewed candidate; rerun after base URL, model, thinking policy, SDK/default transport, or provider call-path changes.
+- This transcription did not run the real DeepSeek smoke and does not claim it passed.
+
 ## Governance Reconciliation - 2026-07-10
 
 - Current ledger verdict: `pending`.
@@ -9,7 +20,8 @@
 
 ### Real-smoke evidence template (not run)
 
-When an authorized environment becomes available, Migration Verification Owner records:
+LLM Provider Owner is responsible for readiness; when an authorized environment
+becomes available, Migration Verification Owner executes the smoke and records:
 
 - named reviewer/verifier and RFC 3339 date;
 - full reviewed commit;
@@ -20,7 +32,10 @@ When an authorized environment becomes available, Migration Verification Owner r
 - sanitized provider response/tool-call identifiers and, when the SDK exposes it, the separately labelled SDK request identifier;
 - status/result and error summary without API key, full prompt, or full reasoning content.
 
-Trigger: before Phase 3 final re-review and after a change to DeepSeek base URL, model, thinking policy, SDK, or provider call path.
+Trigger: an authorized key, reachable official endpoint, non-dev/non-dry-run
+configuration, and a reviewed candidate; rerun before Phase 3 final re-review
+and after a change to DeepSeek base URL, model, thinking policy, SDK/default
+transport, or provider call path.
 
 ## Syntax Check
 
@@ -65,6 +80,8 @@ cd backend_py
 ```
 
 Result: `50 passed`, with existing deprecation warnings. The full backend suite passed `128` tests. The real DeepSeek smoke remained explicitly `not run`.
+
+Transcription note (review event `MR-2EC4192-20260713-01`): the `50` focused / `128` backend results above belong to an earlier corrective run and remain unchanged as historical evidence. At the exact reviewed HEAD `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`, the Reviewer recorded focused backend `52 passed` and complete backend `130 passed`. This documentation transcription did not rerun either test command and does not replace the earlier result.
 
 Latest review-fix targeted command:
 

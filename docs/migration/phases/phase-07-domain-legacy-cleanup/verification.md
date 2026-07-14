@@ -1,5 +1,9 @@
 # Phase 07 Verification - Domain and Legacy Cleanup
 
+## Current Reviewer Transcription - 2026-07-13
+
+Review event `MR-2EC4192-20260713-01` records Phase 7 as `pending` at reviewed commit `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`, with no `accepted_commit`. Three blockers remain: Security Owner + Backend Owner legacy-owner mapping/disposition approval; Database Migration Owner live `0005` upgrade/current, FK/index inspection and actual `ON DELETE SET NULL` evidence; and a reviewed Node-compatible builder from Container Runtime Owner. Ownerless rows remain safely quarantined and are not an active IDOR, but that does not clear the ownership blocker. Browser smoke may later be carried as a documented deferral and is not independently the acceptance blocker. This transcription did not run live PostgreSQL, Docker, browser, or other tests and does not make Phase 7 complete.
+
 ## Governance Reconciliation - 2026-07-10
 
 - Current verdict: `pending`.
@@ -9,13 +13,13 @@
 - Owners: Container Runtime Owner for the build correction; Migration Verification Owner for browser smoke.
 - Triggers: a separately reviewed compatible runtime candidate, then the complete authorized environment; run before a release relying on these flows or carry as an explicit later reviewer condition.
 - Missing browser smoke is not automatically a blocker. A named reviewer may record `accepted` or `accepted_with_documented_deferral`; the latter requires explicit conditions, owner, and trigger and does not require `conditions=none`.
-- Phase 8 planning remains blocked until that ledger verdict exists. Phase 8 implementation remains prohibited until its planning package is reviewed.
+- Phase 8 planning must remain closed until Phase 7 receives a named `accepted` or `accepted_with_documented_deferral` verdict with explicit conditions, owners, and triggers, and all canonical dependencies are in acceptable states. Phase 8 implementation remains prohibited until its planning package is reviewed.
 - Materials ownership is a P1 remediation, not reviewer-attention-only. Pre-existing rows remain ownerless without arbitrary backfill or deletion and are quarantined from authenticated retrieval. Security Owner + Backend Owner must approve verified legacy-owner mapping/disposition before Phase 7 acceptance or any multi-user/production use; unquarantine remains blocked until then. Legacy `vector_sync` HTTP 501 shells are quarantined deferred compatibility surfaces rather than parity; Phase 9 RAG Replacement Owner owns any future replacement.
 - Dormant legacy/security cleanup removed `backend_py/app/api/test.py` only after repository-wide scans found no import, mount, explicit path reference, or router auto-discovery. It was an unauthenticated duplicate that could have revived the Materials IDOR if mounted, but no current reachability is claimed. Post-deletion prefix scans leave only `app.api.materials`.
 
 The historical commands/results below remain execution evidence. This corrective remediation adds no Docker, browser, real DeepSeek, or live-Postgres result.
 
-Round 0/1 implementation status: this document defines the verification contract, records initial planning scans, and records Round 0/1 implementation verification. A requested deploy/nginx/docker naming cleanup pass was verified on 2026-07-02. Migration placeholder route/tool cleanup was verified on 2026-07-05. Frontend personal-route cleanup was verified on 2026-07-06. Unmounted frontend tenant/org/invite placeholder cleanup was verified on 2026-07-07. Frontend organization-sharing UI residue cleanup was verified on 2026-07-07. Frontend AuthContext tenant/org state cleanup was verified on 2026-07-08. Frontend API request-normalization cleanup was verified on 2026-07-08. Obsolete current docs/scripts cleanup was verified on 2026-07-09. It does not mark Phase 7 complete; current verdict remains pending. Historical Phase 7 execution relied on the Phase 6 accepted-with-deferral handoff that `P6-DEFIREBASE-CORRECTION-01` now supersedes for current audit status; the historical execution evidence remains unchanged.
+Round 0/1 implementation status: this document defines the verification contract, records initial planning scans, and records Round 0/1 implementation verification. A requested deploy/nginx/docker naming cleanup pass was verified on 2026-07-02. Migration placeholder route/tool cleanup was verified on 2026-07-05. Frontend personal-route cleanup was verified on 2026-07-06. Unmounted frontend tenant/org/invite placeholder cleanup was verified on 2026-07-07. Frontend organization-sharing UI residue cleanup was verified on 2026-07-07. Frontend AuthContext tenant/org state cleanup was verified on 2026-07-08. Frontend API request-normalization cleanup was verified on 2026-07-08. Obsolete current docs/scripts cleanup was verified on 2026-07-09. It does not mark Phase 7 complete; current verdict remains pending. Historical Phase 7 execution relied on the Phase 6 accepted-with-deferral handoff; `P6-DEFIREBASE-CORRECTION-01` later corrected its audit status, and `MR-2EC4192-20260713-01` now supplies the current named Phase 6 accepted-with-deferral re-review. The historical execution evidence remains unchanged, and none of those Phase 6 records completes Phase 7.
 
 ## 2026-07-13 Dormant Materials Router Verification
 
@@ -38,6 +42,8 @@ backend_py/app\api\materials.py:14:router = APIRouter(prefix="/materials", tags=
 ```
 
 The final Python import/mount scan returned `NO_PYTHON_IMPORT_OR_MOUNT_MATCHES`, and the dynamic-discovery scan returned `NO_DYNAMIC_ROUTER_DISCOVERY_PRIMITIVES`. The focused auth/Materials/DeepSeek/provider command passed `50` tests, and the full backend command passed `128` tests. Python compilation of the changed backend, smoke, test, and migration files exited `0`.
+
+Transcription note (review event `MR-2EC4192-20260713-01`): the `50` focused / `128` backend results above belong to an earlier corrective run and remain unchanged as historical evidence. At the exact reviewed HEAD `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`, the Reviewer recorded focused backend `52 passed` and complete backend `130 passed`. This documentation transcription did not rerun either test command and does not replace the earlier result.
 
 ## Verification Principles
 

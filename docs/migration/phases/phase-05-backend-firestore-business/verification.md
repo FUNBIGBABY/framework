@@ -1,5 +1,11 @@
 # Phase 05 Verification - Backend Firestore Business Logic
 
+## Current Reviewer Transcription - 2026-07-13
+
+- Review event `MR-2EC4192-20260713-01` records verdict `accepted_with_documented_deferral` at reviewed/accepted commit `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`.
+- Historical embedded artefact versus child-row reconciliation remains `not run`; the authenticated 501 legacy sync routes remain quarantine shells. No live data result is claimed by this transcription.
+- Residual risk is possible legacy artefact count/identity mismatch and intentionally unavailable successful indexing/retrieval/logging. Data Reconciliation Owner retains the import/fallback-deletion/mismatch triggers; Phase 9 RAG Replacement Owner may act only after Phase 9 authorization.
+
 ## Current Corrective Status
 
 The earlier reviewer-attention-only statement below is superseded. Materials
@@ -13,7 +19,7 @@ not functional parity; Phase 9 RAG Replacement Owner owns any future replacement
 
 ## Governance Reconciliation - 2026-07-10
 
-- Current ledger verdict: `pending`; original reviewer identity/date/raw artifact: `artifact unavailable`.
+- At the 2026-07-10 reconciliation, the ledger verdict was `pending` and the reviewer identity/date/raw artifact were unavailable. The current named verdict/artifact is the 2026-07-13 transcription above.
 - Implementation commit: `742f1e79f3fb71d44ce21284999e64ca76c5060f`.
 - Later status-wording commit: `a2115042771d9e91e9410cf5597031f3c78bee9a`; it is not acceptance evidence.
 - Historical capability enumeration and disposition: `capability-inventory.md`.

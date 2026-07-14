@@ -1,13 +1,20 @@
 # Phase 06 Round 0/1/2/3/4/5/6 Report - Frontend de-Firebase
 
-## Current Audit Correction
+## Current Reviewer Transcription - 2026-07-13
 
-`P6-DEFIREBASE-CORRECTION-01` supersedes the status assertions below without
-deleting their historical evidence. The current audit-grade verdict is
-`pending`; `27679f8ff832a70a7f69782d8d45a52eab343525` is an implementation
-candidate only, `accepted_commit` is absent, and reviewer identity, reviewed
-SHA, review date, and raw verdict artifact remain unavailable. Phase 7 remains
-`pending`, so the Phase 8 gate remains closed.
+Review event `MR-2EC4192-20260713-01` records Phase 6 as
+`accepted_with_documented_deferral` at reviewed/accepted commit
+`2ec41926ab6b9910e7b05f60839ba24c8b5cb236`; the historical
+`27679f8ff832a70a7f69782d8d45a52eab343525` remains an implementation candidate.
+Authenticated browser smoke was not run because the complete live environment
+is unavailable and the Docker builder remains incompatible. Residual risk is
+that host unit/static evidence may miss browser-cookie, live REST, or container
+integration defects. Container Runtime Owner owns the compatible builder and
+Migration Verification Owner owns browser smoke; trigger on a separately
+reviewed Node-compatible builder plus authorized live Postgres/pgvector,
+migrated schema, backend/frontend, and seeded credentials, before a release
+relying on these flows. Phase 7 remains `pending`, so the Phase 8 verdict remains
+`pending` and its gate state remains `closed`.
 
 ## Governance Reconciliation - 2026-07-10
 
