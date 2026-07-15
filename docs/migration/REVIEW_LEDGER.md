@@ -349,3 +349,24 @@ The six entries below are verdict slices transcribed from the single review even
 - `verification_not_performed`: Docker build/runtime, browser smoke, live PostgreSQL upgrade/current/FK inspection or live `ON DELETE SET NULL` exercise, real DeepSeek, external GCP/key evidence, remote-server query, and push were not performed; `DEEPSEEK_API_KEY=NOT SET`.
 - `artifact`: `docs/migration/review-artifacts/MR-2EC4192-20260713-01.md`
 - `artifact_status`: `named reviewer artifact preserved; pending closed-gate verdict transcribed without a slice-specific reviewed_commit or accepted_commit`
+
+## Evidence publication records
+
+### GOV-EVIDENCE-PUBLICATION-9707C21-01
+
+- `record_id`: `GOV-EVIDENCE-PUBLICATION-9707C21-01`
+- `record_type`: `evidence publication and post-review materialization/transport mapping; not a review event or verdict`
+- `recorded_at`: `2026-07-15T19:48:47.3239864+08:00`
+- `publisher`: `Documentation/Governance Evidence Publisher; not the reviewer`
+- `source_review_event`: `MR-2EC4192-20260713-01`
+- `artifacts_published`:
+  - `IGTR-2EC4192-20260714-01`: `timestamp=2026-07-14T10:06:43.4499419+08:00`; `source_verdict=rejected`; `manifest=957d033b5cbc03d14a54665f6c9d38fdbd728d7c53503a96cf14a374428c7e64`; `repo_path=docs/migration/review-artifacts/IGTR-2EC4192-20260714-01.md`; `bytes=8061`; `SHA-256=df7f54e5e0b6243cf3826e474d3ea44b6166db4fe102731320a7eecdaf130156`; `raw_blob=4f8de8baa8a19d0d171369b95996ecedb54ba5ec`
+  - `IGTR-2EC4192-20260714-02`: `timestamp=2026-07-14T11:16:23.4439511+08:00`; `source_verdict=accepted`; `manifest=dbe04423848e1d1487b5a1e96f9d5a63bae59d889274d38dc7915e9e37c13143`; `repo_path=docs/migration/review-artifacts/IGTR-2EC4192-20260714-02.md`; `bytes=10215`; `SHA-256=4cd79fa0c5bb7556067885777c6f4e54981fd28120f08161ef4ad345f6faa3f3`; `raw_blob=d9223afeaf950d9b095d03abb5404ce9477aa870`
+  - `IGTR-2EC4192-20260714-03`: `timestamp=2026-07-14T23:48:47.9552051+08:00`; `source_verdict=accepted`; `manifest=8799d01f8553d664fbea701175124f8883b5655bfca4268a65b46993ee0e86c2`; `repo_path=docs/migration/review-artifacts/IGTR-2EC4192-20260714-03.md`; `bytes=13691`; `SHA-256=b18b5c53d2f5a4e52a6388719bb1617e0c69ab64835a691959b91195880c0740`; `raw_blob=a3ba74a7f3102b680d8b8da7155db816cecdd373`
+- `review_chain`: `IGTR-2EC4192-20260714-01` rejects only the old manifest `957d033b5cbc03d14a54665f6c9d38fdbd728d7c53503a96cf14a374428c7e64`; `IGTR-2EC4192-20260714-02` accepts only the exact 16-file manifest `dbe04423848e1d1487b5a1e96f9d5a63bae59d889274d38dc7915e9e37c13143`; `IGTR-2EC4192-20260714-03` accepts only the exact 17-file manifest `8799d01f8553d664fbea701175124f8883b5655bfca4268a65b46993ee0e86c2`. The three review events are independent; none amends, overrides, or rewrites another.
+- `materialization_mapping`: The exact 17-file manifest `8799d01f8553d664fbea701175124f8883b5655bfca4268a65b46993ee0e86c2` accepted by `IGTR-2EC4192-20260714-03` subsequently materialized without byte drift as ordinary commit `9707c2144e1ef60cd4538c71035e03ab76d21b4d`, whose parent is `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`; 17/17 committed blobs match the reviewed raw candidate. This is a post-review repository fact, not a Reviewer-provided `accepted_commit`.
+- `subset_note`: The 16 entries in `IGTR-2EC4192-20260714-02` are byte-identical to the corresponding entries in `IGTR-2EC4192-20260714-03`, but the 16-file candidate did not separately materialize as a commit; manifest `dbe04423848e1d1487b5a1e96f9d5a63bae59d889274d38dc7915e9e37c13143` is not mapped to an `accepted_commit`.
+- `rejection_note`: `IGTR-2EC4192-20260714-01` remains rejected historical evidence and has no materialized or accepted commit.
+- `transport_observation`: `c32bb88..9707c21  main -> main` was an ordinary, non-force fast-forward push. After the push, local `HEAD`/`main` and locally tracked `origin/main` were all `9707c2144e1ef60cd4538c71035e03ab76d21b4d`, with `ahead 0 / behind 0`. This is transport evidence only, does not expand the Reviewer verdict, and makes no claim of an independent remote-server query beyond the push.
+- `phase_verdict_effect`: `none`; this record does not create, modify, or supersede any Reviewer verdict and does not populate any Reviewer `accepted_commit`. Overall remediation remains `accepted` at `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`; Phase 3 remains `pending`; Phase 4 remains `pending`; Phases 5 and 6 remain `accepted_with_documented_deferral` at `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`; Phase 7 remains `pending`; Phase 8 remains `pending/closed`; the three Phase 7 blockers remain; Phase 9 is not authorized.
+- `artifact_status`: The three raw artifacts are published byte-for-byte under `-text !eol whitespace=cr-at-eol`; this mapping record is publisher-authored metadata, not reviewer-authored content.

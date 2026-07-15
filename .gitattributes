@@ -1,4 +1,4 @@
 # Normalize all text files to LF in the repo
 * text=auto eol=lf
 # Preserve raw governance review artifacts byte-for-byte
-docs/migration/review-artifacts/** -text !eol
+docs/migration/review-artifacts/** -text !eol whitespace=cr-at-eol
