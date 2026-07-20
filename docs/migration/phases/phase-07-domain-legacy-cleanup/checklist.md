@@ -8,6 +8,19 @@
 - [ ] Container Runtime Owner has not supplied the reviewed Node-compatible builder.
 - Browser smoke may later be carried as a documented deferral; it is not independently the acceptance blocker. Migration Verification Owner retains the later complete-authorized-environment trigger.
 
+## Post-review Owner Decision - 2026-07-15
+
+- [x] ADR-0002 records the Project Owner, acting as Security Owner and Backend Owner, approving continued quarantine of every historical Material row whose `owner_id IS NULL` as the final disposition for this migration / Phase 7 scope.
+
+The unchecked owner-disposition item in `Current Reviewer Transcription - 2026-07-13` remains unchanged above as the Reviewer's historical state at reviewed commit `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`. ADR-0002 supplies the missing joint owner decision for evaluation by a future named Phase 7 re-review; it does not amend `MR-2EC4192-20260713-01`, create a Phase 7 verdict or `accepted_commit`, or make Phase 7 complete. Phase 7 remains `pending`.
+
+The two technical blockers remain:
+
+1. Database Migration Owner live PostgreSQL `0005` upgrade/current, FK/index, actual `ON DELETE SET NULL`, and authenticated 404 evidence.
+2. Container Runtime Owner reviewed Node-compatible builder.
+
+No runtime, migration, database, Docker, browser, or external-system action occurred. Phase 8 remains `pending` / `closed`.
+
 ## Governance Reconciliation - 2026-07-10
 
 - [x] Record current verdict as `pending`.

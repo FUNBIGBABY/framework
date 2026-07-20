@@ -6,6 +6,17 @@ Review event `MR-2EC4192-20260713-01` records Phase 7 as `pending` at reviewed c
 
 Planning status: documentation only. This plan did not implement backend, frontend, test, migration, deployment, or documentation cleanup, and it did not mark Phase 7 complete. Historical planning relied on a Phase 6 acceptance record that `P6-DEFIREBASE-CORRECTION-01` later superseded for audit status; `MR-2EC4192-20260713-01` now supplies the current named Phase 6 accepted-with-deferral re-review. The historical planning evidence remains unchanged and the current Phase 7 verdict is `pending`.
 
+## Post-review Owner Decision - 2026-07-15
+
+ADR-0002 records the Project Owner, acting as Security Owner and Backend Owner, approving continued quarantine of every historical Material row whose `owner_id IS NULL` as the final disposition for this migration / Phase 7 scope. It supplies the previously missing joint owner decision for evaluation by a future named Phase 7 re-review. It does not amend `MR-2EC4192-20260713-01`, create a Phase 7 verdict or `accepted_commit`, or make Phase 7 complete. Phase 7 remains `pending`.
+
+The two technical blockers remain:
+
+1. Database Migration Owner live PostgreSQL `0005` upgrade/current, FK/index, actual `ON DELETE SET NULL`, and authenticated 404 evidence.
+2. Container Runtime Owner reviewed Node-compatible builder.
+
+No runtime, migration, database, Docker, browser, or external-system action occurred. Phase 8 remains `pending` / `closed`.
+
 ## Governance Reconciliation - 2026-07-10
 
 - Current verdict: `pending`.

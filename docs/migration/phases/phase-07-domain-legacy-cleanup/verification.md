@@ -4,6 +4,93 @@
 
 Review event `MR-2EC4192-20260713-01` records Phase 7 as `pending` at reviewed commit `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`, with no `accepted_commit`. Three blockers remain: Security Owner + Backend Owner legacy-owner mapping/disposition approval; Database Migration Owner live `0005` upgrade/current, FK/index inspection and actual `ON DELETE SET NULL` evidence; and a reviewed Node-compatible builder from Container Runtime Owner. Ownerless rows remain safely quarantined and are not an active IDOR, but that does not clear the ownership blocker. Browser smoke may later be carried as a documented deferral and is not independently the acceptance blocker. This transcription did not run live PostgreSQL, Docker, browser, or other tests and does not make Phase 7 complete.
 
+## Post-review Owner Decision - 2026-07-15
+
+ADR-0002 records the Project Owner, acting as Security Owner and Backend Owner, approving continued quarantine of every historical Material row whose `owner_id IS NULL` as the final disposition for this migration / Phase 7 scope. It supplies the previously missing joint owner decision for evaluation by a future named Phase 7 re-review. It does not amend `MR-2EC4192-20260713-01`, create a Phase 7 verdict or `accepted_commit`, or make Phase 7 complete. Phase 7 remains `pending`.
+
+The two technical blockers remain:
+
+1. Database Migration Owner live PostgreSQL `0005` upgrade/current, FK/index, actual `ON DELETE SET NULL`, and authenticated 404 evidence.
+2. Container Runtime Owner reviewed Node-compatible builder.
+
+No runtime, migration, database, Docker, browser, or external-system action occurred. This docs-only record did not enumerate, modify, map, delete, or unquarantine any Material rows. Phase 8 remains `pending` / `closed`.
+
+### Docs-only candidate verification
+
+All commands in this subsection were run from the repository root unless a working directory is stated. They were read-only and used no network, database, Docker, browser, runtime, migration, or test action.
+
+#### Git preconditions, refs, scope, and index
+
+Commands:
+
+```powershell
+git rev-parse HEAD
+git rev-parse main
+git rev-parse refs/remotes/origin/main
+git rev-list --left-right --count main...refs/remotes/origin/main
+git status --porcelain=v1 --untracked-files=all
+git diff --cached --name-only
+```
+
+Results:
+
+- Before editing, the worktree and index were clean; `HEAD`, `main`, and locally tracked `origin/main` all equalled `0f86d9cffdd656d5d4463a0577395e1d82d6bdfa`; ahead/behind was `0/0`.
+- After editing, the index remained empty. The candidate contained exactly seven unstaged modified Markdown files and one untracked Markdown file: `MIGRATION_PHASES.md`, `docs/migration/README.md`, `docs/migration/REVIEW_LEDGER.md`, `docs/migration/decisions/ADR-0002-ownerless-material-disposition.md`, and the Phase 7 `checklist.md`, `phase-plan.md`, `phase-report.md`, and `verification.md`.
+- There were no non-Markdown changes. No file was staged, committed, or pushed.
+
+#### Ledger and historical-section preservation
+
+Commands:
+
+```powershell
+git cat-file blob HEAD:docs/migration/REVIEW_LEDGER.md
+git show HEAD:docs/migration/phases/phase-07-domain-legacy-cleanup/checklist.md
+git show HEAD:docs/migration/phases/phase-07-domain-legacy-cleanup/phase-plan.md
+git show HEAD:docs/migration/phases/phase-07-domain-legacy-cleanup/phase-report.md
+git show HEAD:docs/migration/phases/phase-07-domain-legacy-cleanup/verification.md
+```
+
+The ledger blob was captured as bytes and compared with the same-length worktree prefix. Each historical H2 section was extracted through the next H2 and compared with its `HEAD` version.
+
+Results:
+
+- The original ledger prefix was byte-for-byte unchanged: `45,680` bytes, SHA-256 `2712ec2607508634355ea1e9326d19651af7584945f1cee86b04fc2945e257fc`. The new H2 starts immediately after the original EOF.
+- The appended record contained all 15 required fields and no exact `review_id`, `verdict`, or `accepted_commit` field. Its `decided_at` value matched RFC 3339 with `+08:00`.
+- The four `Current Reviewer Transcription - 2026-07-13` sections were unchanged. Their SHA-256 values were `be31f9ea21ca320f68124cf1a144027d674bf229d3c827026792d53da4dc28d3` (checklist), `914336eb553989cce61452ebb0055c45558ef0fd346e3762ed89ecf6a8398cf4` (plan), `4da4b7c081604418d3ef9b05888ccd03848bb46385153b9dc89f34dd14e662e1` (report), and `8f49193b1ead843b6caf86238e518c780e4ffab6e326153934469b2690594ae1` (verification).
+
+#### Status-content, whitespace, formatting, and links
+
+Commands:
+
+```powershell
+rg -n -C 1 "three blockers|三个 blocker|三-blocker|ADR-0002|two technical blockers|两个 technical blocker|unresolved technical blockers|Phase 7 remains.*pending|Phase 8 remains.*(?:pending|closed)|Browser smoke.*documented deferral" MIGRATION_PHASES.md docs/migration/README.md
+git diff --check
+```
+
+```powershell
+# working directory: frontend
+npm run format:check
+```
+
+```powershell
+& '.\frontend\node_modules\.bin\prettier.cmd' --config '.\frontend\.prettierrc' --check 'MIGRATION_PHASES.md' 'docs\migration\README.md' 'docs\migration\REVIEW_LEDGER.md' 'docs\migration\decisions\ADR-0002-ownerless-material-disposition.md' 'docs\migration\phases\phase-07-domain-legacy-cleanup\checklist.md' 'docs\migration\phases\phase-07-domain-legacy-cleanup\phase-plan.md' 'docs\migration\phases\phase-07-domain-legacy-cleanup\phase-report.md' 'docs\migration\phases\phase-07-domain-legacy-cleanup\verification.md'
+```
+
+```powershell
+$markdownFiles = @(git ls-files --cached --others --exclude-standard -- '*.md')
+# Inline PowerShell validation classified Markdown link targets, resolved every
+# local path, and checked any local :line target against the target line count.
+```
+
+Results:
+
+- Required-clause assertions passed for both current summaries, all four post-review sections, and ADR-0002. The strict false-state scan found zero affirmative acceptance/completion/opening claims. The summaries consistently retain the historical three blockers, add the later owner decision, and identify the two unresolved technical blockers.
+- `git diff --check` exited `0`.
+- The repository-established `npm run format:check` exited `1` on 10 pre-existing frontend JS/JSX formatting warnings. Its configured glob covers only `frontend/src/**/*.{js,jsx,json,css,md}` and does not cover these eight Markdown files. No rewrite command was used.
+- The candidate-specific Prettier 3.6.2 check exited `1`, warning on `MIGRATION_PHASES.md` and this Phase 7 `phase-report.md`; read-only comparison confirmed both `HEAD` versions already differ from the same formatter. The other six candidate Markdown files passed. No rewrite command was used.
+- Link validation examined 47 Markdown files: 30 local links, 13 external links, and zero broken local links. It did not query external URLs.
+- All eight candidate files were UTF-8 without BOM, LF-only, and ended with LF.
+
 ## Governance Reconciliation - 2026-07-10
 
 - Current verdict: `pending`.

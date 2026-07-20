@@ -370,3 +370,23 @@ The six entries below are verdict slices transcribed from the single review even
 - `transport_observation`: `c32bb88..9707c21  main -> main` was an ordinary, non-force fast-forward push. After the push, local `HEAD`/`main` and locally tracked `origin/main` were all `9707c2144e1ef60cd4538c71035e03ab76d21b4d`, with `ahead 0 / behind 0`. This is transport evidence only, does not expand the Reviewer verdict, and makes no claim of an independent remote-server query beyond the push.
 - `phase_verdict_effect`: `none`; this record does not create, modify, or supersede any Reviewer verdict and does not populate any Reviewer `accepted_commit`. Overall remediation remains `accepted` at `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`; Phase 3 remains `pending`; Phase 4 remains `pending`; Phases 5 and 6 remain `accepted_with_documented_deferral` at `2ec41926ab6b9910e7b05f60839ba24c8b5cb236`; Phase 7 remains `pending`; Phase 8 remains `pending/closed`; the three Phase 7 blockers remain; Phase 9 is not authorized.
 - `artifact_status`: The three raw artifacts are published byte-for-byte under `-text !eol whitespace=cr-at-eol`; this mapping record is publisher-authored metadata, not reviewer-authored content.
+
+## Owner decision records
+
+### P7-MATERIALS-DISPOSITION-20260715-01
+
+- `record_id`: `P7-MATERIALS-DISPOSITION-20260715-01`
+- `record_type`: owner decision and post-review blocker evidence; not a review event or verdict
+- `decided_at`: `2026-07-15T21:08:18.1658360+08:00`
+- `decision_owners`: Project Owner acting as Security Owner and Backend Owner
+- `approval_source`: explicit Project Owner confirmation to the Project Steward on 2026-07-15
+- `decision`: Quarantine is the final disposition for this migration / Phase 7 scope for every historical Material row whose `owner_id IS NULL`; no database mutation or deletion is required.
+- `prohibited_actions`: Do not automatically backfill, infer, fabricate, or arbitrarily assign an owner. Do not expose, list, retrieve, or unquarantine these rows through authenticated application paths.
+- `future_mapping_gate`: A future ownership mapping is allowed only when authoritative provenance exists and a separately authorized, independently reviewed migration preserves that evidence.
+- `future_deletion_gate`: Future deletion requires separate explicit authorization.
+- `runtime_effect`: none; this docs-only record did not enumerate, modify, map, delete, or unquarantine any rows
+- `evidence`: `docs/migration/decisions/ADR-0002-ownerless-material-disposition.md`
+- `historical_review_effect`: none; the three blockers recorded by `MR-2EC4192-20260713-01` remain its faithful historical finding
+- `current_blocker_effect`: supplies the owner-disposition evidence for evaluation by the next named Phase 7 Reviewer; does not itself accept Phase 7
+- `remaining_blockers`: live PostgreSQL `0005` upgrade/current, FK/index, actual `ON DELETE SET NULL`, and authenticated 404 evidence from Database Migration Owner; reviewed Node-compatible builder from Container Runtime Owner
+- `phase_verdict_effect`: none; Phase 7 remains pending and Phase 8 remains closed
